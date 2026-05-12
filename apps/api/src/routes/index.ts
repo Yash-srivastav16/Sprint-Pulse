@@ -5,6 +5,7 @@ import type {
   ConfigureGitRequest,
   ConfigureJiraRequest,
   CreateProjectRequest,
+  CreateProjectSprintRequest,
   CreateUserProfileRequest,
   InviteProjectMemberRequest,
   JiraConnectRequest,
@@ -53,6 +54,7 @@ import {
   buildSupabaseTeam,
   configureSupabaseGit,
   configureSupabaseJira,
+  createSupabaseProjectSprint,
   inviteSupabaseProjectMember,
   parseSupabaseProjectTranscript,
   submitSupabaseProjectStandup,
@@ -379,6 +381,28 @@ apiRouter.get("/projects/:projectId/sprints", async (req, res) => {
     healthScore: 0
   };
   res.json({ viewer: detail.viewer, project: detail.project, currentSprint: sprint, sprints: [sprint] });
+});
+
+apiRouter.post("/projects/:projectId/sprints", async (req, res) => {
+  if (!mockFlowEnabled) {
+    try {
+      const response = await createSupabaseProjectSprint(
+        String(req.params.projectId ?? ""),
+        req.body as CreateProjectSprintRequest
+      );
+      if (!response) {
+        res.status(404).json({ error: "Project not found or not visible to this user" });
+        return;
+      }
+
+      res.status(201).json(response);
+    } catch (err) {
+      res.status(500).json({ error: err instanceof Error ? err.message : "Unable to create sprint" });
+    }
+    return;
+  }
+
+  res.status(501).json({ error: realDataNotReadyMessage });
 });
 
 apiRouter.get("/projects/:projectId/team", async (req, res) => {

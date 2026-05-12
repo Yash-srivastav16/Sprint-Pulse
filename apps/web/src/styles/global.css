@@ -659,6 +659,10 @@ a {
   min-width: 0;
 }
 
+.team-entry-tabs {
+  width: min(420px, 100%);
+}
+
 .auth-form-note {
   margin: 0;
   color: var(--muted);
@@ -1597,6 +1601,110 @@ a {
   background: #f7fbfb;
 }
 
+.team-mapping-table.has-actions .ops-table-head,
+.team-mapping-table.has-actions .ops-table-row {
+  grid-template-columns:
+    minmax(220px, 1.35fr)
+    minmax(150px, 0.78fr)
+    minmax(190px, 1fr)
+    minmax(170px, 0.9fr)
+    minmax(130px, 0.62fr);
+}
+
+.member-mapping-cell {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.member-mapping-cell em {
+  color: var(--muted);
+  font-style: normal;
+  font-weight: 750;
+}
+
+.member-mapping-cell input,
+.member-mapping-cell select {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--ink);
+  background: #fbfdff;
+  padding: 0 10px;
+}
+
+.member-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.table-edit-button {
+  min-height: 36px;
+  padding: 0 10px;
+  color: var(--ink);
+  background: rgba(21, 154, 140, 0.09);
+  border-color: rgba(21, 154, 140, 0.2);
+}
+
+.table-icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--ink);
+  background: #ffffff;
+}
+
+.table-icon-button.is-save {
+  color: #ffffff;
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--accent-teal), var(--accent-blue));
+}
+
+html.dark .ops-table {
+  border-color: rgba(144, 164, 184, 0.22);
+  background: rgba(17, 24, 39, 0.72);
+}
+
+html.dark .ops-table-head {
+  color: #9fb0c2;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+html.dark .ops-table-row {
+  border-top-color: rgba(144, 164, 184, 0.18);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+html.dark .ops-table-row:hover {
+  background: rgba(45, 212, 191, 0.08);
+}
+
+html.dark .member-mapping-cell input,
+html.dark .member-mapping-cell select {
+  color: #edf5f7;
+  border-color: rgba(144, 164, 184, 0.22);
+  background: rgba(15, 23, 42, 0.78);
+}
+
+html.dark .table-edit-button {
+  color: #d9f8ff;
+  background: rgba(45, 212, 191, 0.1);
+  border-color: rgba(45, 212, 191, 0.22);
+}
+
+html.dark .table-icon-button {
+  color: #edf5f7;
+  border-color: rgba(144, 164, 184, 0.22);
+  background: rgba(255, 255, 255, 0.07);
+}
+
 .member-cell {
   display: flex;
   align-items: center;
@@ -1663,6 +1771,14 @@ a {
 
 .text-link:hover {
   text-decoration: underline;
+}
+
+.invite-link-button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
 }
 
 .current-sprint-band {

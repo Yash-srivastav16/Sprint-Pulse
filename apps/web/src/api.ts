@@ -7,6 +7,8 @@ import type {
   ConfigureGitResponse,
   ConfigureJiraRequest,
   ConfigureJiraResponse,
+  CreateProjectSprintRequest,
+  CreateProjectSprintResponse,
   DashboardResponse,
   IntegrationStatusResponse,
   InviteProjectMemberRequest,
@@ -46,6 +48,7 @@ import {
   getProjectStandupsFromSupabase,
   getProjectTeamFromSupabase,
   inviteProjectMemberInSupabase,
+  createProjectSprintInSupabase,
   parseProjectTranscriptForPersonaInSupabase,
   submitProjectStandupToSupabase,
   syncGitInSupabase,
@@ -188,6 +191,20 @@ export const api = {
       return await projectRequest<SprintListResponse>(`/projects/${projectId}/sprints?personaId=${encodeURIComponent(personaId)}`);
     } catch {
       return getProjectSprintsFromSupabase(projectId, personaId);
+    }
+  },
+  createProjectSprint: async (projectId: string, input: CreateProjectSprintRequest): Promise<CreateProjectSprintResponse> => {
+    if (DIRECT_SUPABASE_PROJECTS) {
+      return createProjectSprintInSupabase(projectId, input);
+    }
+
+    try {
+      return await projectRequest<CreateProjectSprintResponse>(`/projects/${projectId}/sprints`, {
+        method: "POST",
+        body: JSON.stringify(input)
+      });
+    } catch {
+      return createProjectSprintInSupabase(projectId, input);
     }
   },
   getProjectTeam: async (projectId: string, personaId: string) => {

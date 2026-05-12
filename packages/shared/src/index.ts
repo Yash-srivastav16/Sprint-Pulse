@@ -177,6 +177,7 @@ export interface ProjectSummary {
 export interface ProjectsResponse {
   viewer: Persona;
   projects: ProjectSummary[];
+  uniqueMemberCount: number;
   canCreateProject: boolean;
   canConnectProject: boolean;
   recommendedProjectId?: string;
@@ -339,6 +340,19 @@ export interface SprintListResponse {
   project: SprintProject;
   currentSprint?: SprintSummary;
   sprints: SprintSummary[];
+}
+
+export interface CreateProjectSprintRequest {
+  personaId: string;
+  name: string;
+  goal: string;
+  startDate: string;
+  endDate: string;
+  status: SprintInfo["status"];
+}
+
+export interface CreateProjectSprintResponse extends SprintListResponse {
+  createdSprint: SprintSummary;
 }
 
 export interface TeamResponse {

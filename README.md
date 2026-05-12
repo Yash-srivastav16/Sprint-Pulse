@@ -53,6 +53,9 @@ Run the SQL files in order before using `ENABLE_MOCK_FLOW=false`:
 2. [database/supabase/002_projects.sql](/Users/yash_srivastav/Documents/Semicolons/database/supabase/002_projects.sql)
 3. [database/supabase/003_performance_indexes.sql](/Users/yash_srivastav/Documents/Semicolons/database/supabase/003_performance_indexes.sql)
 4. [database/supabase/004_project_ops.sql](/Users/yash_srivastav/Documents/Semicolons/database/supabase/004_project_ops.sql)
+5. [database/supabase/005_invite_acceptance.sql](/Users/yash_srivastav/Documents/Semicolons/database/supabase/005_invite_acceptance.sql)
+6. [database/supabase/006_invite_flow_cleanup.sql](/Users/yash_srivastav/Documents/Semicolons/database/supabase/006_invite_flow_cleanup.sql)
+7. [database/supabase/007_sprint_management.sql](/Users/yash_srivastav/Documents/Semicolons/database/supabase/007_sprint_management.sql)
 
 Re-run the files after updates; they also install the RLS policies that let signed-in users save profiles, claim invited profiles, create projects as Scrum Master or Engineering Manager, manage team/integrations, and fetch visible project workspaces.
 

@@ -16,6 +16,12 @@ const roleOptions: Array<{ value: AppRole; label: string }> = [
 
 export function LoginPage() {
   const location = useLocation();
+  const inviteParams = new URLSearchParams(location.search);
+  const invitedEmail = inviteParams.get("email")?.trim() ?? "";
+  const invitedName = inviteParams.get("name")?.trim() ?? "";
+  const invitedRole = inviteParams.get("role") as AppRole | null;
+  const invitedRoleIsValid = Boolean(invitedRole && roleOptions.some((role) => role.value === invitedRole));
+  const isInviteSignup = location.pathname === "/signup" && Boolean(invitedEmail && invitedRoleIsValid);
   const [mode, setMode] = useState<AuthMode>(location.pathname === "/signup" ? "create" : "signin");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -33,21 +39,16 @@ export function LoginPage() {
     setError(null);
     setSuccess(null);
 
-    const params = new URLSearchParams(location.search);
-    const invitedEmail = params.get("email");
-    const invitedName = params.get("name");
-    const invitedRole = params.get("role") as AppRole | null;
-
     if (location.pathname === "/signup" && invitedEmail) {
       setEmail(invitedEmail);
     }
     if (location.pathname === "/signup" && invitedName) {
       setName(invitedName);
     }
-    if (location.pathname === "/signup" && invitedRole && roleOptions.some((role) => role.value === invitedRole)) {
+    if (location.pathname === "/signup" && invitedRole && invitedRoleIsValid) {
       setAppRole(invitedRole);
     }
-  }, [location.pathname, location.search]);
+  }, [invitedEmail, invitedName, invitedRole, invitedRoleIsValid, location.pathname]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -92,7 +93,12 @@ export function LoginPage() {
         return;
       }
 
-      const response = await signUpWithPassword({ name, email, password, appRole });
+      const response = await signUpWithPassword({
+        name,
+        email: isInviteSignup ? invitedEmail : email,
+        password,
+        appRole: isInviteSignup && invitedRole ? invitedRole : appRole
+      });
       setPassword("");
       setConfirmPassword("");
 
@@ -176,7 +182,7 @@ export function LoginPage() {
                   <select
                     value={appRole}
                     onChange={(event) => setAppRole(event.target.value as AppRole)}
-                    disabled={Boolean(configurationError)}
+                    disabled={Boolean(configurationError) || isInviteSignup}
                     required
                   >
                     {roleOptions.map((role) => (
@@ -200,7 +206,7 @@ export function LoginPage() {
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="you@company.com"
                 autoComplete="email"
-                disabled={Boolean(configurationError)}
+                disabled={Boolean(configurationError) || isInviteSignup}
                 required
               />
             </div>

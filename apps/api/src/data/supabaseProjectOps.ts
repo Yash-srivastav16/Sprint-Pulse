@@ -4,6 +4,8 @@ import type {
   ConfigureGitResponse,
   ConfigureJiraRequest,
   ConfigureJiraResponse,
+  CreateProjectSprintRequest,
+  CreateProjectSprintResponse,
   GitCommit,
   GitConnection,
   GitSignal,
@@ -171,28 +173,24 @@ const requireSupabaseAdmin = () => {
   return supabaseAdmin;
 };
 
-const canViewTeam = (viewer: Persona) =>
-  viewer.productPersona === "product-owner" ||
-  viewer.productPersona === "scrum-master" ||
-  viewer.productPersona === "engineering-manager" ||
-  viewer.productPersona === "qa-lead" ||
-  viewer.productPersona === "presenter";
-
 const permissionsForProject = (viewer: Persona, project: SprintProject): Permission[] => {
-  const isMember = project.members.some((member) => member.personaId === viewer.id);
+  const membership = project.members.find((member) => member.personaId === viewer.id);
+  const canViewPortfolio = viewer.productPersona === "product-owner";
+  const isMember = Boolean(membership);
+  const projectVisible = canViewPortfolio || project.createdBy === viewer.id || isMember;
+  const teamVisibility =
+    canViewPortfolio ||
+    project.createdBy === viewer.id ||
+    Boolean(membership && ["product-owner", "scrum-master", "engineering-manager", "architect", "qa"].includes(membership.role));
   const canManage =
     project.createdBy === viewer.id ||
-    project.members.some(
-      (member) =>
-        member.personaId === viewer.id &&
-        (member.role === "product-owner" || member.role === "scrum-master" || member.role === "engineering-manager")
-    );
+    Boolean(membership && ["product-owner", "scrum-master", "engineering-manager"].includes(membership.role));
   const permissions: Permission[] = [];
 
-  if (canViewTeam(viewer) || isMember) {
+  if (projectVisible) {
     permissions.push("project:view", "dashboard:viewOwn", "member:viewOwn", "standup:submit");
   }
-  if (canViewTeam(viewer)) {
+  if (teamVisibility) {
     permissions.push("dashboard:viewTeam", "member:viewTeam");
   }
   if (canManage) {
@@ -698,6 +696,69 @@ export const buildSupabaseSprintList = async (
   };
 };
 
+export const createSupabaseProjectSprint = async (
+  projectId: string,
+  input: CreateProjectSprintRequest
+): Promise<CreateProjectSprintResponse | undefined> => {
+  const context = await loadProjectContext(projectId, input.personaId);
+  if (!context) {
+    return undefined;
+  }
+
+  if (!context.permissions.includes("project:connect")) {
+    throw new Error("You do not have permission to manage sprints for this project.");
+  }
+
+  const client = requireSupabaseAdmin();
+  const now = new Date().toISOString();
+  const status = input.status === "active" ? "active" : "planned";
+
+  if (status === "active") {
+    const closeActive = await client
+      .from("sprints")
+      .update({ status: "closed", updated_at: now })
+      .eq("project_id", projectId)
+      .eq("status", "active");
+
+    if (closeActive.error) {
+      throw new Error(closeActive.error.message);
+    }
+  }
+
+  const inserted = await client
+    .from("sprints")
+    .insert({
+      project_id: projectId,
+      name: input.name.trim(),
+      goal: input.goal.trim(),
+      start_date: input.startDate,
+      end_date: input.endDate,
+      status,
+      created_at: now,
+      updated_at: now
+    })
+    .select()
+    .single();
+
+  if (inserted.error) {
+    throw new Error(inserted.error.message);
+  }
+
+  const sprintList = await buildSupabaseSprintList(projectId, input.personaId);
+  if (!sprintList) {
+    return undefined;
+  }
+
+  const createdSprint =
+    sprintList.sprints.find((sprint) => sprint.id === (inserted.data as SprintRow).id) ??
+    toSprintSummary(inserted.data as SprintRow, { standups: [], issues: [], commits: [] });
+
+  return {
+    ...sprintList,
+    createdSprint
+  };
+};
+
 export const buildSupabaseTeam = async (projectId: string, personaId: string): Promise<TeamResponse | undefined> => {
   const context = await loadProjectContext(projectId, personaId);
   if (!context) {
@@ -807,6 +868,7 @@ export const inviteSupabaseProjectMember = async (
     profile = inserted.data as ProfileRow;
   }
 
+  const hasAccount = Boolean(profile.auth_user_id);
   const memberRow = {
     project_id: projectId,
     profile_id: profile.id,
@@ -814,9 +876,12 @@ export const inviteSupabaseProjectMember = async (
     jira_account_id: input.jiraAccountId?.trim() || null,
     github_username: input.githubUsername?.trim() || null
   };
-  const memberWrite = await client.from("project_members").upsert(memberRow).select().single();
-  if (memberWrite.error) {
-    throw new Error(memberWrite.error.message);
+
+  if (hasAccount) {
+    const memberWrite = await client.from("project_members").upsert(memberRow).select().single();
+    if (memberWrite.error) {
+      throw new Error(memberWrite.error.message);
+    }
   }
 
   const inviteWrite = await client
@@ -827,7 +892,7 @@ export const inviteSupabaseProjectMember = async (
         email,
         role: input.projectRole,
         invited_by: input.personaId,
-        status: profile.auth_user_id ? "accepted" : "pending",
+        status: hasAccount ? "accepted" : "pending",
         expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
       },
       { onConflict: "project_id,email" }

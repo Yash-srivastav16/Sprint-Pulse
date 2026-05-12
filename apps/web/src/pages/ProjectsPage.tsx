@@ -24,17 +24,18 @@ import type { Persona, ProjectsResponse, ProjectSummary } from "@sprintpulse/sha
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { useProject } from "../context/ProjectContext";
+import { cn } from "../lib/utils";
 import "../styles/project-flow.css";
 import "../styles/projects.css";
 
 function projectCopy(persona: Persona) {
   switch (persona.productPersona) {
     case "product-owner":
-      return "Portfolio health, sprint confidence, and delivery risk across every active initiative.";
+      return "Compare live sprint signal across every active initiative and open the project that needs attention.";
     case "scrum-master":
-      return "Create or connect delivery spaces, keep standups current, and unblock the next sprint move.";
+      return "Create projects, connect delivery systems, and keep each sprint ready for standups, Jira, Git, and team review.";
     case "engineering-manager":
-      return "Architecture and delivery workspaces with team health visibility.";
+      return "Architecture and delivery workspaces with team health, risk, and sprint continuity in one place.";
     case "qa-lead":
       return "Quality signals, validation scope, and release readiness across active sprint work.";
     case "presenter":
@@ -48,9 +49,9 @@ function projectCopy(persona: Persona) {
 function projectHeading(persona: Persona) {
   switch (persona.productPersona) {
     case "product-owner":
-      return "Portfolio command center";
+      return "Project intelligence";
     case "scrum-master":
-      return "Delivery operations";
+      return "Project operations";
     default:
       return "Projects";
   }
@@ -97,6 +98,38 @@ function healthLabel(score: number) {
   return "No signal";
 }
 
+function healthAccentClass(score: number) {
+  if (score >= 85) {
+    return "from-primary-500 via-primary-400 to-info-400";
+  }
+  if (score >= 70) {
+    return "from-warning-500 via-warning-400 to-primary-500";
+  }
+  if (score > 0) {
+    return "from-danger-500 via-warning-500 to-warning-300";
+  }
+  return "from-slate-400 via-slate-300 to-slate-500";
+}
+
+function healthBadgeClass(score: number) {
+  if (score >= 85) {
+    return "border-primary-500/25 bg-primary-500/10 text-primary-700 dark:text-primary-200";
+  }
+  if (score >= 70) {
+    return "border-warning-500/30 bg-warning-500/10 text-warning-700 dark:text-warning-200";
+  }
+  if (score > 0) {
+    return "border-danger-500/25 bg-danger-500/10 text-danger-700 dark:text-danger-200";
+  }
+  return "border-slate-300/70 bg-slate-100 text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300";
+}
+
+function sourcePillClass(source: ProjectSummary["source"]) {
+  return source === "jira"
+    ? "border-warning-500/25 bg-warning-500/10 text-warning-700 dark:text-warning-200"
+    : "border-info-500/25 bg-info-500/10 text-info-700 dark:text-info-200";
+}
+
 function formatSyncDate(lastSyncAt?: string) {
   if (!lastSyncAt) {
     return "No sync yet";
@@ -116,22 +149,22 @@ function progressWidth(score: number, min = 4) {
 
 function emptyProjectCopy(canUseSetupActions: boolean, canCreateProject: boolean, canConnectProject: boolean) {
   if (!canUseSetupActions) {
-    return "Ask your Scrum Master to create a SprintPulse workspace and add you to the project.";
+    return "Ask a project lead to add you to a SprintPulse project workspace.";
   }
 
   if (canCreateProject && canConnectProject) {
-    return "Create a manual project or connect Jira to give the team a focused SprintPulse workspace.";
+    return "Create a new project or connect Jira so SprintPulse can start collecting sprint signal.";
   }
 
   if (canCreateProject) {
-    return "Create a manual project to give the team a focused SprintPulse workspace.";
+    return "Create a project workspace and add the first active sprint.";
   }
 
   if (canConnectProject) {
     return "Connect Jira to turn an existing delivery space into a SprintPulse workspace.";
   }
 
-  return "Setup permissions are limited for this workspace.";
+  return "Project creation is limited for this workspace.";
 }
 
 export function ProjectsPage() {
@@ -181,14 +214,14 @@ export function ProjectsPage() {
   }
 
   const isProductOwner = persona.productPersona === "product-owner";
-  const isScrumMaster = persona.productPersona === "scrum-master";
-  const canUseSetupActions = isScrumMaster;
+  const canUseSetupActions = data.canCreateProject || data.canConnectProject;
   const hasSetupActions = canUseSetupActions && (data.canCreateProject || data.canConnectProject);
-  const averageHealth = data.projects.length
-    ? Math.round(data.projects.reduce((total, project) => total + project.healthScore, 0) / data.projects.length)
+  const scoredProjects = data.projects.filter((project) => project.healthScore > 0);
+  const averageHealth = scoredProjects.length
+    ? Math.round(scoredProjects.reduce((total, project) => total + project.healthScore, 0) / scoredProjects.length)
     : 0;
   const totalAtRisk = data.projects.reduce((total, project) => total + project.atRiskCount, 0);
-  const totalMembers = data.projects.reduce((total, project) => total + project.memberCount, 0);
+  const totalMembers = data.uniqueMemberCount;
   const recommendedProject = data.projects.find((project) => project.id === data.recommendedProjectId);
   const activeProject = data.projects.find((project) => project.id === activeProjectId) ?? recommendedProject ?? data.projects[0];
 
@@ -231,44 +264,37 @@ export function ProjectsPage() {
           </div>
         </div>
         <div className="project-actions flow-hero-actions projects-hero-actions">
-          <div className="flow-action-panel">
-            <span className="flow-action-label">{activeProject ? "Current focus" : "Workspace setup"}</span>
-            {activeProject ? (
-              <div className="projects-focus-card">
-                <div>
-                  <span className="projects-focus-key">{activeProject.key}</span>
-                  <strong>{activeProject.name}</strong>
-                  <small>{activeProject.sprintName}</small>
-                </div>
-                <span className={`projects-health-chip ${healthTone(activeProject.healthScore)}`}>
-                  {healthLabel(activeProject.healthScore)}
-                  <b>{formatHealth(activeProject.healthScore)}</b>
-                </span>
-              </div>
-            ) : null}
-            <div className="flow-action-buttons">
+          <div className="flow-action-panel projects-command-panel">
+            <span className="flow-action-label">Project setup</span>
+            <div className="projects-setup-actions">
               {canUseSetupActions && data.canCreateProject ? (
-                <Link className="primary-button" to="/projects/new">
-                  <Plus size={18} />
-                  <span>Create project</span>
+                <Link className="projects-setup-card is-primary" to="/projects/new">
+                  <span>
+                    <Plus size={20} />
+                  </span>
+                  <strong>Create project</strong>
+                  <small>Start with sprint name, goal, dates, and team context.</small>
                 </Link>
               ) : null}
               {canUseSetupActions && data.canConnectProject ? (
-                <Link className="icon-text-button" to="/projects/connect">
-                  <Cloud size={18} />
-                  <span>Connect existing</span>
+                <Link className="projects-setup-card" to="/projects/connect">
+                  <span>
+                    <Cloud size={20} />
+                  </span>
+                  <strong>Connect existing</strong>
+                  <small>Bring a Jira project into SprintPulse and sync delivery signal.</small>
                 </Link>
               ) : null}
               {!canUseSetupActions ? (
                 <div className="permission-note">
                   <ShieldAlert size={17} />
-                  <span>{isProductOwner ? "Setup actions are handled by Scrum Masters." : "Project setup is managed by Scrum Masters."}</span>
+                  <span>{isProductOwner ? "Project setup is handled by the delivery lead." : "Project setup is handled by project leads."}</span>
                 </div>
               ) : null}
               {canUseSetupActions && !hasSetupActions ? (
                 <div className="permission-note">
                   <ShieldAlert size={17} />
-                  <span>Setup permissions are limited for this workspace.</span>
+                  <span>Project creation is not enabled for this account.</span>
                 </div>
               ) : null}
             </div>
@@ -285,65 +311,25 @@ export function ProjectsPage() {
       >
         <div className={healthTone(averageHealth)}>
           <Gauge size={20} />
-          <span>{isProductOwner ? "Portfolio health" : "Average health"}</span>
-          <strong>{averageHealth || "--"}</strong>
+          <span>{isProductOwner ? "Portfolio signal" : "Sprint signal"}</span>
+          <strong>{averageHealth || "Collecting"}</strong>
         </div>
         <div>
           <Sparkles size={20} />
-          <span>{isScrumMaster ? "Setup access" : "Active projects"}</span>
-          <strong>{isScrumMaster ? (hasSetupActions ? "Enabled" : "Limited") : data.projects.length}</strong>
+          <span>Active projects</span>
+          <strong>{data.projects.length}</strong>
         </div>
         <div>
           <ShieldAlert size={20} />
-          <span>At-risk items</span>
+          <span>Risk signals</span>
           <strong>{totalAtRisk}</strong>
         </div>
         <div>
           <Users size={20} />
-          <span>Team members</span>
+          <span>Unique people</span>
           <strong>{totalMembers}</strong>
         </div>
       </motion.section>
-
-      {isScrumMaster ? (
-        <motion.section
-          className="operations-band flow-operations-band projects-guidance-band"
-          aria-label="Scrum Master operations"
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.34, delay: 0.12, ease: "easeOut" }}
-        >
-          <div>
-            <p className="eyebrow">Scrum Master flow</p>
-            <h2>Start with the right workspace</h2>
-            <p>Create a new project for a fresh sprint or connect an existing Jira project before moving into standups and delivery health.</p>
-          </div>
-          <div className="operations-steps">
-            <span>Create project</span>
-            <span>Connect existing</span>
-            <span>Run delivery operations</span>
-          </div>
-        </motion.section>
-      ) : isProductOwner ? (
-        <motion.section
-          className="operations-band product-owner-band flow-operations-band projects-guidance-band"
-          aria-label="Product Owner overview"
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.34, delay: 0.12, ease: "easeOut" }}
-        >
-          <div>
-            <p className="eyebrow">Product Owner view</p>
-            <h2>Every detail stays visible</h2>
-            <p>Open any initiative to inspect sprint health, blockers, team participation, member risk, and the recommended delivery path.</p>
-          </div>
-          <div className="operations-steps">
-            <span>Portfolio health</span>
-            <span>Project details</span>
-            <span>Delivery risk</span>
-          </div>
-        </motion.section>
-      ) : null}
 
       {data.projects.length ? (
         <>
@@ -357,10 +343,10 @@ export function ProjectsPage() {
             <div className="projects-switcher-copy">
               <p className="eyebrow">
                 <ListChecks size={15} />
-                Project switcher
+                Workspace board
               </p>
-              <h2 id="project-switcher-title">Choose the workspace to inspect</h2>
-              <p>Pin a project in focus, compare its sprint signal, then open the workspace when you are ready to act.</p>
+              <h2 id="project-switcher-title">Select a project to inspect</h2>
+              <p>Compare sprint signal, connected source, risk count, and team size before opening the project workspace.</p>
               <div className="projects-switch-list" aria-label="Project list">
                 {data.projects.map((project) => {
                   const isActive = activeProject?.id === project.id;
@@ -440,81 +426,119 @@ export function ProjectsPage() {
             ) : null}
           </motion.section>
 
-          <section className="projects-cards-section" aria-labelledby="projects-list-title">
-            <div className="projects-section-heading">
+          <section
+            className="grid gap-6 rounded-xl border border-slate-200/70 bg-white/80 p-6 shadow-[0_24px_74px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/55 dark:shadow-[0_24px_80px_rgba(0,0,0,0.32)]"
+            aria-labelledby="projects-list-title"
+          >
+            <div className="flex items-end justify-between gap-4">
               <div>
-                <p className="eyebrow">
+                <p className="eyebrow !mb-2">
                   <Rocket size={15} />
                   Workspace list
                 </p>
-                <h2 id="projects-list-title">All accessible projects</h2>
+                <h2 className="m-0 text-2xl font-black text-slate-950 dark:text-white" id="projects-list-title">
+                  All accessible projects
+                </h2>
               </div>
-              <span>{data.projects.length} total</span>
+              <span className="inline-flex min-h-9 items-center rounded-full border border-primary-500/20 bg-primary-500/10 px-4 text-sm font-black text-primary-700 dark:text-primary-100">
+                {data.projects.length} total
+              </span>
             </div>
-            <div className="project-grid projects-card-grid" aria-label="Available projects">
+            <div className="grid grid-cols-1 gap-5 xl:grid-cols-2" aria-label="Available projects">
               {data.projects.map((project, index) => (
                 <motion.article
-                  className={`project-card flow-project-card projects-card ${data.recommendedProjectId === project.id ? "is-recommended" : ""}`}
+                  className={cn(
+                    "group relative flex min-h-[360px] overflow-hidden rounded-xl border border-slate-200/80 bg-white/95 p-6 text-slate-950 shadow-[0_22px_64px_rgba(15,23,42,0.10)] transition duration-200 hover:-translate-y-1 hover:border-primary-500/40 hover:shadow-[0_30px_84px_rgba(15,23,42,0.16)] dark:border-white/10 dark:bg-slate-950/70 dark:text-white dark:shadow-[0_26px_84px_rgba(0,0,0,0.32)]",
+                    data.recommendedProjectId === project.id && "ring-1 ring-primary-500/30"
+                  )}
                   key={project.id}
                   initial={{ opacity: 0, y: 18 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.32, delay: 0.2 + index * 0.04, ease: "easeOut" }}
                 >
-                  <div className="project-card-accent" style={{ width: progressWidth(project.healthScore, 12) }} aria-hidden="true" />
-                  <div className="project-card-top">
-                    <span className="project-key">
-                      <Layers3 size={14} />
-                      {project.key}
-                    </span>
-                    <span className={`source-pill source-${project.source}`}>{sourceLabel(project.source)}</span>
-                  </div>
-                  <div className="project-card-main">
-                    {data.recommendedProjectId === project.id ? (
-                      <span className="recommended-pill">
-                        <CheckCircle2 size={14} />
-                        Recommended
+                  <span className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary-500/10 via-transparent to-info-500/10 opacity-80 dark:from-primary-400/10 dark:to-ai-500/10" />
+                  <span
+                    className={cn("absolute left-6 top-0 h-1.5 min-w-28 rounded-b-full bg-gradient-to-r", healthAccentClass(project.healthScore))}
+                    style={{ width: progressWidth(project.healthScore, 12) }}
+                    aria-hidden="true"
+                  />
+                  <div className="relative z-10 flex w-full flex-col gap-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="inline-flex min-h-9 items-center gap-2 rounded-full border border-primary-500/20 bg-primary-500/10 px-3 text-sm font-black text-primary-700 dark:text-primary-100">
+                        <Layers3 size={14} />
+                        {project.key}
                       </span>
-                    ) : null}
-                    <h2>{project.name}</h2>
-                    <p>{project.sprintGoal}</p>
-                    <div className="project-card-meta">
-                      <span>
-                        <CalendarDays size={15} />
-                        {project.sprintName}
-                      </span>
-                      <span>
-                        <Clock3 size={15} />
-                        {formatSyncDate(project.lastSyncAt)}
+                      <span className={cn("inline-flex min-h-9 items-center rounded-full border px-3 text-sm font-black", sourcePillClass(project.source))}>
+                        {sourceLabel(project.source)}
                       </span>
                     </div>
-                  </div>
-                  <div className="project-health-row" aria-label={`${project.name} health`}>
-                    <span>{healthLabel(project.healthScore)}</span>
-                    <strong>{formatHealth(project.healthScore)}</strong>
-                    <div className="flow-health-bar" aria-hidden="true">
-                      <i style={{ width: progressWidth(project.healthScore) }} />
+
+                    <div className="grid gap-3">
+                      {data.recommendedProjectId === project.id ? (
+                        <span className="inline-flex w-fit min-h-8 items-center gap-2 rounded-full border border-primary-500/25 bg-primary-500/10 px-3 text-xs font-black text-primary-700 dark:text-primary-100">
+                          <CheckCircle2 size={14} />
+                          Recommended
+                        </span>
+                      ) : null}
+                      <div className="space-y-2">
+                        <h2 className="m-0 text-2xl font-black leading-tight text-slate-950 dark:text-white">{project.name}</h2>
+                        <p className="m-0 max-w-2xl text-[0.98rem] leading-7 text-slate-600 dark:text-slate-300">{project.sprintGoal}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <span className="inline-flex min-h-9 items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 text-sm font-bold text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+                          <CalendarDays size={15} />
+                          {project.sprintName}
+                        </span>
+                        <span className="inline-flex min-h-9 items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 text-sm font-bold text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+                          <Clock3 size={15} />
+                          {formatSyncDate(project.lastSyncAt)}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="project-stat-row">
-                    <span>
-                      <strong>{formatHealth(project.healthScore)}</strong>
-                      Health
-                    </span>
-                    <span>
-                      <strong>{project.atRiskCount}</strong>
-                      At risk
-                    </span>
-                    <span>
-                      <strong>{project.memberCount}</strong>
-                      People
-                    </span>
-                  </div>
-                  <div className="project-card-footer">
-                    <span>{formatRole(project.currentUserRole)}</span>
-                    <button className="primary-button" type="button" onClick={() => openProject(project)}>
-                      <ArrowRight size={17} />
-                      <span>{isProductOwner ? "View details" : "Open workspace"}</span>
-                    </button>
+
+                    <div
+                      className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-3 rounded-xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-white/[0.055]"
+                      aria-label={`${project.name} health`}
+                    >
+                      <span className="text-sm font-black text-slate-500 dark:text-slate-300">{healthLabel(project.healthScore)}</span>
+                      <strong className="text-2xl font-black leading-none text-slate-950 dark:text-white">{formatHealth(project.healthScore)}</strong>
+                      <div className="col-span-2 h-2.5 overflow-hidden rounded-full bg-slate-200/80 dark:bg-white/10" aria-hidden="true">
+                        <i
+                          className={cn("block h-full rounded-full bg-gradient-to-r", healthAccentClass(project.healthScore))}
+                          style={{ width: progressWidth(project.healthScore) }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        ["Health", formatHealth(project.healthScore)],
+                        ["At risk", project.atRiskCount],
+                        ["People", project.memberCount]
+                      ].map(([label, value]) => (
+                        <span
+                          className="grid min-h-20 content-center gap-1 rounded-xl border border-slate-200/80 bg-white/80 px-4 py-3 text-sm font-bold text-slate-500 shadow-sm dark:border-white/10 dark:bg-white/[0.055] dark:text-slate-300"
+                          key={label}
+                        >
+                          <strong className="text-2xl font-black leading-none text-slate-950 dark:text-white">{value}</strong>
+                          {label}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="mt-auto flex items-center justify-between gap-4">
+                      <span className={cn("inline-flex min-h-9 items-center rounded-full border px-3 text-sm font-black", healthBadgeClass(project.healthScore))}>
+                        {formatRole(project.currentUserRole)}
+                      </span>
+                      <button
+                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-primary-500 to-info-500 px-5 text-sm font-black text-white shadow-[0_14px_34px_rgba(21,154,140,0.24)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(21,154,140,0.32)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-950"
+                        type="button"
+                        onClick={() => openProject(project)}
+                      >
+                        <ArrowRight size={17} />
+                        <span>{isProductOwner ? "View details" : "Open workspace"}</span>
+                      </button>
+                    </div>
                   </div>
                 </motion.article>
               ))}

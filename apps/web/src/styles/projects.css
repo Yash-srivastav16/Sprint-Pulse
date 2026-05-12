@@ -15,6 +15,1504 @@
   color: var(--projects-ink);
 }
 
+/* Stitch-inspired project operations board */
+.projects-modern {
+  --projects-ink: #edf5f7;
+  --projects-muted: #aebccc;
+  --projects-line: rgba(144, 164, 184, 0.22);
+  --projects-soft-line: rgba(144, 164, 184, 0.15);
+  --projects-surface: rgba(28, 27, 36, 0.72);
+  --projects-surface-strong: rgba(36, 34, 44, 0.92);
+  --projects-teal: #2dd4bf;
+  --projects-blue: #60a5fa;
+  --projects-coral: #fb7185;
+  --projects-amber: #facc15;
+  --projects-violet: #cfbcff;
+  --projects-shadow: 0 24px 74px rgba(0, 0, 0, 0.32);
+}
+
+.projects-modern .projects-hero-modern,
+.projects-switcher,
+.projects-cards-section,
+.projects-empty-panel,
+.projects-modern .projects-guidance-band,
+.projects-modern .projects-stat-strip div,
+.projects-modern .projects-card {
+  border-color: var(--projects-line);
+  background:
+    linear-gradient(145deg, rgba(31, 30, 39, 0.95), rgba(20, 29, 42, 0.88)),
+    #141218;
+  box-shadow: var(--projects-shadow);
+  backdrop-filter: blur(18px);
+}
+
+.projects-modern .projects-hero-modern {
+  background:
+    linear-gradient(135deg, rgba(18, 18, 26, 0.98), rgba(33, 31, 45, 0.94) 46%, rgba(23, 54, 64, 0.88)),
+    #141218;
+}
+
+.projects-modern .projects-hero-modern h1,
+.projects-switcher h2,
+.projects-active-panel h2,
+.projects-section-heading h2,
+.projects-empty-panel h2,
+.projects-modern .projects-card h2,
+.projects-focus-card strong,
+.projects-switch-copy strong {
+  color: #f8fbff;
+}
+
+.projects-modern .projects-hero-modern .flow-hero-lede,
+.projects-switcher-copy > p:not(.eyebrow),
+.projects-active-copy p,
+.projects-empty-panel p:not(.eyebrow),
+.projects-focus-card small,
+.projects-switch-copy small {
+  color: var(--projects-muted);
+}
+
+.projects-modern .flow-live-chip,
+.projects-modern .flow-hero-pills span,
+.projects-modern .flow-action-panel,
+.projects-focus-card,
+.projects-switch-item,
+.projects-empty-checklist span {
+  border-color: var(--projects-soft-line);
+  color: #d9f8ff;
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: none;
+}
+
+.projects-modern .flow-kicker-row .eyebrow,
+.projects-modern .flow-live-chip svg,
+.projects-modern .flow-hero-pills svg {
+  color: var(--projects-teal);
+}
+
+.projects-command-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.projects-setup-actions {
+  display: grid;
+  gap: 12px;
+}
+
+.projects-setup-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 12px;
+  min-height: 96px;
+  padding: 15px;
+  overflow: hidden;
+  border: 1px solid var(--projects-soft-line);
+  border-radius: 10px;
+  color: #edf5f7;
+  background: rgba(255, 255, 255, 0.06);
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    transform 180ms ease;
+}
+
+.projects-setup-card:hover {
+  border-color: rgba(45, 212, 191, 0.38);
+  background: rgba(45, 212, 191, 0.1);
+  transform: translateY(-2px);
+}
+
+.projects-setup-card.is-primary {
+  background:
+    linear-gradient(135deg, rgba(103, 80, 164, 0.68), rgba(45, 212, 191, 0.2)),
+    rgba(255, 255, 255, 0.07);
+}
+
+.projects-setup-card > span {
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  color: #0f172a;
+  background: #cfbcff;
+}
+
+.projects-setup-card strong,
+.projects-setup-card small {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.projects-setup-card strong {
+  align-self: end;
+  font-size: 1rem;
+}
+
+.projects-setup-card small {
+  align-self: start;
+  color: var(--projects-muted);
+  line-height: 1.45;
+}
+
+.projects-modern .projects-stat-strip div::before {
+  background: linear-gradient(180deg, var(--projects-teal), var(--projects-blue));
+}
+
+.projects-modern .projects-guidance-band {
+  background:
+    linear-gradient(135deg, rgba(36, 34, 44, 0.94), rgba(22, 42, 52, 0.86)),
+    #141218;
+}
+
+.projects-switch-item:hover,
+.projects-switch-item.is-active {
+  border-color: rgba(45, 212, 191, 0.44);
+  background: rgba(45, 212, 191, 0.1);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.24);
+}
+
+.projects-switch-icon {
+  color: #99f6e4;
+  background: rgba(45, 212, 191, 0.12);
+}
+
+.projects-active-panel {
+  background:
+    linear-gradient(145deg, rgba(17, 24, 39, 0.98), rgba(44, 38, 73, 0.86) 48%, rgba(18, 76, 83, 0.82)),
+    #141218;
+}
+
+.projects-active-panel .flow-health-bar,
+.projects-modern .flow-health-bar {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.projects-modern .projects-card:hover {
+  border-color: rgba(45, 212, 191, 0.4);
+  box-shadow: 0 28px 72px rgba(0, 0, 0, 0.36);
+}
+
+/* Final project theme override. Keep this last so project cards and sprint
+   signal metrics stay readable after the older experimental style passes. */
+.projects-modern {
+  --projects-ink: #132033;
+  --projects-muted: #5d6f83;
+  --projects-line: rgba(135, 153, 172, 0.28);
+  --projects-soft-line: rgba(135, 153, 172, 0.18);
+  --projects-teal: #149b8e;
+  --projects-blue: #386fb7;
+  --projects-coral: #df654f;
+  --projects-amber: #c68d20;
+  --projects-violet: #7258b7;
+  --projects-shadow: 0 22px 70px rgba(24, 39, 54, 0.11);
+  --flow-ink: var(--projects-ink);
+  --flow-muted: var(--projects-muted);
+  color: var(--projects-ink);
+}
+
+.projects-modern .projects-hero-modern,
+.projects-modern .projects-switcher,
+.projects-modern .projects-cards-section,
+.projects-modern .projects-empty-panel,
+.projects-modern .projects-stat-strip div,
+.projects-modern .projects-card {
+  border-color: var(--projects-line);
+  color: var(--projects-ink);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(247, 251, 253, 0.92)),
+    #ffffff;
+  box-shadow: var(--projects-shadow);
+}
+
+.projects-modern .projects-hero-modern {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.99), rgba(234, 249, 247, 0.95) 48%, rgba(246, 243, 255, 0.92)),
+    #ffffff;
+}
+
+.projects-modern .projects-hero-modern h1,
+.projects-modern .projects-switcher h2,
+.projects-modern .projects-section-heading h2,
+.projects-modern .projects-empty-panel h2,
+.projects-modern .projects-card h2,
+.projects-modern .projects-switch-copy strong {
+  color: var(--projects-ink);
+}
+
+.projects-modern .projects-hero-modern .flow-hero-lede,
+.projects-modern .projects-switcher-copy > p:not(.eyebrow),
+.projects-modern .projects-empty-panel p:not(.eyebrow),
+.projects-modern .projects-switch-copy small,
+.projects-modern .project-card-main p,
+.projects-modern .project-card-meta span,
+.projects-modern .project-card-footer > span,
+.projects-modern .projects-stat-strip span {
+  color: var(--projects-muted);
+}
+
+.projects-modern .projects-stat-strip div {
+  min-height: 112px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(242, 249, 250, 0.92)),
+    #ffffff;
+}
+
+.projects-modern .projects-stat-strip strong,
+.projects-modern .project-stat-row strong,
+.projects-modern .project-health-row strong {
+  min-width: 0;
+  color: var(--projects-ink);
+  overflow-wrap: anywhere;
+}
+
+.projects-modern .projects-stat-strip strong {
+  font-size: clamp(1.18rem, 1.7vw, 1.72rem);
+}
+
+.projects-modern .projects-stat-strip svg,
+.projects-modern .flow-kicker-row .eyebrow,
+.projects-modern .flow-live-chip svg,
+.projects-modern .flow-hero-pills svg {
+  color: var(--projects-teal);
+}
+
+.projects-modern .flow-live-chip,
+.projects-modern .flow-hero-pills span,
+.projects-modern .flow-action-panel,
+.projects-modern .projects-switch-item,
+.projects-modern .projects-empty-checklist span,
+.projects-modern .project-stat-row span,
+.projects-modern .project-health-row {
+  border-color: var(--projects-soft-line);
+  color: var(--projects-ink);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: none;
+}
+
+.projects-modern .projects-switch-item:hover,
+.projects-modern .projects-switch-item.is-active {
+  border-color: rgba(20, 155, 142, 0.36);
+  background: rgba(232, 247, 244, 0.9);
+  box-shadow: 0 16px 36px rgba(24, 39, 54, 0.12);
+}
+
+.projects-modern .projects-setup-card {
+  color: var(--projects-ink);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.projects-modern .projects-setup-card.is-primary {
+  color: #ffffff;
+  background:
+    linear-gradient(135deg, rgba(56, 111, 183, 0.96), rgba(20, 155, 142, 0.88)),
+    #386fb7;
+}
+
+.projects-modern .projects-setup-card.is-primary small {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.projects-modern .projects-setup-card > span {
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--projects-teal), var(--projects-blue));
+}
+
+.projects-modern .project-key,
+.projects-modern .recommended-pill,
+.projects-modern .source-pill,
+.projects-modern .projects-section-heading > span {
+  border-color: rgba(20, 155, 142, 0.22);
+  color: #0b675f;
+  background: rgba(232, 247, 244, 0.92);
+}
+
+.projects-modern .projects-active-panel {
+  color: #ffffff;
+  background:
+    linear-gradient(145deg, rgba(19, 32, 51, 0.98), rgba(15, 91, 91, 0.92) 54%, rgba(70, 58, 125, 0.86)),
+    #132033;
+}
+
+.projects-modern .projects-active-panel h2,
+.projects-modern .projects-active-meter strong {
+  color: #ffffff;
+}
+
+.projects-modern .projects-active-copy p,
+.projects-modern .projects-active-meter span,
+.projects-modern .projects-active-meta span {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.projects-modern .projects-active-panel .project-key {
+  color: #e7fffb;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+html.dark .projects-modern {
+  --projects-ink: #edf5f7;
+  --projects-muted: #aebccc;
+  --projects-line: rgba(144, 164, 184, 0.24);
+  --projects-soft-line: rgba(144, 164, 184, 0.16);
+  --projects-teal: #2dd4bf;
+  --projects-blue: #60a5fa;
+  --projects-coral: #fb7185;
+  --projects-amber: #facc15;
+  --projects-violet: #cfbcff;
+  --projects-shadow: 0 24px 74px rgba(0, 0, 0, 0.32);
+  --flow-ink: var(--projects-ink);
+  --flow-muted: var(--projects-muted);
+}
+
+html.dark .projects-modern .projects-hero-modern,
+html.dark .projects-modern .projects-switcher,
+html.dark .projects-modern .projects-cards-section,
+html.dark .projects-modern .projects-empty-panel,
+html.dark .projects-modern .projects-stat-strip div,
+html.dark .projects-modern .projects-card {
+  border-color: var(--projects-line);
+  color: var(--projects-ink);
+  background:
+    linear-gradient(145deg, rgba(31, 30, 39, 0.95), rgba(20, 29, 42, 0.88)),
+    #141218;
+  box-shadow: var(--projects-shadow);
+}
+
+html.dark .projects-modern .projects-hero-modern {
+  background:
+    linear-gradient(135deg, rgba(18, 18, 26, 0.98), rgba(33, 31, 45, 0.94) 46%, rgba(23, 54, 64, 0.88)),
+    #141218;
+}
+
+html.dark .projects-modern .projects-hero-modern h1,
+html.dark .projects-modern .projects-switcher h2,
+html.dark .projects-modern .projects-section-heading h2,
+html.dark .projects-modern .projects-empty-panel h2,
+html.dark .projects-modern .projects-card h2,
+html.dark .projects-modern .projects-switch-copy strong,
+html.dark .projects-modern .project-stat-row strong,
+html.dark .projects-modern .project-health-row strong,
+html.dark .projects-modern .projects-stat-strip strong {
+  color: #f8fbff;
+}
+
+html.dark .projects-modern .projects-hero-modern .flow-hero-lede,
+html.dark .projects-modern .projects-switcher-copy > p:not(.eyebrow),
+html.dark .projects-modern .projects-empty-panel p:not(.eyebrow),
+html.dark .projects-modern .projects-switch-copy small,
+html.dark .projects-modern .project-card-main p,
+html.dark .projects-modern .project-card-meta span,
+html.dark .projects-modern .project-card-footer > span,
+html.dark .projects-modern .projects-stat-strip span {
+  color: var(--projects-muted);
+}
+
+html.dark .projects-modern .flow-live-chip,
+html.dark .projects-modern .flow-hero-pills span,
+html.dark .projects-modern .flow-action-panel,
+html.dark .projects-modern .projects-switch-item,
+html.dark .projects-modern .projects-empty-checklist span,
+html.dark .projects-modern .project-stat-row span,
+html.dark .projects-modern .project-health-row {
+  border-color: var(--projects-soft-line);
+  color: #d9f8ff;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+html.dark .projects-modern .projects-switch-item:hover,
+html.dark .projects-modern .projects-switch-item.is-active {
+  border-color: rgba(45, 212, 191, 0.44);
+  background: rgba(45, 212, 191, 0.1);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.24);
+}
+
+html.dark .projects-modern .projects-setup-card {
+  color: #edf5f7;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+html.dark .projects-modern .projects-setup-card.is-primary {
+  background:
+    linear-gradient(135deg, rgba(103, 80, 164, 0.68), rgba(45, 212, 191, 0.2)),
+    rgba(255, 255, 255, 0.07);
+}
+
+html.dark .projects-modern .project-key,
+html.dark .projects-modern .recommended-pill,
+html.dark .projects-modern .source-pill,
+html.dark .projects-modern .projects-section-heading > span {
+  border-color: rgba(45, 212, 191, 0.2);
+  color: #c7fff4;
+  background: rgba(45, 212, 191, 0.1);
+}
+
+html.dark .projects-modern .projects-active-panel {
+  background:
+    linear-gradient(145deg, rgba(17, 24, 39, 0.98), rgba(44, 38, 73, 0.86) 48%, rgba(18, 76, 83, 0.82)),
+    #141218;
+}
+
+/* Workspace list card polish. Keep this at EOF: the projects page currently
+   imports several older card systems, so this final pass owns the list UI. */
+.projects-modern .projects-cards-section {
+  gap: 22px;
+  padding: 26px;
+  border-radius: 12px;
+}
+
+.projects-modern .project-grid.projects-card-grid {
+  grid-template-columns: repeat(auto-fit, minmax(390px, 1fr));
+  gap: 18px;
+}
+
+.projects-modern .project-card.projects-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 0;
+  padding: 24px;
+  border-radius: 12px;
+  border-color: rgba(135, 153, 172, 0.3);
+  background:
+    radial-gradient(circle at 8% 0%, rgba(20, 155, 142, 0.1), transparent 30%),
+    linear-gradient(150deg, rgba(255, 255, 255, 0.98), rgba(241, 248, 250, 0.94)),
+    #ffffff;
+  box-shadow: 0 20px 58px rgba(24, 39, 54, 0.12);
+}
+
+.projects-modern .project-card.projects-card::before {
+  opacity: 0.4;
+  background:
+    linear-gradient(rgba(20, 32, 51, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20, 32, 51, 0.026) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+
+.projects-modern .project-card.projects-card:hover {
+  border-color: rgba(20, 155, 142, 0.44);
+  box-shadow: 0 28px 72px rgba(24, 39, 54, 0.18);
+  transform: translateY(-3px);
+}
+
+.projects-modern .project-card.projects-card .project-card-accent {
+  top: 0;
+  left: 24px;
+  height: 5px;
+  min-width: 120px;
+  max-width: calc(100% - 48px);
+  border-radius: 0 0 999px 999px;
+  background: linear-gradient(90deg, var(--projects-coral), var(--projects-amber), var(--projects-teal));
+}
+
+.projects-modern .project-card.projects-card .project-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 38px;
+  padding-top: 8px;
+}
+
+.projects-modern .project-card.projects-card .project-key,
+.projects-modern .project-card.projects-card .source-pill,
+.projects-modern .project-card.projects-card .recommended-pill {
+  min-height: 34px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.projects-modern .project-card.projects-card .project-card-main {
+  display: grid;
+  gap: 13px;
+  min-height: 0;
+}
+
+.projects-modern .project-card.projects-card .project-card-main h2 {
+  color: var(--projects-ink);
+  font-size: 1.32rem;
+  line-height: 1.18;
+}
+
+.projects-modern .project-card.projects-card .project-card-main p {
+  max-width: 62ch;
+  color: var(--projects-muted);
+  line-height: 1.5;
+}
+
+.projects-modern .project-card.projects-card .project-card-meta {
+  gap: 8px;
+}
+
+.projects-modern .project-card.projects-card .project-card-meta span {
+  min-height: 34px;
+  border-color: rgba(20, 155, 142, 0.16);
+  color: #315466;
+  background: rgba(232, 247, 244, 0.74);
+}
+
+.projects-modern .project-card.projects-card .project-health-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px 16px;
+  padding: 16px;
+  border-radius: 12px;
+  border-color: rgba(135, 153, 172, 0.24);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.86), rgba(239, 248, 247, 0.78)),
+    rgba(255, 255, 255, 0.72);
+}
+
+.projects-modern .project-card.projects-card .project-health-row span {
+  color: var(--projects-muted);
+  font-weight: 900;
+}
+
+.projects-modern .project-card.projects-card .project-health-row strong {
+  color: var(--projects-ink);
+  font-size: 1.65rem;
+}
+
+.projects-modern .project-card.projects-card .project-health-row .flow-health-bar {
+  height: 9px;
+  background: rgba(135, 153, 172, 0.22);
+}
+
+.projects-modern .project-card.projects-card .project-stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.projects-modern .project-card.projects-card .project-stat-row span {
+  display: grid;
+  gap: 5px;
+  min-height: 78px;
+  padding: 13px 14px;
+  border: 1px solid rgba(135, 153, 172, 0.22);
+  border-radius: 12px;
+  color: var(--projects-muted);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(238, 247, 248, 0.76)),
+    rgba(255, 255, 255, 0.7);
+  font-weight: 850;
+}
+
+.projects-modern .project-card.projects-card .project-stat-row strong {
+  color: var(--projects-ink);
+  font-size: 1.38rem;
+  line-height: 1;
+}
+
+.projects-modern .project-card.projects-card .project-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: auto;
+  padding-top: 2px;
+}
+
+.projects-modern .project-card.projects-card .project-card-footer > span {
+  color: var(--projects-muted);
+  font-weight: 900;
+}
+
+.projects-modern .project-card.projects-card .project-card-footer .primary-button {
+  min-width: 190px;
+  border-radius: 10px;
+}
+
+html.dark .projects-modern .projects-cards-section {
+  background:
+    linear-gradient(145deg, rgba(19, 24, 34, 0.96), rgba(18, 28, 43, 0.9)),
+    #111827;
+}
+
+html.dark .projects-modern .project-card.projects-card {
+  border-color: rgba(144, 164, 184, 0.24);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(45, 212, 191, 0.1), transparent 34%),
+    linear-gradient(150deg, rgba(24, 29, 42, 0.98), rgba(17, 24, 39, 0.95)),
+    #111827;
+  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.28);
+}
+
+html.dark .projects-modern .project-card.projects-card:hover {
+  border-color: rgba(45, 212, 191, 0.42);
+  box-shadow: 0 30px 82px rgba(0, 0, 0, 0.36);
+}
+
+html.dark .projects-modern .project-card.projects-card .project-card-main h2,
+html.dark .projects-modern .project-card.projects-card .project-health-row strong,
+html.dark .projects-modern .project-card.projects-card .project-stat-row strong {
+  color: #f8fbff;
+}
+
+html.dark .projects-modern .project-card.projects-card .project-card-main p,
+html.dark .projects-modern .project-card.projects-card .project-card-footer > span,
+html.dark .projects-modern .project-card.projects-card .project-health-row span,
+html.dark .projects-modern .project-card.projects-card .project-stat-row span {
+  color: #aebccc;
+}
+
+html.dark .projects-modern .project-card.projects-card .project-card-meta span {
+  border-color: rgba(144, 164, 184, 0.18);
+  color: #c8d7e8;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+html.dark .projects-modern .project-card.projects-card .project-health-row {
+  border-color: rgba(144, 164, 184, 0.18);
+  background:
+    linear-gradient(135deg, rgba(45, 212, 191, 0.1), rgba(96, 165, 250, 0.06)),
+    rgba(255, 255, 255, 0.055);
+}
+
+html.dark .projects-modern .project-card.projects-card .project-health-row .flow-health-bar {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+html.dark .projects-modern .project-card.projects-card .project-stat-row {
+  background: transparent;
+}
+
+html.dark .projects-modern .project-card.projects-card .project-stat-row span {
+  border-color: rgba(144, 164, 184, 0.16);
+  color: #aebccc;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.04)),
+    rgba(255, 255, 255, 0.055);
+}
+
+@media (max-width: 900px) {
+  .projects-modern .project-grid.projects-card-grid,
+  .projects-modern .project-card.projects-card .project-stat-row {
+    grid-template-columns: 1fr;
+  }
+
+  .projects-modern .project-card.projects-card .project-card-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .projects-modern .project-card.projects-card .project-card-footer .primary-button {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+/* Workspace list card polish. This intentionally lives last because the project
+   page has several inherited card systems and this one should win. */
+.projects-modern .projects-cards-section {
+  gap: 22px;
+  padding: 26px;
+  border-radius: 12px;
+}
+
+.projects-modern .projects-card-grid {
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 18px;
+}
+
+.projects-modern .projects-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 0;
+  padding: 24px;
+  border-radius: 12px;
+  border-color: rgba(135, 153, 172, 0.3);
+  background:
+    linear-gradient(150deg, rgba(255, 255, 255, 0.98), rgba(241, 248, 250, 0.94)),
+    #ffffff;
+  box-shadow: 0 20px 58px rgba(24, 39, 54, 0.12);
+}
+
+.projects-modern .projects-card::before {
+  opacity: 0.44;
+  background:
+    linear-gradient(rgba(20, 32, 51, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20, 32, 51, 0.028) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+
+.projects-modern .projects-card:hover {
+  border-color: rgba(20, 155, 142, 0.44);
+  box-shadow: 0 28px 72px rgba(24, 39, 54, 0.18);
+  transform: translateY(-3px);
+}
+
+.projects-modern .project-card-accent {
+  top: 0;
+  left: 24px;
+  height: 5px;
+  min-width: 120px;
+  max-width: calc(100% - 48px);
+  border-radius: 0 0 999px 999px;
+  background: linear-gradient(90deg, var(--projects-coral), var(--projects-amber), var(--projects-teal));
+}
+
+.projects-modern .project-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 38px;
+  padding-top: 8px;
+}
+
+.projects-modern .projects-card .project-key,
+.projects-modern .projects-card .source-pill,
+.projects-modern .projects-card .recommended-pill {
+  min-height: 34px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.projects-modern .project-card-main {
+  display: grid;
+  gap: 13px;
+  min-height: 0;
+}
+
+.projects-modern .project-card-main h2 {
+  color: var(--projects-ink);
+  font-size: 1.32rem;
+  line-height: 1.18;
+}
+
+.projects-modern .project-card-main p {
+  max-width: 62ch;
+  color: var(--projects-muted);
+  line-height: 1.5;
+}
+
+.projects-modern .project-card-meta {
+  gap: 8px;
+}
+
+.projects-modern .project-card-meta span {
+  min-height: 34px;
+  border-color: rgba(20, 155, 142, 0.16);
+  color: #315466;
+  background: rgba(232, 247, 244, 0.74);
+}
+
+.projects-modern .project-health-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px 16px;
+  padding: 16px;
+  border-radius: 12px;
+  border-color: rgba(135, 153, 172, 0.24);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.86), rgba(239, 248, 247, 0.78)),
+    rgba(255, 255, 255, 0.72);
+}
+
+.projects-modern .project-health-row span {
+  color: var(--projects-muted);
+  font-weight: 900;
+}
+
+.projects-modern .project-health-row strong {
+  color: var(--projects-ink);
+  font-size: 1.65rem;
+}
+
+.projects-modern .project-health-row .flow-health-bar {
+  height: 9px;
+  background: rgba(135, 153, 172, 0.22);
+}
+
+.projects-modern .project-stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.projects-modern .project-stat-row span {
+  display: grid;
+  gap: 5px;
+  min-height: 78px;
+  padding: 13px 14px;
+  border: 1px solid rgba(135, 153, 172, 0.22);
+  border-radius: 12px;
+  color: var(--projects-muted);
+  background: rgba(255, 255, 255, 0.7);
+  font-weight: 850;
+}
+
+.projects-modern .project-stat-row strong {
+  color: var(--projects-ink);
+  font-size: 1.38rem;
+  line-height: 1;
+}
+
+.projects-modern .project-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: auto;
+  padding-top: 2px;
+}
+
+.projects-modern .project-card-footer > span {
+  color: var(--projects-muted);
+  font-weight: 900;
+}
+
+.projects-modern .project-card-footer .primary-button {
+  min-width: 190px;
+  border-radius: 10px;
+}
+
+html.dark .projects-modern .projects-cards-section {
+  background:
+    linear-gradient(145deg, rgba(19, 24, 34, 0.96), rgba(18, 28, 43, 0.9)),
+    #111827;
+}
+
+html.dark .projects-modern .projects-card {
+  border-color: rgba(144, 164, 184, 0.24);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(45, 212, 191, 0.08), transparent 34%),
+    linear-gradient(150deg, rgba(24, 29, 42, 0.98), rgba(17, 24, 39, 0.95)),
+    #111827;
+  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.28);
+}
+
+html.dark .projects-modern .projects-card:hover {
+  border-color: rgba(45, 212, 191, 0.42);
+  box-shadow: 0 30px 82px rgba(0, 0, 0, 0.36);
+}
+
+html.dark .projects-modern .project-card-main h2,
+html.dark .projects-modern .project-health-row strong,
+html.dark .projects-modern .project-stat-row strong {
+  color: #f8fbff;
+}
+
+html.dark .projects-modern .project-card-main p,
+html.dark .projects-modern .project-card-footer > span,
+html.dark .projects-modern .project-health-row span,
+html.dark .projects-modern .project-stat-row span {
+  color: #aebccc;
+}
+
+html.dark .projects-modern .project-card-meta span {
+  border-color: rgba(144, 164, 184, 0.18);
+  color: #c8d7e8;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+html.dark .projects-modern .project-health-row {
+  border-color: rgba(144, 164, 184, 0.18);
+  background:
+    linear-gradient(135deg, rgba(45, 212, 191, 0.1), rgba(96, 165, 250, 0.06)),
+    rgba(255, 255, 255, 0.055);
+}
+
+html.dark .projects-modern .project-health-row .flow-health-bar {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+html.dark .projects-modern .project-stat-row {
+  background: transparent;
+}
+
+html.dark .projects-modern .project-stat-row span {
+  border-color: rgba(144, 164, 184, 0.16);
+  color: #aebccc;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+@media (max-width: 900px) {
+  .projects-modern .projects-card-grid,
+  .projects-modern .project-stat-row {
+    grid-template-columns: 1fr;
+  }
+
+  .projects-modern .project-card-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .projects-modern .project-card-footer .primary-button {
+    width: 100%;
+  }
+}
+
+/* Workspace list card polish. This intentionally lives at the end because the
+   project page has several inherited card systems and this one should win. */
+.projects-modern .projects-cards-section {
+  gap: 22px;
+  padding: 26px;
+  border-radius: 12px;
+}
+
+.projects-modern .projects-card-grid {
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 18px;
+}
+
+.projects-modern .projects-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 0;
+  padding: 24px;
+  border-radius: 12px;
+  border-color: rgba(135, 153, 172, 0.3);
+  background:
+    linear-gradient(150deg, rgba(255, 255, 255, 0.98), rgba(241, 248, 250, 0.94)),
+    #ffffff;
+  box-shadow: 0 20px 58px rgba(24, 39, 54, 0.12);
+}
+
+.projects-modern .projects-card::before {
+  opacity: 0.44;
+  background:
+    linear-gradient(rgba(20, 32, 51, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20, 32, 51, 0.028) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+
+.projects-modern .projects-card:hover {
+  border-color: rgba(20, 155, 142, 0.44);
+  box-shadow: 0 28px 72px rgba(24, 39, 54, 0.18);
+  transform: translateY(-3px);
+}
+
+.projects-modern .project-card-accent {
+  top: 0;
+  left: 24px;
+  height: 5px;
+  min-width: 120px;
+  max-width: calc(100% - 48px);
+  border-radius: 0 0 999px 999px;
+  background: linear-gradient(90deg, var(--projects-coral), var(--projects-amber), var(--projects-teal));
+}
+
+.projects-modern .project-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 38px;
+  padding-top: 8px;
+}
+
+.projects-modern .projects-card .project-key,
+.projects-modern .projects-card .source-pill,
+.projects-modern .projects-card .recommended-pill {
+  min-height: 34px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.projects-modern .project-card-main {
+  display: grid;
+  gap: 13px;
+  min-height: 0;
+}
+
+.projects-modern .project-card-main h2 {
+  color: var(--projects-ink);
+  font-size: 1.32rem;
+  line-height: 1.18;
+}
+
+.projects-modern .project-card-main p {
+  max-width: 62ch;
+  color: var(--projects-muted);
+  line-height: 1.5;
+}
+
+.projects-modern .project-card-meta {
+  gap: 8px;
+}
+
+.projects-modern .project-card-meta span {
+  min-height: 34px;
+  border-color: rgba(20, 155, 142, 0.16);
+  color: #315466;
+  background: rgba(232, 247, 244, 0.74);
+}
+
+.projects-modern .project-health-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px 16px;
+  padding: 16px;
+  border-radius: 12px;
+  border-color: rgba(135, 153, 172, 0.24);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.86), rgba(239, 248, 247, 0.78)),
+    rgba(255, 255, 255, 0.72);
+}
+
+.projects-modern .project-health-row span {
+  color: var(--projects-muted);
+  font-weight: 900;
+}
+
+.projects-modern .project-health-row strong {
+  color: var(--projects-ink);
+  font-size: 1.65rem;
+}
+
+.projects-modern .project-health-row .flow-health-bar {
+  height: 9px;
+  background: rgba(135, 153, 172, 0.22);
+}
+
+.projects-modern .project-stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.projects-modern .project-stat-row span {
+  display: grid;
+  gap: 5px;
+  min-height: 78px;
+  padding: 13px 14px;
+  border: 1px solid rgba(135, 153, 172, 0.22);
+  border-radius: 12px;
+  color: var(--projects-muted);
+  background: rgba(255, 255, 255, 0.7);
+  font-weight: 850;
+}
+
+.projects-modern .project-stat-row strong {
+  color: var(--projects-ink);
+  font-size: 1.38rem;
+  line-height: 1;
+}
+
+.projects-modern .project-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: auto;
+  padding-top: 2px;
+}
+
+.projects-modern .project-card-footer > span {
+  color: var(--projects-muted);
+  font-weight: 900;
+}
+
+.projects-modern .project-card-footer .primary-button {
+  min-width: 190px;
+  border-radius: 10px;
+}
+
+html.dark .projects-modern .projects-cards-section {
+  background:
+    linear-gradient(145deg, rgba(19, 24, 34, 0.96), rgba(18, 28, 43, 0.9)),
+    #111827;
+}
+
+html.dark .projects-modern .projects-card {
+  border-color: rgba(144, 164, 184, 0.24);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(45, 212, 191, 0.08), transparent 34%),
+    linear-gradient(150deg, rgba(24, 29, 42, 0.98), rgba(17, 24, 39, 0.95)),
+    #111827;
+  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.28);
+}
+
+html.dark .projects-modern .projects-card:hover {
+  border-color: rgba(45, 212, 191, 0.42);
+  box-shadow: 0 30px 82px rgba(0, 0, 0, 0.36);
+}
+
+html.dark .projects-modern .project-card-main h2,
+html.dark .projects-modern .project-health-row strong,
+html.dark .projects-modern .project-stat-row strong {
+  color: #f8fbff;
+}
+
+html.dark .projects-modern .project-card-main p,
+html.dark .projects-modern .project-card-footer > span,
+html.dark .projects-modern .project-health-row span,
+html.dark .projects-modern .project-stat-row span {
+  color: #aebccc;
+}
+
+html.dark .projects-modern .project-card-meta span {
+  border-color: rgba(144, 164, 184, 0.18);
+  color: #c8d7e8;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+html.dark .projects-modern .project-health-row {
+  border-color: rgba(144, 164, 184, 0.18);
+  background:
+    linear-gradient(135deg, rgba(45, 212, 191, 0.1), rgba(96, 165, 250, 0.06)),
+    rgba(255, 255, 255, 0.055);
+}
+
+html.dark .projects-modern .project-health-row .flow-health-bar {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+html.dark .projects-modern .project-stat-row {
+  background: transparent;
+}
+
+html.dark .projects-modern .project-stat-row span {
+  border-color: rgba(144, 164, 184, 0.16);
+  color: #aebccc;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+@media (max-width: 900px) {
+  .projects-modern .projects-card-grid,
+  .projects-modern .project-stat-row {
+    grid-template-columns: 1fr;
+  }
+
+  .projects-modern .project-card-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .projects-modern .project-card-footer .primary-button {
+    width: 100%;
+  }
+}
+
+/* Project page theme repair: the project sheet had multiple theme passes, so keep
+   the final contrast rules explicit for both light and dark modes. */
+.projects-modern {
+  --projects-ink: #132033;
+  --projects-muted: #5d6f83;
+  --projects-line: rgba(135, 153, 172, 0.28);
+  --projects-soft-line: rgba(135, 153, 172, 0.18);
+  --projects-surface: rgba(255, 255, 255, 0.92);
+  --projects-surface-strong: #ffffff;
+  --projects-teal: #149b8e;
+  --projects-blue: #386fb7;
+  --projects-coral: #df654f;
+  --projects-amber: #c68d20;
+  --projects-violet: #7258b7;
+  --projects-shadow: 0 22px 70px rgba(24, 39, 54, 0.11);
+  --flow-ink: var(--projects-ink);
+  --flow-muted: var(--projects-muted);
+  color: var(--projects-ink);
+}
+
+.projects-modern .projects-hero-modern,
+.projects-modern .projects-switcher,
+.projects-modern .projects-cards-section,
+.projects-modern .projects-empty-panel,
+.projects-modern .projects-stat-strip div,
+.projects-modern .projects-card {
+  border-color: var(--projects-line);
+  color: var(--projects-ink);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(247, 251, 253, 0.92)),
+    #ffffff;
+  box-shadow: var(--projects-shadow);
+}
+
+.projects-modern .projects-hero-modern {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.99), rgba(234, 249, 247, 0.95) 48%, rgba(246, 243, 255, 0.92)),
+    #ffffff;
+}
+
+.projects-modern .projects-hero-modern h1,
+.projects-modern .projects-switcher h2,
+.projects-modern .projects-section-heading h2,
+.projects-modern .projects-empty-panel h2,
+.projects-modern .projects-card h2,
+.projects-modern .projects-switch-copy strong {
+  color: var(--projects-ink);
+}
+
+.projects-modern .projects-hero-modern .flow-hero-lede,
+.projects-modern .projects-switcher-copy > p:not(.eyebrow),
+.projects-modern .projects-empty-panel p:not(.eyebrow),
+.projects-modern .projects-switch-copy small,
+.projects-modern .project-card-main p,
+.projects-modern .project-card-meta span,
+.projects-modern .project-card-footer > span {
+  color: var(--projects-muted);
+}
+
+.projects-modern .projects-stat-strip div {
+  min-height: 112px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(242, 249, 250, 0.92)),
+    #ffffff;
+}
+
+.projects-modern .projects-stat-strip svg {
+  color: var(--projects-teal);
+}
+
+.projects-modern .projects-stat-strip span {
+  color: var(--projects-muted);
+}
+
+.projects-modern .projects-stat-strip strong {
+  min-width: 0;
+  color: var(--projects-ink);
+  font-size: clamp(1.18rem, 1.7vw, 1.72rem);
+  overflow-wrap: anywhere;
+}
+
+.projects-modern .flow-live-chip,
+.projects-modern .flow-hero-pills span,
+.projects-modern .flow-action-panel,
+.projects-modern .projects-switch-item,
+.projects-modern .projects-empty-checklist span,
+.projects-modern .project-stat-row span,
+.projects-modern .project-health-row {
+  border-color: var(--projects-soft-line);
+  color: var(--projects-ink);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: none;
+}
+
+.projects-modern .flow-kicker-row .eyebrow,
+.projects-modern .flow-live-chip svg,
+.projects-modern .flow-hero-pills svg {
+  color: var(--projects-teal);
+}
+
+.projects-modern .projects-setup-card {
+  color: var(--projects-ink);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.projects-modern .projects-setup-card.is-primary {
+  color: #ffffff;
+  background:
+    linear-gradient(135deg, rgba(56, 111, 183, 0.96), rgba(20, 155, 142, 0.88)),
+    #386fb7;
+}
+
+.projects-modern .projects-setup-card.is-primary small {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.projects-modern .projects-setup-card > span {
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--projects-teal), var(--projects-blue));
+}
+
+.projects-modern .project-stat-row strong,
+.projects-modern .project-health-row strong {
+  color: var(--projects-ink);
+}
+
+.projects-modern .project-key,
+.projects-modern .recommended-pill,
+.projects-modern .source-pill {
+  border-color: rgba(20, 155, 142, 0.22);
+  color: #0b675f;
+  background: rgba(232, 247, 244, 0.92);
+}
+
+.projects-modern .projects-active-panel {
+  color: #ffffff;
+  background:
+    linear-gradient(145deg, rgba(19, 32, 51, 0.98), rgba(15, 91, 91, 0.92) 54%, rgba(70, 58, 125, 0.86)),
+    #132033;
+}
+
+.projects-modern .projects-active-panel h2,
+.projects-modern .projects-active-meter strong {
+  color: #ffffff;
+}
+
+.projects-modern .projects-active-copy p,
+.projects-modern .projects-active-meter span,
+.projects-modern .projects-active-meta span {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.projects-modern .projects-active-panel .project-key {
+  color: #e7fffb;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.projects-modern .projects-switch-item:hover,
+.projects-modern .projects-switch-item.is-active {
+  border-color: rgba(20, 155, 142, 0.36);
+  background: rgba(232, 247, 244, 0.9);
+  box-shadow: 0 16px 36px rgba(24, 39, 54, 0.12);
+}
+
+html.dark .projects-modern {
+  --projects-ink: #edf5f7;
+  --projects-muted: #aebccc;
+  --projects-line: rgba(144, 164, 184, 0.24);
+  --projects-soft-line: rgba(144, 164, 184, 0.16);
+  --projects-surface: rgba(28, 27, 36, 0.78);
+  --projects-surface-strong: rgba(36, 34, 44, 0.94);
+  --projects-teal: #2dd4bf;
+  --projects-blue: #60a5fa;
+  --projects-coral: #fb7185;
+  --projects-amber: #facc15;
+  --projects-violet: #cfbcff;
+  --projects-shadow: 0 24px 74px rgba(0, 0, 0, 0.32);
+  --flow-ink: var(--projects-ink);
+  --flow-muted: var(--projects-muted);
+}
+
+html.dark .projects-modern .projects-hero-modern,
+html.dark .projects-modern .projects-switcher,
+html.dark .projects-modern .projects-cards-section,
+html.dark .projects-modern .projects-empty-panel,
+html.dark .projects-modern .projects-stat-strip div,
+html.dark .projects-modern .projects-card {
+  border-color: var(--projects-line);
+  color: var(--projects-ink);
+  background:
+    linear-gradient(145deg, rgba(31, 30, 39, 0.95), rgba(20, 29, 42, 0.88)),
+    #141218;
+  box-shadow: var(--projects-shadow);
+}
+
+html.dark .projects-modern .projects-hero-modern {
+  background:
+    linear-gradient(135deg, rgba(18, 18, 26, 0.98), rgba(33, 31, 45, 0.94) 46%, rgba(23, 54, 64, 0.88)),
+    #141218;
+}
+
+html.dark .projects-modern .projects-hero-modern h1,
+html.dark .projects-modern .projects-switcher h2,
+html.dark .projects-modern .projects-section-heading h2,
+html.dark .projects-modern .projects-empty-panel h2,
+html.dark .projects-modern .projects-card h2,
+html.dark .projects-modern .projects-switch-copy strong,
+html.dark .projects-modern .project-stat-row strong,
+html.dark .projects-modern .project-health-row strong,
+html.dark .projects-modern .projects-stat-strip strong {
+  color: #f8fbff;
+}
+
+html.dark .projects-modern .projects-hero-modern .flow-hero-lede,
+html.dark .projects-modern .projects-switcher-copy > p:not(.eyebrow),
+html.dark .projects-modern .projects-empty-panel p:not(.eyebrow),
+html.dark .projects-modern .projects-switch-copy small,
+html.dark .projects-modern .project-card-main p,
+html.dark .projects-modern .project-card-meta span,
+html.dark .projects-modern .project-card-footer > span,
+html.dark .projects-modern .projects-stat-strip span {
+  color: var(--projects-muted);
+}
+
+html.dark .projects-modern .flow-live-chip,
+html.dark .projects-modern .flow-hero-pills span,
+html.dark .projects-modern .flow-action-panel,
+html.dark .projects-modern .projects-switch-item,
+html.dark .projects-modern .projects-empty-checklist span,
+html.dark .projects-modern .project-stat-row span,
+html.dark .projects-modern .project-health-row {
+  border-color: var(--projects-soft-line);
+  color: #d9f8ff;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+html.dark .projects-modern .projects-setup-card {
+  color: #edf5f7;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+html.dark .projects-modern .projects-setup-card.is-primary {
+  background:
+    linear-gradient(135deg, rgba(103, 80, 164, 0.68), rgba(45, 212, 191, 0.2)),
+    rgba(255, 255, 255, 0.07);
+}
+
+html.dark .projects-modern .project-key,
+html.dark .projects-modern .recommended-pill,
+html.dark .projects-modern .source-pill {
+  border-color: rgba(45, 212, 191, 0.2);
+  color: #c7fff4;
+  background: rgba(45, 212, 191, 0.1);
+}
+
+html.dark .projects-modern .projects-active-panel {
+  background:
+    linear-gradient(145deg, rgba(17, 24, 39, 0.98), rgba(44, 38, 73, 0.86) 48%, rgba(18, 76, 83, 0.82)),
+    #141218;
+}
+
+html.dark .projects-modern .projects-switch-item:hover,
+html.dark .projects-modern .projects-switch-item.is-active {
+  border-color: rgba(45, 212, 191, 0.44);
+  background: rgba(45, 212, 191, 0.1);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.24);
+}
+
+.projects-modern .projects-section-heading > span,
+.projects-modern .recommended-pill,
+.projects-modern .source-pill,
+.projects-modern .project-key {
+  border-color: rgba(45, 212, 191, 0.2);
+  color: #c7fff4;
+  background: rgba(45, 212, 191, 0.1);
+}
+
+.projects-modern .projects-health-chip {
+  border-color: rgba(144, 164, 184, 0.22);
+  color: #d8e3ef;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.projects-modern .projects-health-chip.is-healthy {
+  border-color: rgba(45, 212, 191, 0.3);
+  color: #99f6e4;
+  background: rgba(45, 212, 191, 0.1);
+}
+
+.projects-modern .projects-health-chip.is-watch {
+  border-color: rgba(250, 204, 21, 0.3);
+  color: #fde68a;
+  background: rgba(250, 204, 21, 0.1);
+}
+
+.projects-modern .projects-health-chip.is-risk {
+  border-color: rgba(251, 113, 133, 0.3);
+  color: #fecdd3;
+  background: rgba(251, 113, 133, 0.1);
+}
+
+.projects-modern .project-card-main p,
+.projects-modern .project-card-meta span,
+.projects-modern .project-card-footer > span {
+  color: var(--projects-muted);
+}
+
+.projects-modern .project-stat-row span,
+.projects-modern .project-health-row {
+  border-color: var(--projects-soft-line);
+  background: rgba(255, 255, 255, 0.06);
+}
+
 .projects-modern *,
 .projects-modern *::before,
 .projects-modern *::after {
@@ -767,5 +2265,703 @@ html.dark .projects-modern .projects-switch-item.is-active {
 
   .projects-empty-panel > .permission-note {
     width: 100%;
+  }
+}
+
+/* Final desktop styling pass aligned to the shared Stitch dark system. */
+.projects-modern {
+  --projects-ink: #edf5f7;
+  --projects-muted: #aebccc;
+  --projects-line: rgba(144, 164, 184, 0.22);
+  --projects-soft-line: rgba(144, 164, 184, 0.15);
+  --projects-surface: rgba(28, 27, 36, 0.72);
+  --projects-surface-strong: rgba(36, 34, 44, 0.92);
+  --projects-teal: #2dd4bf;
+  --projects-blue: #60a5fa;
+  --projects-coral: #fb7185;
+  --projects-amber: #facc15;
+  --projects-violet: #cfbcff;
+  --projects-shadow: 0 24px 74px rgba(0, 0, 0, 0.32);
+  color: var(--projects-ink);
+}
+
+.projects-modern .projects-hero-modern,
+.projects-modern .projects-switcher,
+.projects-modern .projects-cards-section,
+.projects-modern .projects-empty-panel,
+.projects-modern .projects-guidance-band,
+.projects-modern .projects-stat-strip div,
+.projects-modern .projects-card {
+  border-color: var(--projects-line);
+  background:
+    linear-gradient(145deg, rgba(31, 30, 39, 0.95), rgba(20, 29, 42, 0.88)),
+    #141218;
+  box-shadow: var(--projects-shadow);
+  backdrop-filter: blur(18px);
+}
+
+.projects-modern .projects-hero-modern {
+  background:
+    linear-gradient(135deg, rgba(18, 18, 26, 0.98), rgba(33, 31, 45, 0.94) 46%, rgba(23, 54, 64, 0.88)),
+    #141218;
+}
+
+.projects-modern .projects-hero-modern h1,
+.projects-modern .projects-switcher h2,
+.projects-modern .projects-active-panel h2,
+.projects-modern .projects-section-heading h2,
+.projects-modern .projects-empty-panel h2,
+.projects-modern .projects-card h2,
+.projects-modern .projects-focus-card strong,
+.projects-modern .projects-switch-copy strong {
+  color: #f8fbff;
+}
+
+.projects-modern .projects-hero-modern .flow-hero-lede,
+.projects-modern .projects-switcher-copy > p:not(.eyebrow),
+.projects-modern .projects-active-copy p,
+.projects-modern .projects-empty-panel p:not(.eyebrow),
+.projects-modern .projects-focus-card small,
+.projects-modern .projects-switch-copy small,
+.projects-modern .project-card-main p,
+.projects-modern .project-card-meta span,
+.projects-modern .project-card-footer > span {
+  color: var(--projects-muted);
+}
+
+.projects-modern .flow-live-chip,
+.projects-modern .flow-hero-pills span,
+.projects-modern .flow-action-panel,
+.projects-modern .projects-focus-card,
+.projects-modern .projects-switch-item,
+.projects-modern .projects-empty-checklist span,
+.projects-modern .project-stat-row span,
+.projects-modern .project-health-row {
+  border-color: var(--projects-soft-line);
+  color: #d9f8ff;
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: none;
+}
+
+.projects-modern .flow-kicker-row .eyebrow,
+.projects-modern .flow-live-chip svg,
+.projects-modern .flow-hero-pills svg {
+  color: var(--projects-teal);
+}
+
+.projects-modern .projects-command-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.projects-modern .projects-setup-actions {
+  display: grid;
+  gap: 12px;
+}
+
+.projects-modern .projects-setup-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 12px;
+  min-height: 96px;
+  padding: 15px;
+  overflow: hidden;
+  border: 1px solid var(--projects-soft-line);
+  border-radius: 10px;
+  color: #edf5f7;
+  background: rgba(255, 255, 255, 0.06);
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    transform 180ms ease;
+}
+
+.projects-modern .projects-setup-card:hover {
+  border-color: rgba(45, 212, 191, 0.38);
+  background: rgba(45, 212, 191, 0.1);
+  transform: translateY(-2px);
+}
+
+.projects-modern .projects-setup-card.is-primary {
+  background:
+    linear-gradient(135deg, rgba(103, 80, 164, 0.68), rgba(45, 212, 191, 0.2)),
+    rgba(255, 255, 255, 0.07);
+}
+
+.projects-modern .projects-setup-card > span {
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  color: #0f172a;
+  background: #cfbcff;
+}
+
+.projects-modern .projects-setup-card strong,
+.projects-modern .projects-setup-card small {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.projects-modern .projects-setup-card strong {
+  align-self: end;
+  font-size: 1rem;
+}
+
+.projects-modern .projects-setup-card small {
+  align-self: start;
+  color: var(--projects-muted);
+  line-height: 1.45;
+}
+
+.projects-modern .projects-stat-strip div::before {
+  background: linear-gradient(180deg, var(--projects-teal), var(--projects-blue));
+}
+
+.projects-modern .projects-guidance-band {
+  background:
+    linear-gradient(135deg, rgba(36, 34, 44, 0.94), rgba(22, 42, 52, 0.86)),
+    #141218;
+}
+
+.projects-modern .projects-switch-item:hover,
+.projects-modern .projects-switch-item.is-active {
+  border-color: rgba(45, 212, 191, 0.44);
+  background: rgba(45, 212, 191, 0.1);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.24);
+}
+
+.projects-modern .projects-switch-icon {
+  color: #99f6e4;
+  background: rgba(45, 212, 191, 0.12);
+}
+
+.projects-modern .projects-active-panel {
+  background:
+    linear-gradient(145deg, rgba(17, 24, 39, 0.98), rgba(44, 38, 73, 0.86) 48%, rgba(18, 76, 83, 0.82)),
+    #141218;
+}
+
+.projects-modern .projects-active-panel .flow-health-bar,
+.projects-modern .flow-health-bar {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.projects-modern .projects-card:hover {
+  border-color: rgba(45, 212, 191, 0.4);
+  box-shadow: 0 28px 72px rgba(0, 0, 0, 0.36);
+}
+
+/* Final project theme override. Keep this last so project cards and sprint
+   signal metrics stay readable after the older experimental style passes. */
+.projects-modern {
+  --projects-ink: #132033;
+  --projects-muted: #5d6f83;
+  --projects-line: rgba(135, 153, 172, 0.28);
+  --projects-soft-line: rgba(135, 153, 172, 0.18);
+  --projects-teal: #149b8e;
+  --projects-blue: #386fb7;
+  --projects-coral: #df654f;
+  --projects-amber: #c68d20;
+  --projects-violet: #7258b7;
+  --projects-shadow: 0 22px 70px rgba(24, 39, 54, 0.11);
+  --flow-ink: var(--projects-ink);
+  --flow-muted: var(--projects-muted);
+  color: var(--projects-ink);
+}
+
+.projects-modern .projects-hero-modern,
+.projects-modern .projects-switcher,
+.projects-modern .projects-cards-section,
+.projects-modern .projects-empty-panel,
+.projects-modern .projects-stat-strip div,
+.projects-modern .projects-card {
+  border-color: var(--projects-line);
+  color: var(--projects-ink);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(247, 251, 253, 0.92)),
+    #ffffff;
+  box-shadow: var(--projects-shadow);
+}
+
+.projects-modern .projects-hero-modern {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.99), rgba(234, 249, 247, 0.95) 48%, rgba(246, 243, 255, 0.92)),
+    #ffffff;
+}
+
+.projects-modern .projects-hero-modern h1,
+.projects-modern .projects-switcher h2,
+.projects-modern .projects-section-heading h2,
+.projects-modern .projects-empty-panel h2,
+.projects-modern .projects-card h2,
+.projects-modern .projects-switch-copy strong {
+  color: var(--projects-ink);
+}
+
+.projects-modern .projects-hero-modern .flow-hero-lede,
+.projects-modern .projects-switcher-copy > p:not(.eyebrow),
+.projects-modern .projects-empty-panel p:not(.eyebrow),
+.projects-modern .projects-switch-copy small,
+.projects-modern .project-card-main p,
+.projects-modern .project-card-meta span,
+.projects-modern .project-card-footer > span,
+.projects-modern .projects-stat-strip span {
+  color: var(--projects-muted);
+}
+
+.projects-modern .projects-stat-strip div {
+  min-height: 112px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(242, 249, 250, 0.92)),
+    #ffffff;
+}
+
+.projects-modern .projects-stat-strip strong,
+.projects-modern .project-stat-row strong,
+.projects-modern .project-health-row strong {
+  min-width: 0;
+  color: var(--projects-ink);
+  overflow-wrap: anywhere;
+}
+
+.projects-modern .projects-stat-strip strong {
+  font-size: clamp(1.18rem, 1.7vw, 1.72rem);
+}
+
+.projects-modern .projects-stat-strip svg,
+.projects-modern .flow-kicker-row .eyebrow,
+.projects-modern .flow-live-chip svg,
+.projects-modern .flow-hero-pills svg {
+  color: var(--projects-teal);
+}
+
+.projects-modern .flow-live-chip,
+.projects-modern .flow-hero-pills span,
+.projects-modern .flow-action-panel,
+.projects-modern .projects-switch-item,
+.projects-modern .projects-empty-checklist span,
+.projects-modern .project-stat-row span,
+.projects-modern .project-health-row {
+  border-color: var(--projects-soft-line);
+  color: var(--projects-ink);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: none;
+}
+
+.projects-modern .projects-switch-item:hover,
+.projects-modern .projects-switch-item.is-active {
+  border-color: rgba(20, 155, 142, 0.36);
+  background: rgba(232, 247, 244, 0.9);
+  box-shadow: 0 16px 36px rgba(24, 39, 54, 0.12);
+}
+
+.projects-modern .projects-setup-card {
+  color: var(--projects-ink);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.projects-modern .projects-setup-card.is-primary {
+  color: #ffffff;
+  background:
+    linear-gradient(135deg, rgba(56, 111, 183, 0.96), rgba(20, 155, 142, 0.88)),
+    #386fb7;
+}
+
+.projects-modern .projects-setup-card.is-primary small {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.projects-modern .projects-setup-card > span {
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--projects-teal), var(--projects-blue));
+}
+
+.projects-modern .project-key,
+.projects-modern .recommended-pill,
+.projects-modern .source-pill,
+.projects-modern .projects-section-heading > span {
+  border-color: rgba(20, 155, 142, 0.22);
+  color: #0b675f;
+  background: rgba(232, 247, 244, 0.92);
+}
+
+.projects-modern .projects-active-panel {
+  color: #ffffff;
+  background:
+    linear-gradient(145deg, rgba(19, 32, 51, 0.98), rgba(15, 91, 91, 0.92) 54%, rgba(70, 58, 125, 0.86)),
+    #132033;
+}
+
+.projects-modern .projects-active-panel h2,
+.projects-modern .projects-active-meter strong {
+  color: #ffffff;
+}
+
+.projects-modern .projects-active-copy p,
+.projects-modern .projects-active-meter span,
+.projects-modern .projects-active-meta span {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.projects-modern .projects-active-panel .project-key {
+  color: #e7fffb;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+html.dark .projects-modern {
+  --projects-ink: #edf5f7;
+  --projects-muted: #aebccc;
+  --projects-line: rgba(144, 164, 184, 0.24);
+  --projects-soft-line: rgba(144, 164, 184, 0.16);
+  --projects-teal: #2dd4bf;
+  --projects-blue: #60a5fa;
+  --projects-coral: #fb7185;
+  --projects-amber: #facc15;
+  --projects-violet: #cfbcff;
+  --projects-shadow: 0 24px 74px rgba(0, 0, 0, 0.32);
+  --flow-ink: var(--projects-ink);
+  --flow-muted: var(--projects-muted);
+}
+
+html.dark .projects-modern .projects-hero-modern,
+html.dark .projects-modern .projects-switcher,
+html.dark .projects-modern .projects-cards-section,
+html.dark .projects-modern .projects-empty-panel,
+html.dark .projects-modern .projects-stat-strip div,
+html.dark .projects-modern .projects-card {
+  border-color: var(--projects-line);
+  color: var(--projects-ink);
+  background:
+    linear-gradient(145deg, rgba(31, 30, 39, 0.95), rgba(20, 29, 42, 0.88)),
+    #141218;
+  box-shadow: var(--projects-shadow);
+}
+
+html.dark .projects-modern .projects-hero-modern {
+  background:
+    linear-gradient(135deg, rgba(18, 18, 26, 0.98), rgba(33, 31, 45, 0.94) 46%, rgba(23, 54, 64, 0.88)),
+    #141218;
+}
+
+html.dark .projects-modern .projects-hero-modern h1,
+html.dark .projects-modern .projects-switcher h2,
+html.dark .projects-modern .projects-section-heading h2,
+html.dark .projects-modern .projects-empty-panel h2,
+html.dark .projects-modern .projects-card h2,
+html.dark .projects-modern .projects-switch-copy strong,
+html.dark .projects-modern .project-stat-row strong,
+html.dark .projects-modern .project-health-row strong,
+html.dark .projects-modern .projects-stat-strip strong {
+  color: #f8fbff;
+}
+
+html.dark .projects-modern .projects-hero-modern .flow-hero-lede,
+html.dark .projects-modern .projects-switcher-copy > p:not(.eyebrow),
+html.dark .projects-modern .projects-empty-panel p:not(.eyebrow),
+html.dark .projects-modern .projects-switch-copy small,
+html.dark .projects-modern .project-card-main p,
+html.dark .projects-modern .project-card-meta span,
+html.dark .projects-modern .project-card-footer > span,
+html.dark .projects-modern .projects-stat-strip span {
+  color: var(--projects-muted);
+}
+
+html.dark .projects-modern .flow-live-chip,
+html.dark .projects-modern .flow-hero-pills span,
+html.dark .projects-modern .flow-action-panel,
+html.dark .projects-modern .projects-switch-item,
+html.dark .projects-modern .projects-empty-checklist span,
+html.dark .projects-modern .project-stat-row span,
+html.dark .projects-modern .project-health-row {
+  border-color: var(--projects-soft-line);
+  color: #d9f8ff;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+html.dark .projects-modern .projects-switch-item:hover,
+html.dark .projects-modern .projects-switch-item.is-active {
+  border-color: rgba(45, 212, 191, 0.44);
+  background: rgba(45, 212, 191, 0.1);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.24);
+}
+
+html.dark .projects-modern .projects-setup-card {
+  color: #edf5f7;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+html.dark .projects-modern .projects-setup-card.is-primary {
+  background:
+    linear-gradient(135deg, rgba(103, 80, 164, 0.68), rgba(45, 212, 191, 0.2)),
+    rgba(255, 255, 255, 0.07);
+}
+
+html.dark .projects-modern .project-key,
+html.dark .projects-modern .recommended-pill,
+html.dark .projects-modern .source-pill,
+html.dark .projects-modern .projects-section-heading > span {
+  border-color: rgba(45, 212, 191, 0.2);
+  color: #c7fff4;
+  background: rgba(45, 212, 191, 0.1);
+}
+
+html.dark .projects-modern .projects-active-panel {
+  background:
+    linear-gradient(145deg, rgba(17, 24, 39, 0.98), rgba(44, 38, 73, 0.86) 48%, rgba(18, 76, 83, 0.82)),
+    #141218;
+}
+/* Workspace list card final pass. This EOF block wins over the older
+   experimental project-card styles above. */
+.projects-modern .projects-cards-section {
+  gap: 22px;
+  padding: 26px;
+  border-radius: 12px;
+}
+
+.projects-modern .project-grid.projects-card-grid {
+  grid-template-columns: repeat(auto-fit, minmax(390px, 1fr));
+  gap: 18px;
+}
+
+.projects-modern .project-card.projects-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 0;
+  padding: 24px;
+  border-radius: 12px;
+  border-color: rgba(135, 153, 172, 0.3);
+  background:
+    radial-gradient(circle at 8% 0%, rgba(20, 155, 142, 0.1), transparent 30%),
+    linear-gradient(150deg, rgba(255, 255, 255, 0.98), rgba(241, 248, 250, 0.94)),
+    #ffffff;
+  box-shadow: 0 20px 58px rgba(24, 39, 54, 0.12);
+}
+
+.projects-modern .project-card.projects-card:hover {
+  border-color: rgba(20, 155, 142, 0.44);
+  box-shadow: 0 28px 72px rgba(24, 39, 54, 0.18);
+  transform: translateY(-3px);
+}
+
+.projects-modern .project-card.projects-card::before {
+  opacity: 0.4;
+  background:
+    linear-gradient(rgba(20, 32, 51, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20, 32, 51, 0.026) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+
+.projects-modern .project-card.projects-card .project-card-accent {
+  top: 0;
+  left: 24px;
+  height: 5px;
+  min-width: 120px;
+  max-width: calc(100% - 48px);
+  border-radius: 0 0 999px 999px;
+  background: linear-gradient(90deg, var(--projects-coral), var(--projects-amber), var(--projects-teal));
+}
+
+.projects-modern .project-card.projects-card .project-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 38px;
+  padding-top: 8px;
+}
+
+.projects-modern .project-card.projects-card .project-key,
+.projects-modern .project-card.projects-card .source-pill,
+.projects-modern .project-card.projects-card .recommended-pill {
+  min-height: 34px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.projects-modern .project-card.projects-card .project-card-main {
+  display: grid;
+  gap: 13px;
+  min-height: 0;
+}
+
+.projects-modern .project-card.projects-card .project-card-main h2 {
+  color: var(--projects-ink);
+  font-size: 1.32rem;
+  line-height: 1.18;
+}
+
+.projects-modern .project-card.projects-card .project-card-main p {
+  max-width: 62ch;
+  color: var(--projects-muted);
+  line-height: 1.5;
+}
+
+.projects-modern .project-card.projects-card .project-card-meta {
+  gap: 8px;
+}
+
+.projects-modern .project-card.projects-card .project-card-meta span {
+  min-height: 34px;
+  border-color: rgba(20, 155, 142, 0.16);
+  color: #315466;
+  background: rgba(232, 247, 244, 0.74);
+}
+
+.projects-modern .project-card.projects-card .project-health-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px 16px;
+  padding: 16px;
+  border-radius: 12px;
+  border-color: rgba(135, 153, 172, 0.24);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.86), rgba(239, 248, 247, 0.78)),
+    rgba(255, 255, 255, 0.72);
+}
+
+.projects-modern .project-card.projects-card .project-health-row span {
+  color: var(--projects-muted);
+  font-weight: 900;
+}
+
+.projects-modern .project-card.projects-card .project-health-row strong {
+  color: var(--projects-ink);
+  font-size: 1.65rem;
+}
+
+.projects-modern .project-card.projects-card .project-health-row .flow-health-bar {
+  height: 9px;
+  background: rgba(135, 153, 172, 0.22);
+}
+
+.projects-modern .project-card.projects-card .project-stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.projects-modern .project-card.projects-card .project-stat-row span {
+  display: grid;
+  gap: 5px;
+  min-height: 78px;
+  padding: 13px 14px;
+  border: 1px solid rgba(135, 153, 172, 0.22);
+  border-radius: 12px;
+  color: var(--projects-muted);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(238, 247, 248, 0.76)),
+    rgba(255, 255, 255, 0.7);
+  font-weight: 850;
+}
+
+.projects-modern .project-card.projects-card .project-stat-row strong {
+  color: var(--projects-ink);
+  font-size: 1.38rem;
+  line-height: 1;
+}
+
+.projects-modern .project-card.projects-card .project-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: auto;
+  padding-top: 2px;
+}
+
+.projects-modern .project-card.projects-card .project-card-footer > span {
+  color: var(--projects-muted);
+  font-weight: 900;
+}
+
+.projects-modern .project-card.projects-card .project-card-footer .primary-button {
+  min-width: 190px;
+  border-radius: 10px;
+}
+
+html.dark .projects-modern .projects-cards-section {
+  background:
+    linear-gradient(145deg, rgba(19, 24, 34, 0.96), rgba(18, 28, 43, 0.9)),
+    #111827;
+}
+
+html.dark .projects-modern .project-card.projects-card {
+  border-color: rgba(144, 164, 184, 0.24);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(45, 212, 191, 0.1), transparent 34%),
+    linear-gradient(150deg, rgba(24, 29, 42, 0.98), rgba(17, 24, 39, 0.95)),
+    #111827;
+  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.28);
+}
+
+html.dark .projects-modern .project-card.projects-card:hover {
+  border-color: rgba(45, 212, 191, 0.42);
+  box-shadow: 0 30px 82px rgba(0, 0, 0, 0.36);
+}
+
+html.dark .projects-modern .project-card.projects-card .project-card-main h2,
+html.dark .projects-modern .project-card.projects-card .project-health-row strong,
+html.dark .projects-modern .project-card.projects-card .project-stat-row strong {
+  color: #f8fbff;
+}
+
+html.dark .projects-modern .project-card.projects-card .project-card-main p,
+html.dark .projects-modern .project-card.projects-card .project-card-footer > span,
+html.dark .projects-modern .project-card.projects-card .project-health-row span,
+html.dark .projects-modern .project-card.projects-card .project-stat-row span {
+  color: #aebccc;
+}
+
+html.dark .projects-modern .project-card.projects-card .project-card-meta span {
+  border-color: rgba(144, 164, 184, 0.18);
+  color: #c8d7e8;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+html.dark .projects-modern .project-card.projects-card .project-health-row {
+  border-color: rgba(144, 164, 184, 0.18);
+  background:
+    linear-gradient(135deg, rgba(45, 212, 191, 0.1), rgba(96, 165, 250, 0.06)),
+    rgba(255, 255, 255, 0.055);
+}
+
+html.dark .projects-modern .project-card.projects-card .project-health-row .flow-health-bar {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+html.dark .projects-modern .project-card.projects-card .project-stat-row {
+  background: transparent;
+}
+
+html.dark .projects-modern .project-card.projects-card .project-stat-row span {
+  border-color: rgba(144, 164, 184, 0.16);
+  color: #aebccc;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.04)),
+    rgba(255, 255, 255, 0.055);
+}
+
+@media (max-width: 900px) {
+  .projects-modern .project-grid.projects-card-grid,
+  .projects-modern .project-card.projects-card .project-stat-row {
+    grid-template-columns: 1fr;
+  }
+
+  .projects-modern .project-card.projects-card .project-card-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .projects-modern .project-card.projects-card .project-card-footer .primary-button {
+    width: 100%;
+    min-width: 0;
   }
 }

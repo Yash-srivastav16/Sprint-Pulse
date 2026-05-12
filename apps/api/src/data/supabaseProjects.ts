@@ -41,6 +41,8 @@ type SprintRow = {
   start_date: string;
   end_date: string;
   status: "planned" | "active" | "closed";
+  created_at?: string;
+  updated_at?: string;
 };
 
 type ProjectMemberRow = {
@@ -49,6 +51,18 @@ type ProjectMemberRow = {
   role: ProjectRole;
   jira_account_id?: string | null;
   github_username?: string | null;
+};
+
+type ProjectSignalRows = {
+  standups: Array<{ project_id: string; sprint_id?: string | null; profile_id: string; blockers: string }>;
+  issues: Array<{ project_id: string; sprint_id?: string | null; status: string; updated_at_source?: string | null }>;
+  commits: Array<{ project_id: string; sprint_id?: string | null }>;
+  recommendations: Array<{ project_id: string; sprint_id?: string | null; severity: string; status: string }>;
+};
+
+type ProjectSignalSummary = {
+  healthScore: number;
+  atRiskCount: number;
 };
 
 const requireSupabaseAdmin = () => {
@@ -62,19 +76,45 @@ const requireSupabaseAdmin = () => {
 const isProjectManager = (viewer: Persona) =>
   viewer.productPersona === "scrum-master" || viewer.productPersona === "engineering-manager";
 
-const canViewAllProjects = (viewer: Persona) =>
-  viewer.productPersona === "product-owner" ||
-  viewer.productPersona === "scrum-master" ||
-  viewer.productPersona === "engineering-manager" ||
-  viewer.productPersona === "qa-lead" ||
-  viewer.productPersona === "presenter";
+const canViewPortfolio = (viewer: Persona) => viewer.productPersona === "product-owner";
+
+const projectMembership = (viewer: Persona, project?: SprintProject) =>
+  project?.members.find((member) => member.personaId === viewer.id);
+
+const canViewProject = (viewer: Persona, project: SprintProject) =>
+  canViewPortfolio(viewer) || project.createdBy === viewer.id || Boolean(projectMembership(viewer, project));
+
+const canViewProjectTeam = (viewer: Persona, project: SprintProject) => {
+  const membership = projectMembership(viewer, project);
+
+  return (
+    canViewPortfolio(viewer) ||
+    project.createdBy === viewer.id ||
+    Boolean(
+      membership &&
+        ["product-owner", "scrum-master", "engineering-manager", "architect", "qa"].includes(membership.role)
+    )
+  );
+};
+
+const canManageProject = (viewer: Persona, project?: SprintProject) => {
+  if (!project) {
+    return isProjectManager(viewer);
+  }
+
+  const membership = projectMembership(viewer, project);
+  return (
+    project.createdBy === viewer.id ||
+    Boolean(membership && ["product-owner", "scrum-master", "engineering-manager"].includes(membership.role))
+  );
+};
 
 const permissionsFor = (viewer: Persona, project?: SprintProject): Permission[] => {
-  const isMember = project?.members.some((member) => member.personaId === viewer.id) ?? true;
-  const teamVisibility = canViewAllProjects(viewer);
+  const projectVisible = project ? canViewProject(viewer, project) : true;
+  const teamVisibility = project ? canViewProjectTeam(viewer, project) : canViewPortfolio(viewer);
   const permissions: Permission[] = [];
 
-  if (teamVisibility || isMember) {
+  if (projectVisible) {
     permissions.push("project:view", "dashboard:viewOwn", "member:viewOwn", "standup:submit");
   }
 
@@ -82,7 +122,7 @@ const permissionsFor = (viewer: Persona, project?: SprintProject): Permission[] 
     permissions.push("dashboard:viewTeam", "member:viewTeam");
   }
 
-  if (isProjectManager(viewer)) {
+  if (canManageProject(viewer, project)) {
     permissions.push("project:create", "project:connect", "project:editTeam", "standup:sync");
   }
 
@@ -119,6 +159,35 @@ const daysRemaining = (sprint: SprintProject["sprint"]) => {
   const dayMs = 24 * 60 * 60 * 1000;
 
   return Math.max(0, Math.ceil((end.getTime() - today.getTime()) / dayMs));
+};
+
+const blockerIsOpen = (blockers: string) => {
+  const normalized = blockers.trim().toLowerCase();
+  return Boolean(normalized) && !["no blocker.", "no blocker", "no blockers", "none", "n/a", "na", "-"].includes(normalized);
+};
+
+const daysIdle = (value?: string | null) => {
+  if (!value) {
+    return 0;
+  }
+
+  const updatedAt = new Date(value);
+  if (Number.isNaN(updatedAt.getTime())) {
+    return 0;
+  }
+
+  return Math.max(0, Math.floor((Date.now() - updatedAt.getTime()) / (24 * 60 * 60 * 1000)));
+};
+
+const sprintSortValue = (sprint: SprintRow) =>
+  new Date(sprint.created_at ?? sprint.start_date ?? sprint.end_date).getTime() || 0;
+
+const sprintForProject = (projectId: string, sprints: SprintRow[]) => {
+  const projectSprints = sprints.filter((sprint) => sprint.project_id === projectId);
+  return (
+    projectSprints.find((sprint) => sprint.status === "active") ??
+    [...projectSprints].sort((a, b) => sprintSortValue(b) - sprintSortValue(a))[0]
+  );
 };
 
 const toMember = (profile: ProfileRow, member: ProjectMemberRow): ProjectMember => ({
@@ -169,7 +238,71 @@ const toProject = (
   };
 };
 
-const toSummary = (project: SprintProject, viewer: Persona): ProjectSummary => ({
+const emptySignalRows: ProjectSignalRows = {
+  standups: [],
+  issues: [],
+  commits: [],
+  recommendations: []
+};
+
+const fetchProjectSignals = async (projectIds: string[]): Promise<ProjectSignalRows> => {
+  if (!projectIds.length) {
+    return emptySignalRows;
+  }
+
+  const client = requireSupabaseAdmin();
+  const [standups, issues, commits, recommendations] = await Promise.all([
+    client.from("standups").select("project_id,sprint_id,profile_id,blockers").in("project_id", projectIds),
+    client.from("jira_issues").select("project_id,sprint_id,status,updated_at_source").in("project_id", projectIds),
+    client.from("git_commits").select("project_id,sprint_id").in("project_id", projectIds),
+    client.from("recommendations").select("project_id,sprint_id,severity,status").in("project_id", projectIds)
+  ]);
+
+  for (const error of [standups.error, issues.error, commits.error, recommendations.error]) {
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+
+  return {
+    standups: (standups.data ?? []) as ProjectSignalRows["standups"],
+    issues: (issues.data ?? []) as ProjectSignalRows["issues"],
+    commits: (commits.data ?? []) as ProjectSignalRows["commits"],
+    recommendations: (recommendations.data ?? []) as ProjectSignalRows["recommendations"]
+  };
+};
+
+const summarizeProjectSignals = (project: SprintProject, signals: ProjectSignalRows): ProjectSignalSummary => {
+  const sprintId = project.sprint.id;
+  const standups = signals.standups.filter((row) => row.project_id === project.id && row.sprint_id === sprintId);
+  const issues = signals.issues.filter((row) => row.project_id === project.id && row.sprint_id === sprintId);
+  const commits = signals.commits.filter((row) => row.project_id === project.id && row.sprint_id === sprintId);
+  const recommendations = signals.recommendations.filter((row) => row.project_id === project.id && row.sprint_id === sprintId);
+  const memberCount = Math.max(1, project.members.length);
+  const participantCount = new Set(standups.map((row) => row.profile_id)).size;
+  const blockerCount = standups.filter((row) => blockerIsOpen(row.blockers)).length;
+  const staleIssueCount = issues.filter((row) => row.status !== "Done" && daysIdle(row.updated_at_source) >= 3).length;
+  const highRecommendationCount = recommendations.filter(
+    (row) => row.status === "open" && (row.severity === "high" || row.severity === "critical")
+  ).length;
+  const signalCount = standups.length + issues.length + commits.length + recommendations.length;
+  const baseline = project.members.length ? 72 : 0;
+  const rawScore = signalCount
+    ? 70 +
+      (participantCount / memberCount) * 18 +
+      Math.min(10, commits.length * 1.5) -
+      blockerCount * 8 -
+      staleIssueCount * 4 -
+      highRecommendationCount * 7
+    : baseline;
+
+  return {
+    healthScore: Math.round(Math.max(0, Math.min(100, rawScore))),
+    atRiskCount: blockerCount + staleIssueCount + highRecommendationCount
+  };
+};
+
+const toSummary = (project: SprintProject, viewer: Persona, signalSummary: ProjectSignalSummary): ProjectSummary => ({
   id: project.id,
   key: project.key,
   name: project.name,
@@ -177,8 +310,8 @@ const toSummary = (project: SprintProject, viewer: Persona): ProjectSummary => (
   sprintName: project.sprint.name,
   sprintGoal: project.sprint.goal,
   memberCount: project.members.length,
-  healthScore: 0,
-  atRiskCount: 0,
+  healthScore: signalSummary.healthScore,
+  atRiskCount: signalSummary.atRiskCount,
   currentUserRole: project.members.find((member) => member.personaId === viewer.id)?.role ?? projectRoleForPersona(viewer),
   permissions: permissionsFor(viewer, project),
   lastSyncAt: project.lastSyncAt
@@ -234,7 +367,7 @@ const buildProjects = async () => {
 
   return projects
     .map((project) => {
-      const sprint = sprints.find((item) => item.project_id === project.id);
+      const sprint = sprintForProject(project.id, sprints);
       if (!sprint) {
         return null;
       }
@@ -256,9 +389,7 @@ const loadProjectsForViewer = async (personaId: string) => {
   }
 
   const viewer = toPersonaFromProfile(viewerProfile);
-  const visibleProjects = canViewAllProjects(viewer)
-    ? projects
-    : projects.filter((project) => project.members.some((member) => member.personaId === viewer.id));
+  const visibleProjects = projects.filter((project) => canViewProject(viewer, project));
 
   return { viewer, visibleProjects };
 };
@@ -270,10 +401,15 @@ export const buildSupabaseProjectsResponse = async (personaId: string): Promise<
   }
 
   const { viewer, visibleProjects } = context;
+  const signals = await fetchProjectSignals(visibleProjects.map((project) => project.id));
+  const uniqueMemberCount = new Set(
+    visibleProjects.flatMap((project) => project.members.map((member) => member.personaId))
+  ).size;
 
   return {
     viewer,
-    projects: visibleProjects.map((project) => toSummary(project, viewer)),
+    projects: visibleProjects.map((project) => toSummary(project, viewer, summarizeProjectSignals(project, signals))),
+    uniqueMemberCount,
     canCreateProject: isProjectManager(viewer),
     canConnectProject: isProjectManager(viewer),
     recommendedProjectId: visibleProjects[0]?.id

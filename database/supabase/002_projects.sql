@@ -62,13 +62,18 @@ security definer
 set search_path = public
 as $$
   select
-    public.current_sprintpulse_persona() in ('product-owner', 'scrum-master', 'engineering-manager', 'qa-lead')
+    public.current_sprintpulse_persona() = 'product-owner'
+    or exists (
+      select 1
+      from public.projects project
+      where project.id = target_project_id
+        and project.created_by = public.current_sprintpulse_profile_id()
+    )
     or exists (
       select 1
       from public.project_members member
-      join public.profiles profile on profile.id = member.profile_id
       where member.project_id = target_project_id
-        and profile.auth_user_id = auth.uid()
+        and member.profile_id = public.current_sprintpulse_profile_id()
     )
 $$;
 

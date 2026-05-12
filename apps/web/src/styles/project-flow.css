@@ -996,3 +996,106 @@
     grid-template-columns: 18px minmax(0, 1fr);
   }
 }
+
+.workspace-flow .workspace-sprint-ops {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  padding: 20px;
+  border: 1px solid rgba(144, 164, 184, 0.22);
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, rgba(36, 34, 44, 0.94), rgba(21, 43, 52, 0.86)),
+    #141218;
+  box-shadow: 0 20px 58px rgba(0, 0, 0, 0.24);
+}
+
+.workspace-flow .workspace-sprint-ops-copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.workspace-flow .workspace-sprint-ops-copy h2,
+.workspace-flow .workspace-sprint-ops-copy span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.workspace-flow .workspace-sprint-ops-copy h2 {
+  margin: 0;
+  color: #f8fbff;
+  font-size: 1.2rem;
+}
+
+.workspace-flow .workspace-sprint-ops-copy span {
+  color: #aebccc;
+  font-size: 0.86rem;
+  font-weight: 750;
+}
+
+.workspace-flow .workspace-sprint-ops-actions,
+.workspace-flow .form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.workspace-flow .workspace-sprint-form {
+  border-color: rgba(144, 164, 184, 0.22);
+  background:
+    linear-gradient(145deg, rgba(31, 30, 39, 0.95), rgba(20, 29, 42, 0.88)),
+    #141218;
+  box-shadow: 0 20px 58px rgba(0, 0, 0, 0.24);
+}
+
+.workspace-flow .workspace-sprint-form .field-group input,
+.workspace-flow .workspace-sprint-form .field-group select,
+.workspace-flow .workspace-sprint-form .field-group textarea {
+  border-color: rgba(144, 164, 184, 0.22);
+  color: #edf5f7;
+  background: rgba(15, 13, 19, 0.68);
+}
+
+.workspace-flow .workspace-sprint-form .field-group span {
+  color: #cbd5e1;
+}
+
+.workspace-flow .workspace-action-card,
+.workspace-flow .flow-metric-tile,
+.workspace-flow .workspace-detail-grid .panel {
+  border-color: rgba(144, 164, 184, 0.22);
+  background:
+    linear-gradient(145deg, rgba(31, 30, 39, 0.94), rgba(20, 29, 42, 0.88)),
+    #141218;
+  box-shadow: 0 20px 58px rgba(0, 0, 0, 0.22);
+}
+
+.workspace-flow .workspace-action-card:hover {
+  border-color: rgba(45, 212, 191, 0.4);
+  background:
+    linear-gradient(145deg, rgba(36, 34, 44, 0.96), rgba(20, 53, 58, 0.9)),
+    #141218;
+}
+
+.workspace-flow .workspace-action-icon {
+  border-color: rgba(45, 212, 191, 0.18);
+  color: #99f6e4;
+  background: rgba(45, 212, 191, 0.1);
+}
+
+.workspace-flow .flow-metric-tile strong,
+.workspace-flow .sprint-signal-list strong {
+  color: #f8fbff;
+}
+
+.workspace-flow .workspace-next-list a,
+.workspace-flow .integration-status-card,
+.workspace-flow .workspace-member-list span,
+.workspace-flow .sprint-signal-list span {
+  border-color: rgba(144, 164, 184, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+}

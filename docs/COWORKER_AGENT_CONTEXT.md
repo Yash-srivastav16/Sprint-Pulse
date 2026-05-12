@@ -95,6 +95,8 @@ Current SQL files:
 - `database/supabase/003_performance_indexes.sql`: indexes/performance improvements.
 - `database/supabase/004_project_ops.sql`: project ops tables such as standups, sync runs, Jira/Git connections, issues, commits, recommendations, invites.
 - `database/supabase/005_invite_acceptance.sql`: invite acceptance RPC for users who sign up with invited emails.
+- `database/supabase/006_invite_flow_cleanup.sql`: cleanup for old pending invite rows that were accidentally added as members before signup; reruns the invite acceptance RPC.
+- `database/supabase/007_sprint_management.sql`: sprint update policy and sprint status/date index for add/continue sprint flows.
 
 Known RLS note:
 
@@ -285,7 +287,7 @@ Current notable dirty areas include:
 - API Supabase data/routes.
 - Web shell/layout/pages/styles.
 - Shared contracts.
-- SQL migration `005_invite_acceptance.sql`.
+- SQL migrations `005_invite_acceptance.sql`, `006_invite_flow_cleanup.sql`, and `007_sprint_management.sql`.
 - New UI component folders under `apps/web/src/components`.
 - Deleted legacy files: `apps/web/src/components/Shell.tsx`, `apps/web/src/styles/dashboard.css`.
 
@@ -366,6 +368,8 @@ Ownership:
 - `apps/web/src/context/AuthContext.tsx` only if invite acceptance needs minor wiring
 - `apps/api/src/data/supabaseProfiles.ts`
 - `database/supabase/005_invite_acceptance.sql`
+- `database/supabase/006_invite_flow_cleanup.sql`
+- `database/supabase/007_sprint_management.sql`
 
 Prompt:
 

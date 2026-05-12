@@ -583,49 +583,61 @@ export const isElevated = (persona: Persona): boolean =>
   persona.productPersona === "scrum-master" ||
   persona.productPersona === "engineering-manager";
 
+const isProjectManager = (persona: Persona): boolean =>
+  persona.productPersona === "scrum-master" || persona.productPersona === "engineering-manager";
+
+const projectMembership = (persona: Persona, project?: SprintProject) =>
+  project?.members.find((member) => member.personaId === persona.id);
+
+const canViewPortfolio = (persona: Persona): boolean => persona.productPersona === "product-owner";
+
+const canManageProject = (persona: Persona, project?: SprintProject): boolean => {
+  if (!project) {
+    return isProjectManager(persona);
+  }
+
+  const membership = projectMembership(persona, project);
+  return (
+    project.createdBy === persona.id ||
+    Boolean(membership && ["product-owner", "scrum-master", "engineering-manager"].includes(membership.role))
+  );
+};
+
+const canViewProjectTeam = (persona: Persona, project: SprintProject): boolean => {
+  const membership = projectMembership(persona, project);
+  return (
+    canViewPortfolio(persona) ||
+    project.createdBy === persona.id ||
+    Boolean(membership && ["product-owner", "scrum-master", "engineering-manager", "architect", "qa"].includes(membership.role))
+  );
+};
+
 export const permissionsFor = (persona: Persona, project?: SprintProject): Permission[] => {
-  const isMember = project?.members.some((member) => member.personaId === persona.id) ?? true;
+  const projectVisible = project ? canAccessProject(persona, project) : true;
 
-  if (isElevated(persona)) {
-    return [
-      "project:view",
-      "project:create",
-      "project:connect",
-      "project:editTeam",
-      "standup:submit",
-      "standup:sync",
-      "dashboard:viewTeam",
-      "dashboard:viewOwn",
-      "member:viewTeam",
-      "member:viewOwn"
-    ];
-  }
-
-  if (persona.accessScope === "quality" || persona.accessScope === "presentation") {
-    return [
-      "project:view",
-      "standup:submit",
-      "dashboard:viewTeam",
-      "dashboard:viewOwn",
-      "member:viewTeam",
-      "member:viewOwn"
-    ];
-  }
-
-  if (!isMember) {
+  if (!projectVisible) {
     return [];
   }
 
-  return ["project:view", "standup:submit", "dashboard:viewOwn", "member:viewOwn"];
+  const permissions: Permission[] = ["project:view", "standup:submit", "dashboard:viewOwn", "member:viewOwn"];
+
+  if (project ? canViewProjectTeam(persona, project) : canViewPortfolio(persona)) {
+    permissions.push("dashboard:viewTeam", "member:viewTeam");
+  }
+
+  if (canManageProject(persona, project)) {
+    permissions.push("project:create", "project:connect", "project:editTeam", "standup:sync");
+  }
+
+  return [...new Set(permissions)];
 };
 
 export const hasPermission = (persona: Persona, permission: Permission, project?: SprintProject): boolean =>
   permissionsFor(persona, project).includes(permission);
 
 export const canAccessProject = (persona: Persona, project: SprintProject): boolean =>
-  isElevated(persona) ||
-  persona.accessScope === "quality" ||
-  persona.accessScope === "presentation" ||
+  canViewPortfolio(persona) ||
+  project.createdBy === persona.id ||
   project.members.some((member) => member.personaId === persona.id);
 
 export const addStandupEntry = (entry: StandupEntry): MemberPulse | undefined => {
@@ -731,9 +743,13 @@ export const buildProjectsResponse = (personaId: string) => {
   }
 
   const visibleProjects = projects.filter((project) => canAccessProject(viewer, project));
+  const uniqueMemberCount = new Set(
+    visibleProjects.flatMap((project) => project.members.map((member) => member.personaId))
+  ).size;
   return {
     viewer,
     projects: visibleProjects.map((project) => buildProjectSummary(project, viewer)),
+    uniqueMemberCount,
     canCreateProject: hasPermission(viewer, "project:create"),
     canConnectProject: hasPermission(viewer, "project:connect"),
     recommendedProjectId: visibleProjects[0]?.id

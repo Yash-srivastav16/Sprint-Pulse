@@ -1,12 +1,13 @@
 import { FormEvent, useEffect, useState } from "react";
-import { BadgeCheck, GitBranch, Loader2, MailPlus, Save, ShieldAlert, TicketCheck, UsersRound } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import { BadgeCheck, Check, Edit3, GitBranch, Loader2, MailPlus, Save, ShieldAlert, TicketCheck, UsersRound, X } from "lucide-react";
+import { useParams } from "react-router-dom";
 import type { AppRole, ProjectInvite, ProjectRole, TeamResponse } from "@sprintpulse/shared";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
 
 const projectRoles: ProjectRole[] = ["product-owner", "scrum-master", "engineering-manager", "architect", "developer", "qa"];
-const appRoles: AppRole[] = ["product-owner", "scrum-master", "engineering-manager", "developer", "qa-lead"];
+type TeamEntryMode = "existing" | "invite";
+type TeamMember = TeamResponse["members"][number];
 
 const roleLabel = (role: string) =>
   role
@@ -51,13 +52,20 @@ export function ProjectTeamPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [entryMode, setEntryMode] = useState<TeamEntryMode>("existing");
   const [selectedProfileId, setSelectedProfileId] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [appRole, setAppRole] = useState<AppRole>("developer");
   const [projectRole, setProjectRole] = useState<ProjectRole>("developer");
   const [jiraAccountId, setJiraAccountId] = useState("");
   const [githubUsername, setGithubUsername] = useState("");
+  const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
+  const [savingMemberId, setSavingMemberId] = useState<string | null>(null);
+  const [memberDraft, setMemberDraft] = useState({
+    role: "developer" as ProjectRole,
+    jiraAccountId: "",
+    githubUsername: ""
+  });
 
   const loadTeam = () => {
     if (!persona || !projectId) {
@@ -75,19 +83,38 @@ export function ProjectTeamPage() {
 
   useEffect(loadTeam, [persona, projectId]);
 
+  useEffect(() => {
+    if (team?.canEditTeam && !(team.availableUsers ?? []).length) {
+      setEntryMode("invite");
+    }
+  }, [team?.canEditTeam, team?.availableUsers]);
+
+  const changeEntryMode = (nextMode: TeamEntryMode) => {
+    setEntryMode(nextMode);
+    setSelectedProfileId("");
+    setError(null);
+    setSuccess(null);
+  };
+
   const inviteMember = async (event: FormEvent) => {
     event.preventDefault();
     if (!persona || !projectId || !team) {
       return;
     }
 
-    const selectedWorkspaceUser = (team.availableUsers ?? []).find((user) => user.id === selectedProfileId);
+    const selectedWorkspaceUser =
+      entryMode === "existing" ? (team.availableUsers ?? []).find((user) => user.id === selectedProfileId) : undefined;
     const memberName = selectedWorkspaceUser?.name ?? name.trim();
     const memberEmail = selectedWorkspaceUser?.email ?? email.trim();
-    const memberAppRole = selectedWorkspaceUser?.appRole ?? appRole;
+    const memberAppRole = selectedWorkspaceUser?.appRole ?? appRoleForProjectRole(projectRole);
 
-    if (!memberName || !memberEmail) {
-      setError("Choose a signed-in workspace user or enter a name and email.");
+    if (entryMode === "existing" && !selectedWorkspaceUser) {
+      setError("Choose an existing SprintPulse account or switch to Invite by email.");
+      return;
+    }
+
+    if (entryMode === "invite" && (!memberName || !memberEmail)) {
+      setError("Enter the invitee name and email.");
       return;
     }
 
@@ -110,17 +137,74 @@ export function ProjectTeamPage() {
       setJiraAccountId("");
       setGithubUsername("");
       setProjectRole("developer");
-      setAppRole("developer");
       setSuccess(
         response.invite.status === "accepted"
           ? `${memberName} was added to this project. They can open it after signing in.`
-          : `${memberName} was invited. They should create an account with ${memberEmail} and choose their own password.`
+          : `${memberName} is pending. Copy the signup link below and send it to ${memberEmail}.`
       );
       loadTeam();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to add team member");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const copySignupLink = async (invite: ProjectInvite) => {
+    const link = `${window.location.origin}${signupLinkForInvite(invite)}`;
+
+    setError(null);
+    setSuccess(null);
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error("Clipboard unavailable");
+      }
+
+      await navigator.clipboard.writeText(link);
+      setSuccess(`Signup link copied for ${invite.email}. Send it to the invited user.`);
+    } catch {
+      setError(`Copy failed. Signup link: ${link}`);
+    }
+  };
+
+  const startEditingMember = (member: TeamMember) => {
+    setEditingMemberId(member.personaId);
+    setMemberDraft({
+      role: member.role,
+      jiraAccountId: member.jiraAccountId ?? "",
+      githubUsername: member.githubUsername ?? ""
+    });
+    setError(null);
+    setSuccess(null);
+  };
+
+  const cancelEditingMember = () => {
+    setEditingMemberId(null);
+    setMemberDraft({ role: "developer", jiraAccountId: "", githubUsername: "" });
+  };
+
+  const saveMemberMapping = async (member: TeamMember) => {
+    if (!persona || !projectId) {
+      return;
+    }
+
+    setSavingMemberId(member.personaId);
+    setError(null);
+    setSuccess(null);
+    try {
+      const response = await api.updateProjectMember(projectId, member.personaId, {
+        personaId: persona.id,
+        role: memberDraft.role,
+        jiraAccountId: memberDraft.jiraAccountId,
+        githubUsername: memberDraft.githubUsername
+      });
+      setTeam(response);
+      setEditingMemberId(null);
+      setSuccess(`${member.name}'s Jira and GitHub mapping was updated.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to update team mapping");
+    } finally {
+      setSavingMemberId(null);
     }
   };
 
@@ -145,7 +229,9 @@ export function ProjectTeamPage() {
   const gitMapped = team.members.filter((member) => member.githubUsername).length;
   const deliveryLeads = team.members.filter((member) => ["product-owner", "scrum-master", "architect"].includes(member.role)).length;
   const availableUsers = team.availableUsers ?? [];
-  const selectedWorkspaceUser = availableUsers.find((user) => user.id === selectedProfileId);
+  const selectedWorkspaceUser = entryMode === "existing" ? availableUsers.find((user) => user.id === selectedProfileId) : undefined;
+  const pendingInvites = team.invites.filter((invite) => invite.status === "pending");
+  const acceptedInvites = team.invites.filter((invite) => invite.status === "accepted");
 
   return (
     <div className="page-stack ops-page">
@@ -161,8 +247,8 @@ export function ProjectTeamPage() {
             <span>members</span>
           </div>
           <div>
-            <strong>{team.invites.length}</strong>
-            <span>invites</span>
+            <strong>{pendingInvites.length}</strong>
+            <span>pending</span>
           </div>
           <div className="ops-heading-icon">
             <UsersRound size={28} />
@@ -195,35 +281,51 @@ export function ProjectTeamPage() {
         <form className="panel setup-form compact-form" onSubmit={inviteMember}>
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">Workspace users</p>
+              <p className="eyebrow">Team access</p>
               <h2>Add project member</h2>
               <span className="panel-subtitle">
-                Existing users are added immediately. New emails get a pending invite and choose their own password on signup.
+                Add a signed-up SprintPulse user directly, or create a signup link for someone new.
               </span>
             </div>
             <MailPlus size={22} />
           </div>
+          <div className="segmented-control team-entry-tabs" role="tablist" aria-label="Member entry mode">
+            <button className={entryMode === "existing" ? "active" : ""} type="button" onClick={() => changeEntryMode("existing")}>
+              Existing account
+            </button>
+            <button className={entryMode === "invite" ? "active" : ""} type="button" onClick={() => changeEntryMode("invite")}>
+              Invite by email
+            </button>
+          </div>
           <div className="form-grid">
-            <label className="field-group wide">
-              <span>Signed-in workspace user</span>
-              <select value={selectedProfileId} onChange={(event) => setSelectedProfileId(event.target.value)}>
-                <option value="">Invite with email instead</option>
-                {availableUsers.map((user) => (
-                  <option value={user.id} key={user.id}>
-                    {user.name} · {user.email} · {roleLabel(user.appRole)}
-                  </option>
-                ))}
-              </select>
-              <small className="field-hint">People appear here after creating a SprintPulse account.</small>
-            </label>
-            {selectedWorkspaceUser ? (
-              <div className="selected-user-card wide">
-                <strong>{selectedWorkspaceUser.initials}</strong>
-                <span>
-                  <b>{selectedWorkspaceUser.name}</b>
-                  <small>{selectedWorkspaceUser.email} · {roleLabel(selectedWorkspaceUser.appRole)}</small>
-                </span>
-              </div>
+            {entryMode === "existing" ? (
+              <>
+                <label className="field-group wide">
+                  <span>Add existing SprintPulse account</span>
+                  <select value={selectedProfileId} onChange={(event) => setSelectedProfileId(event.target.value)}>
+                    <option value="">Choose an account</option>
+                    {availableUsers.map((user) => (
+                      <option value={user.id} key={user.id}>
+                        {user.name} · {user.email} · {roleLabel(user.appRole)}
+                      </option>
+                    ))}
+                  </select>
+                  <small className="field-hint">
+                    {availableUsers.length
+                      ? "Only accounts not already in this project are listed."
+                      : "No unassigned accounts are available yet. Use Invite by email for a new person."}
+                  </small>
+                </label>
+                {selectedWorkspaceUser ? (
+                  <div className="selected-user-card wide">
+                    <strong>{selectedWorkspaceUser.initials}</strong>
+                    <span>
+                      <b>{selectedWorkspaceUser.name}</b>
+                      <small>{selectedWorkspaceUser.email} · {roleLabel(selectedWorkspaceUser.appRole)}</small>
+                    </span>
+                  </div>
+                ) : null}
+              </>
             ) : (
               <>
                 <label className="field-group">
@@ -240,23 +342,16 @@ export function ProjectTeamPage() {
                     required={!selectedWorkspaceUser}
                   />
                 </label>
-                <label className="field-group">
-                  <span>Workspace role</span>
-                  <select value={appRole} onChange={(event) => setAppRole(event.target.value as AppRole)}>
-                    {appRoles.map((role) => (
-                      <option value={role} key={role}>{roleLabel(role)}</option>
-                    ))}
-                  </select>
-                </label>
               </>
             )}
-            <label className="field-group">
+            <label className="field-group wide">
               <span>Project role</span>
               <select value={projectRole} onChange={(event) => setProjectRole(event.target.value as ProjectRole)}>
                 {projectRoles.map((role) => (
                   <option value={role} key={role}>{roleLabel(role)}</option>
                 ))}
               </select>
+              <small className="field-hint">This controls project permissions and how SprintPulse groups Jira, Git, and standup signals.</small>
             </label>
             <label className="field-group">
               <span>Jira account</span>
@@ -269,7 +364,7 @@ export function ProjectTeamPage() {
           </div>
           <button className="primary-button" type="submit" disabled={saving}>
             {saving ? <Loader2 className="spin" size={18} /> : <Save size={18} />}
-            <span>Add member</span>
+            <span>{entryMode === "existing" ? "Add selected account" : "Create invite"}</span>
           </button>
         </form>
       ) : (
@@ -289,57 +384,144 @@ export function ProjectTeamPage() {
             <h2>{team.members.length} people mapped to this project</h2>
           </div>
         </div>
-        <div className="ops-table">
+        <div className={`ops-table team-mapping-table ${team.canEditTeam ? "has-actions" : ""}`}>
           <div className="ops-table-head">
             <span>Person</span>
             <span>Role</span>
             <span>Jira</span>
             <span>GitHub</span>
+            {team.canEditTeam ? <span>Actions</span> : null}
           </div>
-          {team.members.map((member) => (
-            <div className="ops-table-row" key={member.personaId}>
-              <span className="member-cell">
-                <strong>{member.initials}</strong>
-                <span>
-                  {member.name}
-                  <small>{member.email}</small>
+          {team.members.map((member) => {
+            const isEditing = editingMemberId === member.personaId;
+            const isSavingMember = savingMemberId === member.personaId;
+
+            return (
+              <div className="ops-table-row" key={member.personaId}>
+                <span className="member-cell">
+                  <strong>{member.initials}</strong>
+                  <span>
+                    {member.name}
+                    <small>{member.email}</small>
+                  </span>
                 </span>
-              </span>
-              <span>{roleLabel(member.role)}</span>
-              <span>{member.jiraAccountId || "Not mapped"}</span>
-              <span>{member.githubUsername || "Not mapped"}</span>
-            </div>
-          ))}
+                <span className="member-mapping-cell">
+                  {isEditing ? (
+                    <select
+                      aria-label={`Project role for ${member.name}`}
+                      value={memberDraft.role}
+                      onChange={(event) => setMemberDraft((draft) => ({ ...draft, role: event.target.value as ProjectRole }))}
+                    >
+                      {projectRoles.map((role) => (
+                        <option value={role} key={role}>
+                          {roleLabel(role)}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    roleLabel(member.role)
+                  )}
+                </span>
+                <span className="member-mapping-cell">
+                  {isEditing ? (
+                    <input
+                      aria-label={`Jira account for ${member.name}`}
+                      value={memberDraft.jiraAccountId}
+                      onChange={(event) => setMemberDraft((draft) => ({ ...draft, jiraAccountId: event.target.value }))}
+                      placeholder="Jira account id or email"
+                    />
+                  ) : (
+                    member.jiraAccountId || <em>Not mapped</em>
+                  )}
+                </span>
+                <span className="member-mapping-cell">
+                  {isEditing ? (
+                    <input
+                      aria-label={`GitHub username for ${member.name}`}
+                      value={memberDraft.githubUsername}
+                      onChange={(event) => setMemberDraft((draft) => ({ ...draft, githubUsername: event.target.value }))}
+                      placeholder="github-handle"
+                    />
+                  ) : (
+                    member.githubUsername || <em>Not mapped</em>
+                  )}
+                </span>
+                {team.canEditTeam ? (
+                  <span className="member-actions">
+                    {isEditing ? (
+                      <>
+                        <button
+                          aria-label={`Save mappings for ${member.name}`}
+                          className="table-icon-button is-save"
+                          type="button"
+                          onClick={() => void saveMemberMapping(member)}
+                          disabled={Boolean(savingMemberId)}
+                        >
+                          {isSavingMember ? <Loader2 className="spin" size={16} /> : <Check size={16} />}
+                        </button>
+                        <button
+                          aria-label={`Cancel editing ${member.name}`}
+                          className="table-icon-button"
+                          type="button"
+                          onClick={cancelEditingMember}
+                          disabled={Boolean(savingMemberId)}
+                        >
+                          <X size={16} />
+                        </button>
+                      </>
+                    ) : (
+                      <button className="icon-text-button table-edit-button" type="button" onClick={() => startEditingMember(member)}>
+                        <Edit3 size={15} />
+                        <span>{member.jiraAccountId && member.githubUsername ? "Edit" : "Map user"}</span>
+                      </button>
+                    )}
+                  </span>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
       </section>
 
-      {team.invites.length ? (
+      {pendingInvites.length ? (
         <section className="panel">
           <div className="panel-heading">
             <div>
               <p className="eyebrow">Invites</p>
-              <h2>Pending access</h2>
+              <h2>{pendingInvites.length} pending signup {pendingInvites.length === 1 ? "link" : "links"}</h2>
             </div>
           </div>
           <div className="invite-list">
-            {team.invites.map((invite) => {
-              const invitedMember = team.members.find((member) => member.email.toLowerCase() === invite.email.toLowerCase());
-
-              return (
+            {pendingInvites.map((invite) => (
               <span key={invite.id}>
                 <strong>{invite.email}</strong>
                 <small>
-                  {roleLabel(invite.role)} ·{" "}
-                  {invite.status === "accepted" ? "accepted" : "waiting for account signup"}
+                  {roleLabel(invite.role)} · waiting for account signup
                 </small>
-                {invite.status === "pending" ? (
-                  <Link className="text-link" to={signupLinkForInvite(invite, invitedMember?.name)}>
-                    Open signup link
-                  </Link>
-                ) : null}
+                <button className="text-link invite-link-button" type="button" onClick={() => void copySignupLink(invite)}>
+                  Copy signup link
+                </button>
               </span>
-              );
-            })}
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {acceptedInvites.length ? (
+        <section className="panel compact-panel">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">Access history</p>
+              <h2>{acceptedInvites.length} accepted {acceptedInvites.length === 1 ? "invite" : "invites"}</h2>
+            </div>
+          </div>
+          <div className="invite-list">
+            {acceptedInvites.slice(0, 4).map((invite) => (
+              <span key={invite.id}>
+                <strong>{invite.email}</strong>
+                <small>{roleLabel(invite.role)} · accepted</small>
+              </span>
+            ))}
           </div>
         </section>
       ) : null}

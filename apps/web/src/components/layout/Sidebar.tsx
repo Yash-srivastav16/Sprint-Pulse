@@ -55,17 +55,25 @@ export function Sidebar() {
         }
         setProjects(response.projects);
         setSwitcherError(null);
+        if (selectedProjectId && !response.projects.some((item) => item.id === selectedProjectId)) {
+          const staleProjectId = selectedProjectId;
+          clearProject();
+          setSprints([]);
+          if (window.location.pathname.includes(`/projects/${staleProjectId}`)) {
+            navigate('/projects', { replace: true });
+          }
+        }
       })
       .catch(() => {
         if (isCurrent) {
-          setSwitcherError('Project switcher unavailable');
+          setSwitcherError('Project list unavailable');
         }
       });
 
     return () => {
       isCurrent = false;
     };
-  }, [persona]);
+  }, [clearProject, navigate, persona, selectedProjectId]);
 
   useEffect(() => {
     if (!persona || !selectedProjectId) {

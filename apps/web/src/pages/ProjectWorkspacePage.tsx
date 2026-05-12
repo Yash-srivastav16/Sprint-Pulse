@@ -1,4 +1,4 @@
-import { type CSSProperties, useEffect, useState } from "react";
+import { type CSSProperties, type FormEvent, useCallback, useEffect, useState } from "react";
 import {
   Activity,
   ArrowRight,
@@ -13,6 +13,7 @@ import {
   Loader2,
   MessageSquareText,
   PlugZap,
+  Plus,
   RadioTower,
   RefreshCw,
   Sparkles,
@@ -21,7 +22,7 @@ import {
   Users
 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
-import type { Persona, ProjectOpsResponse } from "@sprintpulse/shared";
+import type { CreateProjectSprintRequest, Persona, ProjectOpsResponse } from "@sprintpulse/shared";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { useProject } from "../context/ProjectContext";
@@ -90,6 +91,25 @@ function healthLabel(score: number) {
   return "No signal";
 }
 
+const addDays = (value: string, days: number) => {
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+};
+
+const nextSprintName = (name: string) => {
+  const match = name.match(/^(.*?)(\d+)$/);
+  if (!match) {
+    return `${name} 2`;
+  }
+
+  return `${match[1]}${Number(match[2]) + 1}`;
+};
+
 export function ProjectWorkspacePage() {
   const { projectId } = useParams();
   const { persona } = useAuth();
@@ -97,29 +117,53 @@ export function ProjectWorkspacePage() {
   const [workspace, setWorkspace] = useState<ProjectOpsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showSprintForm, setShowSprintForm] = useState(false);
+  const [savingSprint, setSavingSprint] = useState(false);
+  const [sprintFeedback, setSprintFeedback] = useState<string | null>(null);
+  const [sprintDraft, setSprintDraft] = useState({
+    name: "",
+    goal: "",
+    startDate: "",
+    endDate: "",
+    status: "planned" as CreateProjectSprintRequest["status"]
+  });
 
-  useEffect(() => {
+  const applyWorkspace = useCallback(
+    (response: ProjectOpsResponse) => {
+      setWorkspace(response);
+      selectProject(response.project.id, {
+        source: response.project.source === "manual" ? "manual" : "jira",
+        projectName: response.project.name,
+        projectKey: response.project.key,
+        sprintName: response.project.sprint.name,
+        sprintGoal: response.project.sprint.goal,
+        jiraSite: response.project.jiraSite,
+        importedAt: response.project.lastSyncAt
+      });
+    },
+    [selectProject]
+  );
+
+  const loadWorkspace = useCallback(async () => {
     if (!persona || !projectId) {
       return;
     }
 
-    api
-      .getProjectOps(projectId, persona.id)
-      .then((response) => {
-        setWorkspace(response);
-        selectProject(response.project.id, {
-          source: response.project.source === "manual" ? "manual" : "jira",
-          projectName: response.project.name,
-          projectKey: response.project.key,
-          sprintName: response.project.sprint.name,
-          sprintGoal: response.project.sprint.goal,
-          jiraSite: response.project.jiraSite,
-          importedAt: response.project.lastSyncAt
-        });
-      })
-      .catch((err: Error) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [persona, projectId, selectProject]);
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await api.getProjectOps(projectId, persona.id);
+      applyWorkspace(response);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Project workspace unavailable");
+    } finally {
+      setLoading(false);
+    }
+  }, [applyWorkspace, persona, projectId]);
+
+  useEffect(() => {
+    void loadWorkspace();
+  }, [loadWorkspace]);
 
   if (loading) {
     return (
@@ -167,6 +211,47 @@ export function ProjectWorkspacePage() {
     }
   ];
 
+  const openSprintDraft = (status: CreateProjectSprintRequest["status"]) => {
+    const startDate = addDays(currentSprint.endDate, 1);
+    setSprintDraft({
+      name: nextSprintName(currentSprint.name),
+      goal: currentSprint.goal,
+      startDate,
+      endDate: addDays(startDate, 13),
+      status
+    });
+    setSprintFeedback(null);
+    setShowSprintForm(true);
+  };
+
+  const createSprint = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!persona) {
+      return;
+    }
+
+    setSavingSprint(true);
+    setError(null);
+    setSprintFeedback(null);
+    try {
+      const response = await api.createProjectSprint(project.id, {
+        personaId: persona.id,
+        ...sprintDraft
+      });
+      setSprintFeedback(
+        sprintDraft.status === "active"
+          ? `${response.createdSprint.name} is now the active sprint.`
+          : `${response.createdSprint.name} is planned for this project.`
+      );
+      setShowSprintForm(false);
+      await loadWorkspace();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to create sprint");
+    } finally {
+      setSavingSprint(false);
+    }
+  };
+
   return (
     <div className="page-stack project-flow-page workspace-flow">
       <section className="page-heading workspace-heading flow-hero workspace-hero">
@@ -195,11 +280,112 @@ export function ProjectWorkspacePage() {
         </div>
         <div className="workspace-score flow-score-dial" style={scoreStyle}>
           <span>{summary.teamHealthScore || "--"}</span>
-          <strong>Sprint health</strong>
+          <strong>Project signal</strong>
           <em>{healthLabel(summary.teamHealthScore)}</em>
-          <small>{summary.participationRate}% participation</small>
+          <small>{summary.standupCount} updates · {summary.issueCount} issues</small>
         </div>
       </section>
+
+      <section className="workspace-sprint-ops" aria-label="Sprint controls">
+        <div className="workspace-sprint-ops-copy">
+          <p className="eyebrow">Sprint control</p>
+          <h2>{currentSprint.name}</h2>
+          <span>
+            {formatShortDate(currentSprint.startDate)} - {formatShortDate(currentSprint.endDate)} · {formatStatus(currentSprint.status)}
+          </span>
+        </div>
+        {canConfigure ? (
+          <div className="workspace-sprint-ops-actions">
+            <button className="icon-text-button" type="button" onClick={() => openSprintDraft("planned")}>
+              <Plus size={17} />
+              <span>Plan next sprint</span>
+            </button>
+            <button className="primary-button" type="button" onClick={() => openSprintDraft("active")}>
+              <ArrowRight size={17} />
+              <span>Start new active sprint</span>
+            </button>
+          </div>
+        ) : (
+          <div className="permission-note">
+            <Users size={17} />
+            <span>Project leads manage sprint planning for this workspace.</span>
+          </div>
+        )}
+      </section>
+
+      {sprintFeedback ? <p className="form-success">{sprintFeedback}</p> : null}
+
+      {showSprintForm ? (
+        <form className="panel setup-form compact-form workspace-sprint-form" onSubmit={createSprint}>
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">{sprintDraft.status === "active" ? "New active sprint" : "Planned sprint"}</p>
+              <h2>{sprintDraft.status === "active" ? "Start sprint" : "Plan sprint"}</h2>
+            </div>
+          </div>
+          <div className="form-grid">
+            <label className="field-group">
+              <span>Sprint name</span>
+              <input
+                value={sprintDraft.name}
+                onChange={(event) => setSprintDraft((draft) => ({ ...draft, name: event.target.value }))}
+                required
+              />
+            </label>
+            <label className="field-group">
+              <span>Status</span>
+              <select
+                value={sprintDraft.status}
+                onChange={(event) =>
+                  setSprintDraft((draft) => ({
+                    ...draft,
+                    status: event.target.value as CreateProjectSprintRequest["status"]
+                  }))
+                }
+              >
+                <option value="planned">Planned</option>
+                <option value="active">Active</option>
+              </select>
+            </label>
+            <label className="field-group">
+              <span>Start date</span>
+              <input
+                type="date"
+                value={sprintDraft.startDate}
+                onChange={(event) => setSprintDraft((draft) => ({ ...draft, startDate: event.target.value }))}
+                required
+              />
+            </label>
+            <label className="field-group">
+              <span>End date</span>
+              <input
+                type="date"
+                value={sprintDraft.endDate}
+                onChange={(event) => setSprintDraft((draft) => ({ ...draft, endDate: event.target.value }))}
+                required
+              />
+            </label>
+            <label className="field-group wide">
+              <span>Goal</span>
+              <textarea
+                rows={3}
+                value={sprintDraft.goal}
+                onChange={(event) => setSprintDraft((draft) => ({ ...draft, goal: event.target.value }))}
+                required
+              />
+            </label>
+          </div>
+          <div className="form-actions">
+            <button className="ghost-action-button" type="button" onClick={() => setShowSprintForm(false)}>
+              Cancel
+            </button>
+            <button className="primary-button" type="submit" disabled={savingSprint}>
+              {savingSprint ? <Loader2 className="spin" size={17} /> : <CheckCircle2 size={17} />}
+              <span>{sprintDraft.status === "active" ? "Start sprint" : "Save planned sprint"}</span>
+            </button>
+          </div>
+        </form>
+      ) : null}
 
       <section className="workspace-action-grid flow-action-grid" aria-label="Workspace actions">
         <Link className="workspace-action-card" to={`/projects/${project.id}/standups`}>
