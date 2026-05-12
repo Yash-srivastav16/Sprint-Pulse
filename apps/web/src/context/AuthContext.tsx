@@ -116,6 +116,8 @@ interface AuthContextValue {
 }
 
 const STORAGE_KEY = "sprintpulse.persona";
+const AUTH_PROFILE_TIMEOUT_MS = 5000;
+const AUTH_BACKGROUND_TIMEOUT_MS = 2500;
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
@@ -131,6 +133,26 @@ const readStoredPersona = (): Persona | null => {
     window.localStorage.removeItem(STORAGE_KEY);
     return null;
   }
+};
+
+const withTimeout = async <T,>(task: Promise<T>, timeoutMs: number, label: string): Promise<T> => {
+  let timeoutId: number | undefined;
+  try {
+    return await Promise.race([
+      task,
+      new Promise<T>((_, reject) => {
+        timeoutId = window.setTimeout(() => reject(new Error(`${label} timed out`)), timeoutMs);
+      })
+    ]);
+  } finally {
+    if (timeoutId) {
+      window.clearTimeout(timeoutId);
+    }
+  }
+};
+
+const runBackgroundAuthTask = (task: Promise<unknown>) => {
+  void withTimeout(task, AUTH_BACKGROUND_TIMEOUT_MS, "Background auth task").catch(() => undefined);
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -239,22 +261,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     let nextPersona: Persona;
     try {
-      await claimSupabaseProfile();
+      await withTimeout(claimSupabaseProfile(), AUTH_BACKGROUND_TIMEOUT_MS, "Profile claim");
     } catch {
       // Older local databases may not have the claim RPC yet. Profile lookup still
       // falls back to the API so existing demo sessions can continue.
     }
 
     try {
-      nextPersona = await api.getPersonaByEmail(email);
-    } catch {
-      nextPersona = await getPersonaFromSupabaseProfile(email);
+      nextPersona = await withTimeout(
+        getPersonaFromSupabaseProfile(email),
+        AUTH_PROFILE_TIMEOUT_MS,
+        "Supabase profile lookup"
+      );
+    } catch (supabaseProfileError) {
+      try {
+        nextPersona = await withTimeout(api.getPersonaByEmail(email), AUTH_PROFILE_TIMEOUT_MS, "API profile lookup");
+      } catch {
+        throw supabaseProfileError;
+      }
     }
 
     setSession(nextSession);
     setUser(nextSession.user);
     persistPersona(nextPersona);
-    await acceptOwnProjectInvites();
+    runBackgroundAuthTask(acceptOwnProjectInvites());
   };
 
   useEffect(() => {
@@ -297,13 +327,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       data: { subscription }
     } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setIsLoading(true);
-      applySession(nextSession)
-        .catch(() => {
-          setSession(null);
-          setUser(null);
-          clearPersona();
-        })
-        .finally(() => setIsLoading(false));
+      window.setTimeout(() => {
+        withTimeout(applySession(nextSession), AUTH_PROFILE_TIMEOUT_MS + AUTH_BACKGROUND_TIMEOUT_MS, "Auth session")
+          .catch(() => {
+            setSession(null);
+            setUser(null);
+            clearPersona();
+          })
+          .finally(() => setIsLoading(false));
+      }, 0);
     });
 
     return () => {

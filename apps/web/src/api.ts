@@ -130,15 +130,19 @@ const recoverCreatedProject = async (input: CreateProjectRequest): Promise<Creat
 };
 
 export const api = {
-  getPersonas: () => request<{ personas: Persona[] }>("/personas"),
+  getPersonas: () => request<{ personas: Persona[] }>("/personas", undefined, { timeoutMs: PROJECT_API_TIMEOUT_MS }),
   createUserProfile: (input: CreateUserProfileRequest) =>
-    request<CreateUserProfileResponse>("/users", {
-      method: "POST",
-      body: JSON.stringify(input)
-    }),
+    request<CreateUserProfileResponse>(
+      "/users",
+      {
+        method: "POST",
+        body: JSON.stringify(input)
+      },
+      { timeoutMs: PROJECT_MUTATION_TIMEOUT_MS }
+    ),
   getPersonaByEmail: async (email: string) => {
     const normalizedEmail = email.trim().toLowerCase();
-    const response = await request<{ personas: Persona[] }>("/personas");
+    const response = await request<{ personas: Persona[] }>("/personas", undefined, { timeoutMs: PROJECT_API_TIMEOUT_MS });
     const persona = response.personas.find((item) => item.email.toLowerCase() === normalizedEmail);
 
     if (!persona) {
