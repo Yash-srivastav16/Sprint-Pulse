@@ -1,0 +1,2571 @@
+openapi: 3.0.3
+info:
+  title: SprintPulse API
+  version: 0.2.0
+  license:
+    name: Private hackathon prototype
+  description: |
+    OpenAPI contract for the Express routes mounted at `/api` in SprintPulse.
+
+    The API currently uses a `personaId` query or body field to resolve the acting user. Some routes are available only
+    when `ENABLE_MOCK_FLOW=true`; in Supabase data mode those routes return `501` until their adapters are implemented.
+servers:
+  - url: http://localhost:4000/api
+    description: Local SprintPulse API
+tags:
+  - name: System
+    description: Runtime health and deprecated session behavior.
+  - name: Identity
+    description: Personas, profiles, and current-user context.
+  - name: Projects
+    description: Project discovery, creation, and workspace detail.
+  - name: Team
+    description: Project team membership and invitations.
+  - name: Integrations
+    description: Jira, GitHub, and sync operations.
+  - name: Dashboard
+    description: Team health dashboards and member pulse history.
+  - name: Standups
+    description: Manual standups, transcript parsing, and standup sync.
+  - name: Legacy Mock
+    description: Mock-flow routes retained for the original seeded demo.
+security: []
+paths:
+  /health:
+    get:
+      tags: [System]
+      operationId: getHealth
+      summary: Check API health and runtime mode.
+      responses:
+        "200":
+          description: Runtime health and configuration status.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+              examples:
+                healthy:
+                  value:
+                    ok: true
+                    service: sprintpulse-api
+                    dataMode: supabase
+                    mockFlowEnabled: false
+                    supabase:
+                      adminConfigured: true
+                      profilesTable: profiles
+                    timestamp: "2026-05-12T10:30:00.000Z"
+  /personas:
+    get:
+      tags: [Identity]
+      operationId: listPersonas
+      summary: List personas visible to the app.
+      responses:
+        "200":
+          description: Personas loaded from seed data or Supabase profiles.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PersonasResponse"
+              examples:
+                personas:
+                  value:
+                    personas:
+                      - id: priya
+                        name: Priya
+                        email: priya@sprintpulse.dev
+                        initials: PR
+                        hackathonRole: architect
+                        productPersona: product-owner
+                        title: Product Owner
+                        accessScope: team
+                        focus: Sprint goals, product confidence, and delivery risk.
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /users:
+    post:
+      tags: [Identity]
+      operationId: createUserProfile
+      summary: Create a self-service user profile.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserProfileRequest"
+            examples:
+              developer:
+                value:
+                  email: nina@sprintpulse.dev
+                  name: Nina Patel
+                  appRole: developer
+                  title: Full-stack Engineer
+      responses:
+        "201":
+          description: Profile and persona created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateUserProfileResponse"
+              examples:
+                created:
+                  value:
+                    profile:
+                      id: nina
+                      authUserId: auth-nina
+                      email: nina@sprintpulse.dev
+                      name: Nina Patel
+                      initials: NP
+                      title: Full-stack Engineer
+                      appRole: developer
+                      productPersona: developer
+                      accessScope: individual
+                      status: active
+                      createdAt: "2026-05-12T10:30:00.000Z"
+                    persona:
+                      id: nina
+                      name: Nina Patel
+                      email: nina@sprintpulse.dev
+                      initials: NP
+                      hackathonRole: backend
+                      productPersona: developer
+                      title: Full-stack Engineer
+                      accessScope: individual
+                      focus: Active sprint delivery.
+                    recommendedRoute: /projects
+                    warnings: []
+        "400":
+          description: Name, email, or workspace role is missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                invalidProfile:
+                  value:
+                    error: Name, email, and workspace role are required
+        "500":
+          description: Profile creation failed while Supabase admin is configured.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SetupErrorResponse"
+        "503":
+          description: Supabase admin configuration is missing.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SetupErrorResponse"
+              examples:
+                setupRequired:
+                  value:
+                    error: Unable to create user profile
+                    setup: Create apps/api/.env with SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY, run database/supabase/001_profiles.sql, then restart the API.
+  /session:
+    post:
+      tags: [System]
+      operationId: createDeprecatedSession
+      summary: Deprecated password sign-in endpoint.
+      deprecated: true
+      responses:
+        "410":
+          description: Password sign-in has moved to Supabase Auth.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                gone:
+                  value:
+                    error: Password sign-in is handled by Supabase Auth.
+  /me:
+    get:
+      tags: [Identity]
+      operationId: getCurrentPersona
+      summary: Resolve persona, permissions, and accessible project ids.
+      parameters:
+        - $ref: "#/components/parameters/PersonaIdQuery"
+      responses:
+        "200":
+          description: Current persona context.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentPersonaResponse"
+              examples:
+                currentPersona:
+                  value:
+                    persona:
+                      id: priya
+                      name: Priya
+                      email: priya@sprintpulse.dev
+                      initials: PR
+                      hackathonRole: architect
+                      productPersona: product-owner
+                      title: Product Owner
+                      accessScope: team
+                      focus: Sprint goals, product confidence, and delivery risk.
+                    permissions:
+                      - project:view
+                      - project:create
+                      - project:connect
+                    accessibleProjectIds:
+                      - sp-core
+        "404":
+          description: Persona or Supabase profile was not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                notFound:
+                  value:
+                    error: Persona not found
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /projects:
+    get:
+      tags: [Projects]
+      operationId: listProjects
+      summary: List projects visible to a persona.
+      parameters:
+        - $ref: "#/components/parameters/PersonaIdQuery"
+      responses:
+        "200":
+          description: Project list and creation/connect capabilities.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectsResponse"
+              examples:
+                projects:
+                  value:
+                    viewer:
+                      id: priya
+                      name: Priya
+                      email: priya@sprintpulse.dev
+                      initials: PR
+                      hackathonRole: architect
+                      productPersona: product-owner
+                      title: Product Owner
+                      accessScope: team
+                      focus: Sprint goals, product confidence, and delivery risk.
+                    projects:
+                      - id: sp-core
+                        key: SP
+                        name: SprintPulse AI
+                        source: jira
+                        sprintName: Semicolon Build Sprint
+                        sprintGoal: Prove say-do gap detection from standups, Jira, and delivery signals.
+                        memberCount: 9
+                        healthScore: 82
+                        atRiskCount: 2
+                        currentUserRole: product-owner
+                        permissions:
+                          - project:view
+                          - project:create
+                          - project:connect
+                        lastSyncAt: "2026-05-11T15:30:00.000Z"
+                    canCreateProject: true
+                    canConnectProject: true
+                    recommendedProjectId: sp-core
+        "404":
+          $ref: "#/components/responses/PersonaNotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      tags: [Projects]
+      operationId: createProject
+      summary: Create a manual project and active sprint.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProjectRequest"
+            examples:
+              manualProject:
+                value:
+                  personaId: priya
+                  projectName: SprintPulse Experience
+                  projectKey: UX
+                  sprintName: Judge Experience Sprint
+                  sprintGoal: Make the product journey polished and role-aware.
+                  startDate: "2026-05-11"
+                  endDate: "2026-05-15"
+                  members:
+                    - personaId: priya
+                      name: Priya
+                      email: priya@sprintpulse.dev
+                      initials: PR
+                      role: product-owner
+      responses:
+        "201":
+          description: Project created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateProjectResponse"
+        "400":
+          description: Required project or sprint fields are missing.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                missingProjectFields:
+                  value:
+                    error: Project name, key, sprint name, and sprint goal are required
+        "403":
+          description: Persona is not allowed to create projects.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                forbidden:
+                  value:
+                    error: You do not have permission to create projects
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /projects/connect/jira:
+    post:
+      tags: [Projects, Integrations]
+      operationId: connectJiraProject
+      summary: Create a project from a Jira connection in mock flow.
+      description: In Supabase data mode this route returns `501`; configure Jira on an existing project instead.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JiraConnectRequest"
+            examples:
+              jiraProject:
+                value:
+                  personaId: priya
+                  jiraSite: semicolons.atlassian.net
+                  projectKey: SP
+      responses:
+        "201":
+          description: Jira-backed project connected in mock flow.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JiraConnectResponse"
+        "403":
+          $ref: "#/components/responses/ConnectForbidden"
+        "501":
+          $ref: "#/components/responses/NotImplemented"
+  /projects/{projectId}:
+    get:
+      tags: [Projects]
+      operationId: getProject
+      summary: Get project detail visible to a persona.
+      parameters:
+        - $ref: "#/components/parameters/ProjectIdPath"
+        - $ref: "#/components/parameters/PersonaIdQuery"
+      responses:
+        "200":
+          description: Project detail and permissions.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectDetailResponse"
+        "404":
+          $ref: "#/components/responses/ProjectNotVisible"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /projects/{projectId}/workspace:
+    get:
+      tags: [Projects]
+      operationId: getProjectWorkspace
+      summary: Get the project workspace summary and next actions.
+      parameters:
+        - $ref: "#/components/parameters/ProjectIdPath"
+        - $ref: "#/components/parameters/PersonaIdQuery"
+      responses:
+        "200":
+          description: Project workspace state.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectWorkspaceResponse"
+        "404":
+          description: Project workspace is not found or not visible.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                notVisible:
+                  value:
+                    error: Project workspace not found or not visible to this user
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /projects/{projectId}/ops:
+    get:
+      tags: [Projects, Integrations]
+      operationId: getProjectOps
+      summary: Get sprint operations, health summary, and integration runs.
+      parameters:
+        - $ref: "#/components/parameters/ProjectIdPath"
+        - $ref: "#/components/parameters/PersonaIdQuery"
+      responses:
+        "200":
+          description: Operations response. Mock flow includes workspace fields in addition to operations fields.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/ProjectOpsResponse"
+                  - $ref: "#/components/schemas/MockProjectOpsResponse"
+        "404":
+          description: Project operations are not found or not visible.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                notVisible:
+                  value:
+                    error: Project operations not found or not visible to this user
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /projects/{projectId}/sprints:
+    get:
+      tags: [Projects]
+      operationId: listProjectSprints
+      summary: List project sprints and the current sprint summary.
+      parameters:
+        - $ref: "#/components/parameters/ProjectIdPath"
+        - $ref: "#/components/parameters/PersonaIdQuery"
+      responses:
+        "200":
+          description: Sprint summaries for the project.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SprintListResponse"
+        "404":
+          description: Sprints are not found or not visible.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                notVisible:
+                  value:
+                    error: Sprints not found or not visible to this user
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /projects/{projectId}/team:
+    get:
+      tags: [Team]
+      operationId: getProjectTeam
+      summary: Get project team members and pending invites.
+      parameters:
+        - $ref: "#/components/parameters/ProjectIdPath"
+        - $ref: "#/components/parameters/PersonaIdQuery"
+      responses:
+        "200":
+          description: Team membership and edit capability.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamResponse"
+        "404":
+          description: Team is not found or not visible.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                notVisible:
+                  value:
+                    error: Team not found or not visible to this user
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      tags: [Team]
+      operationId: addProjectMemberViaTeam
+      summary: Add or invite a project member.
+      description: Alias of `POST /projects/{projectId}/invites`. In mock flow this route returns `501`.
+      parameters:
+        - $ref: "#/components/parameters/ProjectIdPath"
+      requestBody:
+        $ref: "#/components/requestBodies/InviteProjectMemberBody"
+      responses:
+        "201":
+          description: Project member invited or linked.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InviteProjectMemberResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "501":
+          $ref: "#/components/responses/NotImplemented"
+  /projects/{projectId}/invites:
+    post:
+      tags: [Team]
+      operationId: inviteProjectMember
+      summary: Invite or upsert a project member.
+      description: In mock flow this route returns `501`.
+      parameters:
+        - $ref: "#/components/parameters/ProjectIdPath"
+      requestBody:
+        $ref: "#/components/requestBodies/InviteProjectMemberBody"
+      responses:
+        "201":
+          description: Project member invited or linked.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InviteProjectMemberResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "501":
+          $ref: "#/components/responses/NotImplemented"
+  /projects/{projectId}/team/{profileId}:
+    patch:
+      tags: [Team]
+      operationId: updateProjectMember
+      summary: Update a project member's role or integration handles.
+      description: In mock flow this route returns `501`.
+      parameters:
+        - $ref: "#/components/parameters/ProjectIdPath"
+        - $ref: "#/components/parameters/ProfileIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProjectMemberRequest"
+            examples:
+              updateMember:
+                value:
+                  personaId: priya
+                  role: scrum-master
+                  jiraAccountId: himanshu.atlassian
+                  githubUsername: himanshu-sp
+      responses:
+        "200":
+          description: Updated team response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamResponse"
+        "404":
+          description: Team member is not found or not visible.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                notVisible:
+                  value:
+                    error: Team member not found or not visible to this user
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "501":
+          $ref: "#/components/responses/NotImplemented"
+  /projects/{projectId}/integrations:
+    get:
+      tags: [Integrations]
+      operationId: getProjectIntegrations
+      summary: Get Jira, GitHub, recent sync runs, and signal previews.
+      parameters:
+        - $ref: "#/components/parameters/ProjectIdPath"
+        - $ref: "#/components/parameters/PersonaIdQuery"
+      responses:
+        "200":
+          description: Integration status and previews.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntegrationStatusResponse"
+        "404":
+          description: Integrations are not found or not visible.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                notVisible:
+                  value:
+                    error: Integrations not found or not visible to this user
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /projects/{projectId}/jira/configure:
+    post:
+      tags: [Integrations]
+      operationId: configureProjectJira
+      summary: Configure Jira for a project.
+      description: In mock flow this route returns `501`.
+      parameters:
+        - $ref: "#/components/parameters/ProjectIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfigureJiraRequest"
+            examples:
+              configureJira:
+                value:
+                  personaId: priya
+                  jiraSite: semicolons.atlassian.net
+                  projectKey: SP
+      responses:
+        "200":
+          description: Jira connection configured.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConfigureJiraResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "501":
+          $ref: "#/components/responses/NotImplemented"
+  /projects/{projectId}/jira/sync:
+    post:
+      tags: [Integrations]
+      operationId: syncProjectJira
+      summary: Import Jira sprint issue signals for a project.
+      description: In mock flow this route returns `501`.
+      parameters:
+        - $ref: "#/components/parameters/ProjectIdPath"
+      requestBody:
+        $ref: "#/components/requestBodies/PersonaActionBody"
+      responses:
+        "200":
+          description: Jira sync completed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConfigureJiraResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "501":
+          $ref: "#/components/responses/NotImplemented"
+  /projects/{projectId}/git/configure:
+    post:
+      tags: [Integrations]
+      operationId: configureProjectGit
+      summary: Configure GitHub repository metadata for a project.
+      description: In mock flow this route returns `501`.
+      parameters:
+        - $ref: "#/components/parameters/ProjectIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfigureGitRequest"
+            examples:
+              configureGit:
+                value:
+                  personaId: priya
+                  provider: github
+                  repoOwner: semicolons
+                  repoName: sprintpulse
+                  defaultBranch: main
+      responses:
+        "200":
+          description: GitHub connection configured.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConfigureGitResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "501":
+          $ref: "#/components/responses/NotImplemented"
+  /projects/{projectId}/git/sync:
+    post:
+      tags: [Integrations]
+      operationId: syncProjectGit
+      summary: Import GitHub commit signals for a project.
+      description: In mock flow this route returns `501`.
+      parameters:
+        - $ref: "#/components/parameters/ProjectIdPath"
+      requestBody:
+        $ref: "#/components/requestBodies/PersonaActionBody"
+      responses:
+        "200":
+          description: Git sync completed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConfigureGitResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "501":
+          $ref: "#/components/responses/NotImplemented"
+  /projects/{projectId}/dashboard:
+    get:
+      tags: [Dashboard]
+      operationId: getProjectDashboard
+      summary: Get a project-scoped sprint health dashboard.
+      parameters:
+        - $ref: "#/components/parameters/ProjectIdPath"
+        - $ref: "#/components/parameters/PersonaIdQuery"
+        - $ref: "#/components/parameters/SprintIdQuery"
+      responses:
+        "200":
+          description: Project dashboard.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectDashboardResponse"
+        "404":
+          description: Project dashboard is not found or not visible.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                notVisible:
+                  value:
+                    error: Project dashboard not found or not visible to this user
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /projects/{projectId}/members/{memberId}/history:
+    get:
+      tags: [Dashboard]
+      operationId: getProjectMemberHistory
+      summary: Get detailed member pulse history with issues, commits, recommendations, and standups.
+      parameters:
+        - $ref: "#/components/parameters/ProjectIdPath"
+        - $ref: "#/components/parameters/MemberIdPath"
+        - $ref: "#/components/parameters/PersonaIdQuery"
+        - $ref: "#/components/parameters/SprintIdQuery"
+      responses:
+        "200":
+          description: Member pulse history.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberPulseHistoryResponse"
+        "403":
+          $ref: "#/components/responses/OwnMemberOnly"
+        "404":
+          $ref: "#/components/responses/MemberNotVisible"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /projects/{projectId}/members/{memberId}:
+    get:
+      tags: [Dashboard]
+      operationId: getProjectMemberPulse
+      summary: Get a member pulse and project context.
+      parameters:
+        - $ref: "#/components/parameters/ProjectIdPath"
+        - $ref: "#/components/parameters/MemberIdPath"
+        - $ref: "#/components/parameters/PersonaIdQuery"
+        - $ref: "#/components/parameters/SprintIdQuery"
+      responses:
+        "200":
+          description: Member pulse with project context.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectMemberPulseResponse"
+        "403":
+          $ref: "#/components/responses/OwnMemberOnly"
+        "404":
+          $ref: "#/components/responses/MemberNotVisible"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /projects/{projectId}/standups:
+    get:
+      tags: [Standups]
+      operationId: listProjectStandups
+      summary: List standups for a project sprint.
+      parameters:
+        - $ref: "#/components/parameters/ProjectIdPath"
+        - $ref: "#/components/parameters/PersonaIdQuery"
+        - $ref: "#/components/parameters/SprintIdQuery"
+      responses:
+        "200":
+          description: Project standups. Mock flow returns a smaller project-plus-standups payload.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/ProjectStandupsResponse"
+                  - $ref: "#/components/schemas/MockProjectStandupsResponse"
+        "404":
+          description: Standups are not found or not visible.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                notVisible:
+                  value:
+                    error: Standups not found or not visible to this user
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      tags: [Standups]
+      operationId: submitProjectStandup
+      summary: Submit a manual standup for a project.
+      parameters:
+        - $ref: "#/components/parameters/ProjectIdPath"
+      requestBody:
+        $ref: "#/components/requestBodies/StandupSubmitBody"
+      responses:
+        "201":
+          description: Standup accepted and member pulse refreshed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectStandupSubmitResponse"
+        "400":
+          $ref: "#/components/responses/StandupValidation"
+        "403":
+          description: Persona cannot submit standups for this project.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                forbidden:
+                  value:
+                    error: You do not have permission to submit standups for this project
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /projects/{projectId}/transcripts/parse:
+    post:
+      tags: [Standups]
+      operationId: parseProjectTranscript
+      summary: Parse transcript text into project standup entries.
+      parameters:
+        - $ref: "#/components/parameters/ProjectIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectTranscriptParseRequest"
+            examples:
+              transcript:
+                value:
+                  personaId: priya
+                  transcript: "Priya: Yesterday I finalized sprint goals. Today I am reviewing risks. Blockers none."
+      responses:
+        "200":
+          description: Transcript parsed into standup entries.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectTranscriptParseResponse"
+        "400":
+          $ref: "#/components/responses/TranscriptValidation"
+        "404":
+          description: Project was not found in mock flow.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                projectNotFound:
+                  value:
+                    error: Project not found
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /projects/{projectId}/standups/sync:
+    post:
+      tags: [Standups, Integrations]
+      operationId: syncProjectStandups
+      summary: Sync or backfill project standup entries.
+      parameters:
+        - $ref: "#/components/parameters/ProjectIdPath"
+      requestBody:
+        $ref: "#/components/requestBodies/PersonaActionBody"
+      responses:
+        "200":
+          description: Standup sync completed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandupsSyncResponse"
+        "403":
+          description: Persona cannot sync standups for this project.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                forbidden:
+                  value:
+                    error: You do not have permission to sync standups for this project
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /dashboard:
+    get:
+      tags: [Legacy Mock]
+      operationId: getLegacyDashboard
+      summary: Get the legacy seeded dashboard.
+      description: Mock-flow route. In Supabase data mode this returns `501`.
+      parameters:
+        - $ref: "#/components/parameters/PersonaIdQuery"
+      responses:
+        "200":
+          description: Seeded dashboard response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardResponse"
+        "404":
+          description: Dashboard is not found for the persona.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                notFound:
+                  value:
+                    error: Dashboard not found for persona
+        "501":
+          $ref: "#/components/responses/NotImplemented"
+  /members:
+    get:
+      tags: [Legacy Mock]
+      operationId: listLegacyMembers
+      summary: List legacy seeded member pulses.
+      description: Mock-flow route. In Supabase data mode this returns `501`.
+      responses:
+        "200":
+          description: Seeded member pulses.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MembersResponse"
+        "501":
+          $ref: "#/components/responses/NotImplemented"
+  /members/{memberId}:
+    get:
+      tags: [Legacy Mock]
+      operationId: getLegacyMember
+      summary: Get a legacy seeded member pulse.
+      description: Mock-flow route. In Supabase data mode this returns `501`.
+      parameters:
+        - $ref: "#/components/parameters/MemberIdPath"
+      responses:
+        "200":
+          description: Seeded member pulse.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberResponse"
+        "404":
+          description: Member was not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                notFound:
+                  value:
+                    error: Member not found
+        "501":
+          $ref: "#/components/responses/NotImplemented"
+  /standups:
+    post:
+      tags: [Legacy Mock]
+      operationId: submitLegacyStandup
+      summary: Submit a legacy seeded standup.
+      description: Mock-flow route. In Supabase data mode this returns `501`.
+      requestBody:
+        $ref: "#/components/requestBodies/StandupSubmitBody"
+      responses:
+        "201":
+          description: Standup accepted in seeded data.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandupSubmitResponse"
+        "400":
+          $ref: "#/components/responses/StandupValidation"
+        "404":
+          $ref: "#/components/responses/PersonaNotFound"
+        "501":
+          $ref: "#/components/responses/NotImplemented"
+  /transcripts/parse:
+    post:
+      tags: [Legacy Mock]
+      operationId: parseLegacyTranscript
+      summary: Parse transcript text into seeded standup drafts.
+      description: Mock-flow route. In Supabase data mode this returns `501`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TranscriptParseRequest"
+            examples:
+              transcript:
+                value:
+                  transcript: "Priya: Yesterday finalized sprint goals. Today reviewing delivery risk. Blockers none."
+      responses:
+        "200":
+          description: Parsed seeded transcript entries.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TranscriptParseResponse"
+        "400":
+          $ref: "#/components/responses/TranscriptValidation"
+        "501":
+          $ref: "#/components/responses/NotImplemented"
+  /plan:
+    get:
+      tags: [Legacy Mock]
+      operationId: getLegacyPlan
+      summary: Get the seeded hackathon implementation plan.
+      description: Mock-flow route. In Supabase data mode this returns `501`.
+      responses:
+        "200":
+          description: Seeded stack, assignment, and milestone plan.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanResponse"
+        "501":
+          $ref: "#/components/responses/NotImplemented"
+components:
+  parameters:
+    PersonaIdQuery:
+      name: personaId
+      in: query
+      required: true
+      description: Persona/profile id used by SprintPulse to resolve viewer permissions.
+      schema:
+        type: string
+      example: priya
+    SprintIdQuery:
+      name: sprintId
+      in: query
+      required: false
+      description: Optional sprint id filter for Supabase-backed sprint data.
+      schema:
+        type: string
+      example: sprint-semi-2026
+    ProjectIdPath:
+      name: projectId
+      in: path
+      required: true
+      description: Project id or, in mock flow, case-insensitive project key.
+      schema:
+        type: string
+      example: sp-core
+    MemberIdPath:
+      name: memberId
+      in: path
+      required: true
+      description: Member pulse id or persona id.
+      schema:
+        type: string
+      example: yash
+    ProfileIdPath:
+      name: profileId
+      in: path
+      required: true
+      description: Profile id of the project member to update.
+      schema:
+        type: string
+      example: himanshu
+  requestBodies:
+    InviteProjectMemberBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/InviteProjectMemberRequest"
+          examples:
+            inviteDeveloper:
+              value:
+                personaId: priya
+                email: dev@sprintpulse.dev
+                name: Dev Sharma
+                appRole: developer
+                projectRole: developer
+                title: Full-stack Engineer
+                jiraAccountId: dev.atlassian
+                githubUsername: dev-sp
+    PersonaActionBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/PersonaActionRequest"
+          examples:
+            actor:
+              value:
+                personaId: priya
+    StandupSubmitBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/StandupSubmitRequest"
+          examples:
+            standup:
+              value:
+                personaId: yash
+                yesterday: Finalized API contracts.
+                today: Connecting scoring with dashboard data.
+                blockers: No blocker.
+  responses:
+    InternalServerError:
+      description: The route failed while loading or mutating data.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            internal:
+              value:
+                error: Unable to load data
+    NotImplemented:
+      description: Route is not available in the current runtime mode.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            notImplemented:
+              value:
+                error: Supabase data mode is enabled, but this route still needs its database-backed adapter.
+    PersonaNotFound:
+      description: Persona or profile was not found.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            personaNotFound:
+              value:
+                error: Persona not found
+    ProjectNotVisible:
+      description: Project is not found or not visible to the viewer.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            projectNotVisible:
+              value:
+                error: Project not found or not visible to this user
+    MemberNotVisible:
+      description: Member is not found or not visible to the viewer.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            memberNotVisible:
+              value:
+                error: Member not found or not visible to this user
+    OwnMemberOnly:
+      description: Persona can only view its own member pulse.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            ownMemberOnly:
+              value:
+                error: This role can only view its own member pulse
+    ConnectForbidden:
+      description: Persona is not allowed to connect Jira projects.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            forbidden:
+              value:
+                error: You do not have permission to connect Jira projects
+    StandupValidation:
+      description: Standup body is missing required text fields.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            missingStandupText:
+              value:
+                error: Yesterday and today fields are required
+    TranscriptValidation:
+      description: Transcript text is empty.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            transcriptRequired:
+              value:
+                error: Transcript text is required
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          example: Persona not found
+    SetupErrorResponse:
+      allOf:
+        - $ref: "#/components/schemas/ErrorResponse"
+        - type: object
+          properties:
+            setup:
+              type: string
+    HealthResponse:
+      type: object
+      required: [ok, service, dataMode, mockFlowEnabled, supabase, timestamp]
+      properties:
+        ok:
+          type: boolean
+        service:
+          type: string
+          enum: [sprintpulse-api]
+        dataMode:
+          type: string
+          enum: [seeded, supabase]
+        mockFlowEnabled:
+          type: boolean
+        supabase:
+          type: object
+          required: [adminConfigured, profilesTable]
+          properties:
+            adminConfigured:
+              type: boolean
+            profilesTable:
+              type: string
+        timestamp:
+          type: string
+          format: date-time
+    HackathonRole:
+      type: string
+      enum: [frontend, backend, architect, qa]
+    ProductPersona:
+      type: string
+      enum: [product-owner, engineering-manager, scrum-master, developer, qa-lead, presenter]
+    AccessScope:
+      type: string
+      enum: [team, individual, quality, presentation]
+    AppRole:
+      type: string
+      enum: [admin, product-owner, engineering-manager, scrum-master, developer, qa-lead]
+    Permission:
+      type: string
+      enum:
+        - project:view
+        - project:create
+        - project:connect
+        - project:editTeam
+        - standup:submit
+        - standup:sync
+        - dashboard:viewTeam
+        - dashboard:viewOwn
+        - member:viewTeam
+        - member:viewOwn
+    ProjectRole:
+      type: string
+      enum: [product-owner, scrum-master, engineering-manager, architect, developer, qa]
+    ProjectSource:
+      type: string
+      enum: [manual, jira]
+    RiskLevel:
+      type: string
+      enum: [low, medium, high, critical]
+    FlagType:
+      type: string
+      enum:
+        - VAGUE_UPDATE
+        - STALE_WORK
+        - COPY_PASTE
+        - SAY_DO_GAP
+        - BLOCKER_ANOMALY
+        - BURNOUT_SIGNAL
+        - TEST_RISK
+    SyncSource:
+      type: string
+      enum: [jira, git, standup, recommendation]
+    SyncRunStatus:
+      type: string
+      enum: [queued, running, succeeded, failed]
+    IntegrationStatus:
+      type: string
+      enum: [not-configured, configured, synced, failed]
+    IssueStatus:
+      type: string
+      enum: [Todo, In Progress, Review, Blocked, Done]
+    Persona:
+      type: object
+      required: [id, name, email, initials, hackathonRole, productPersona, title, accessScope, focus]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        initials:
+          type: string
+        hackathonRole:
+          $ref: "#/components/schemas/HackathonRole"
+        productPersona:
+          $ref: "#/components/schemas/ProductPersona"
+        title:
+          type: string
+        accessScope:
+          $ref: "#/components/schemas/AccessScope"
+        focus:
+          type: string
+    PersonasResponse:
+      type: object
+      required: [personas]
+      properties:
+        personas:
+          type: array
+          items:
+            $ref: "#/components/schemas/Persona"
+    UserProfile:
+      type: object
+      required: [id, email, name, initials, title, appRole, productPersona, accessScope, status, createdAt]
+      properties:
+        id:
+          type: string
+        authUserId:
+          type: string
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        initials:
+          type: string
+        title:
+          type: string
+        appRole:
+          $ref: "#/components/schemas/AppRole"
+        productPersona:
+          $ref: "#/components/schemas/ProductPersona"
+        accessScope:
+          $ref: "#/components/schemas/AccessScope"
+        status:
+          type: string
+          enum: [active, invited]
+        createdAt:
+          type: string
+          format: date-time
+        invitedBy:
+          type: string
+    CreateUserProfileRequest:
+      type: object
+      required: [email, name, appRole]
+      properties:
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        appRole:
+          $ref: "#/components/schemas/AppRole"
+        title:
+          type: string
+        authUserId:
+          type: string
+    CreateUserProfileResponse:
+      type: object
+      required: [profile, persona, recommendedRoute, warnings]
+      properties:
+        profile:
+          $ref: "#/components/schemas/UserProfile"
+        persona:
+          $ref: "#/components/schemas/Persona"
+        recommendedRoute:
+          type: string
+        warnings:
+          type: array
+          items:
+            type: string
+    CurrentPersonaResponse:
+      type: object
+      required: [persona, permissions, accessibleProjectIds]
+      properties:
+        persona:
+          $ref: "#/components/schemas/Persona"
+        permissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Permission"
+        accessibleProjectIds:
+          type: array
+          items:
+            type: string
+    ProjectMember:
+      type: object
+      required: [personaId, name, email, initials, role]
+      properties:
+        personaId:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        initials:
+          type: string
+        role:
+          $ref: "#/components/schemas/ProjectRole"
+        jiraAccountId:
+          type: string
+        githubUsername:
+          type: string
+    SprintInfo:
+      type: object
+      required: [id, name, goal, startDate, endDate, status]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        goal:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [planned, active, closed]
+    SprintProject:
+      type: object
+      required: [id, key, name, source, sprint, members, ownerIds, scrumMasterIds, createdBy, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        key:
+          type: string
+        name:
+          type: string
+        source:
+          $ref: "#/components/schemas/ProjectSource"
+        jiraSite:
+          type: string
+        sprint:
+          $ref: "#/components/schemas/SprintInfo"
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProjectMember"
+        ownerIds:
+          type: array
+          items:
+            type: string
+        scrumMasterIds:
+          type: array
+          items:
+            type: string
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        lastSyncAt:
+          type: string
+          format: date-time
+    ProjectSummary:
+      type: object
+      required: [id, key, name, source, sprintName, sprintGoal, memberCount, healthScore, atRiskCount, currentUserRole, permissions]
+      properties:
+        id:
+          type: string
+        key:
+          type: string
+        name:
+          type: string
+        source:
+          $ref: "#/components/schemas/ProjectSource"
+        sprintName:
+          type: string
+        sprintGoal:
+          type: string
+        memberCount:
+          type: integer
+          minimum: 0
+        healthScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+        atRiskCount:
+          type: integer
+          minimum: 0
+        currentUserRole:
+          $ref: "#/components/schemas/ProjectRole"
+        permissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Permission"
+        lastSyncAt:
+          type: string
+          format: date-time
+    ProjectsResponse:
+      type: object
+      required: [viewer, projects, canCreateProject, canConnectProject]
+      properties:
+        viewer:
+          $ref: "#/components/schemas/Persona"
+        projects:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProjectSummary"
+        canCreateProject:
+          type: boolean
+        canConnectProject:
+          type: boolean
+        recommendedProjectId:
+          type: string
+    ProjectDetailResponse:
+      type: object
+      required: [viewer, project, permissions]
+      properties:
+        viewer:
+          $ref: "#/components/schemas/Persona"
+        project:
+          $ref: "#/components/schemas/SprintProject"
+        permissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Permission"
+    SyncState:
+      type: object
+      required: [mode, status]
+      properties:
+        mode:
+          type: string
+          enum: [manual, jira]
+        lastSyncAt:
+          type: string
+          format: date-time
+        nextSyncAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [idle, synced, needs-setup, failed]
+    WorkspaceSummary:
+      type: object
+      required: [sprintDay, daysRemaining, participationRate, openBlockers, atRiskCount, healthScore]
+      properties:
+        sprintDay:
+          type: integer
+          minimum: 0
+        daysRemaining:
+          type: integer
+          minimum: 0
+        participationRate:
+          type: integer
+          minimum: 0
+          maximum: 100
+        openBlockers:
+          type: integer
+          minimum: 0
+        atRiskCount:
+          type: integer
+          minimum: 0
+        healthScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+    NextAction:
+      type: object
+      required: [id, label, description, route]
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        description:
+          type: string
+        route:
+          type: string
+        requiredPermission:
+          $ref: "#/components/schemas/Permission"
+    ProjectWorkspaceResponse:
+      type: object
+      required: [viewer, project, permissions, sync, summary, nextActions]
+      properties:
+        viewer:
+          $ref: "#/components/schemas/Persona"
+        project:
+          $ref: "#/components/schemas/SprintProject"
+        permissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Permission"
+        sync:
+          $ref: "#/components/schemas/SyncState"
+        summary:
+          $ref: "#/components/schemas/WorkspaceSummary"
+        nextActions:
+          type: array
+          items:
+            $ref: "#/components/schemas/NextAction"
+    SyncRun:
+      type: object
+      required: [id, projectId, source, status, requestedBy, startedAt, stats]
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        source:
+          $ref: "#/components/schemas/SyncSource"
+        status:
+          $ref: "#/components/schemas/SyncRunStatus"
+        requestedBy:
+          type: string
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+        stats:
+          type: object
+          additionalProperties:
+            oneOf:
+              - type: string
+              - type: number
+              - type: boolean
+              - type: string
+                nullable: true
+        errorMessage:
+          type: string
+    SprintSummary:
+      allOf:
+        - $ref: "#/components/schemas/SprintInfo"
+        - type: object
+          required: [issueCount, standupCount, commitCount, blockerCount, healthScore]
+          properties:
+            issueCount:
+              type: integer
+              minimum: 0
+            standupCount:
+              type: integer
+              minimum: 0
+            commitCount:
+              type: integer
+              minimum: 0
+            blockerCount:
+              type: integer
+              minimum: 0
+            healthScore:
+              type: integer
+              minimum: 0
+              maximum: 100
+    JiraConnection:
+      type: object
+      required: [id, projectId, siteUrl, projectKey, status]
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        siteUrl:
+          type: string
+        projectKey:
+          type: string
+        status:
+          $ref: "#/components/schemas/IntegrationStatus"
+        lastSyncAt:
+          type: string
+          format: date-time
+    GitConnection:
+      type: object
+      required: [id, projectId, provider, repoOwner, repoName, defaultBranch, status]
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        provider:
+          type: string
+          enum: [github]
+        repoOwner:
+          type: string
+        repoName:
+          type: string
+        defaultBranch:
+          type: string
+        status:
+          $ref: "#/components/schemas/IntegrationStatus"
+        lastSyncAt:
+          type: string
+          format: date-time
+    JiraIssue:
+      type: object
+      required: [id, projectId, issueKey, summary, status, daysIdle]
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        sprintId:
+          type: string
+        issueKey:
+          type: string
+        summary:
+          type: string
+        status:
+          $ref: "#/components/schemas/IssueStatus"
+        assigneeProfileId:
+          type: string
+        jiraAssigneeId:
+          type: string
+        storyPoints:
+          type: integer
+        daysIdle:
+          type: integer
+          minimum: 0
+        updatedAtSource:
+          type: string
+          format: date-time
+    GitCommit:
+      type: object
+      required: [id, projectId, sha, authorEmail, message, committedAt, additions, deletions]
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        sprintId:
+          type: string
+        sha:
+          type: string
+        authorProfileId:
+          type: string
+        authorEmail:
+          type: string
+          format: email
+        message:
+          type: string
+        committedAt:
+          type: string
+          format: date-time
+        additions:
+          type: integer
+          minimum: 0
+        deletions:
+          type: integer
+          minimum: 0
+    SprintRecommendation:
+      type: object
+      required: [id, projectId, kind, severity, title, message, status, createdAt]
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        sprintId:
+          type: string
+        profileId:
+          type: string
+        kind:
+          type: string
+          enum: [standup, jira, git, delivery, team]
+        severity:
+          $ref: "#/components/schemas/RiskLevel"
+        title:
+          type: string
+        message:
+          type: string
+        status:
+          type: string
+          enum: [open, acknowledged, resolved]
+        createdAt:
+          type: string
+          format: date-time
+    ProjectInvite:
+      type: object
+      required: [id, projectId, email, role, invitedBy, status, createdAt]
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          $ref: "#/components/schemas/ProjectRole"
+        invitedBy:
+          type: string
+        status:
+          type: string
+          enum: [pending, accepted, expired]
+        expiresAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+    StandupEntry:
+      type: object
+      required: [id, memberId, date, yesterday, today, blockers, source]
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        memberId:
+          type: string
+        date:
+          type: string
+          format: date
+        yesterday:
+          type: string
+        today:
+          type: string
+        blockers:
+          type: string
+        source:
+          type: string
+          enum: [manual, transcript, audio]
+    StandupWithMember:
+      allOf:
+        - $ref: "#/components/schemas/StandupEntry"
+        - type: object
+          required: [memberName, memberInitials]
+          properties:
+            sprintId:
+              type: string
+            memberName:
+              type: string
+            memberInitials:
+              type: string
+    ProjectOpsSummary:
+      type: object
+      required: [teamHealthScore, participationRate, openBlockers, atRiskCount, issueCount, commitCount, standupCount]
+      properties:
+        teamHealthScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+        participationRate:
+          type: integer
+          minimum: 0
+          maximum: 100
+        openBlockers:
+          type: integer
+          minimum: 0
+        atRiskCount:
+          type: integer
+          minimum: 0
+        issueCount:
+          type: integer
+          minimum: 0
+        commitCount:
+          type: integer
+          minimum: 0
+        standupCount:
+          type: integer
+          minimum: 0
+        lastSyncAt:
+          type: string
+          format: date-time
+    IntegrationRunSummary:
+      type: object
+      required: [jira, git, recentRuns]
+      properties:
+        jira:
+          type: object
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/JiraConnection"
+        git:
+          type: object
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/GitConnection"
+        recentRuns:
+          type: array
+          items:
+            $ref: "#/components/schemas/SyncRun"
+    ProjectOpsResponse:
+      type: object
+      required: [viewer, project, permissions, currentSprint, summary, integrations]
+      properties:
+        viewer:
+          $ref: "#/components/schemas/Persona"
+        project:
+          $ref: "#/components/schemas/SprintProject"
+        permissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Permission"
+        currentSprint:
+          $ref: "#/components/schemas/SprintSummary"
+        summary:
+          $ref: "#/components/schemas/ProjectOpsSummary"
+        integrations:
+          $ref: "#/components/schemas/IntegrationRunSummary"
+    MockProjectOpsResponse:
+      allOf:
+        - $ref: "#/components/schemas/ProjectWorkspaceResponse"
+        - type: object
+          required: [currentSprint, integrations]
+          properties:
+            currentSprint:
+              $ref: "#/components/schemas/SprintSummary"
+            integrations:
+              $ref: "#/components/schemas/IntegrationRunSummary"
+    SprintListResponse:
+      type: object
+      required: [viewer, project, sprints]
+      properties:
+        viewer:
+          $ref: "#/components/schemas/Persona"
+        project:
+          $ref: "#/components/schemas/SprintProject"
+        currentSprint:
+          $ref: "#/components/schemas/SprintSummary"
+        sprints:
+          type: array
+          items:
+            $ref: "#/components/schemas/SprintSummary"
+    TeamResponse:
+      type: object
+      required: [viewer, project, permissions, members, invites, canEditTeam]
+      properties:
+        viewer:
+          $ref: "#/components/schemas/Persona"
+        project:
+          $ref: "#/components/schemas/SprintProject"
+        permissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Permission"
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProjectMember"
+        invites:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProjectInvite"
+        canEditTeam:
+          type: boolean
+    InviteProjectMemberRequest:
+      type: object
+      required: [personaId, email, name, appRole, projectRole]
+      properties:
+        personaId:
+          type: string
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        appRole:
+          $ref: "#/components/schemas/AppRole"
+        projectRole:
+          $ref: "#/components/schemas/ProjectRole"
+        title:
+          type: string
+        jiraAccountId:
+          type: string
+        githubUsername:
+          type: string
+    InviteProjectMemberResponse:
+      type: object
+      required: [profile, member, invite, warnings]
+      properties:
+        profile:
+          $ref: "#/components/schemas/UserProfile"
+        member:
+          $ref: "#/components/schemas/ProjectMember"
+        invite:
+          $ref: "#/components/schemas/ProjectInvite"
+        warnings:
+          type: array
+          items:
+            type: string
+    UpdateProjectMemberRequest:
+      type: object
+      required: [personaId]
+      properties:
+        personaId:
+          type: string
+        role:
+          $ref: "#/components/schemas/ProjectRole"
+        jiraAccountId:
+          type: string
+        githubUsername:
+          type: string
+    IntegrationStatusResponse:
+      type: object
+      required: [viewer, project, permissions, jira, git, recentRuns, issuePreview, commitPreview]
+      properties:
+        viewer:
+          $ref: "#/components/schemas/Persona"
+        project:
+          $ref: "#/components/schemas/SprintProject"
+        permissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Permission"
+        jira:
+          type: object
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/JiraConnection"
+        git:
+          type: object
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/GitConnection"
+        recentRuns:
+          type: array
+          items:
+            $ref: "#/components/schemas/SyncRun"
+        issuePreview:
+          type: array
+          items:
+            $ref: "#/components/schemas/JiraIssue"
+        commitPreview:
+          type: array
+          items:
+            $ref: "#/components/schemas/GitCommit"
+    ConfigureJiraRequest:
+      type: object
+      required: [personaId, jiraSite, projectKey]
+      properties:
+        personaId:
+          type: string
+        jiraSite:
+          type: string
+        projectKey:
+          type: string
+    ConfigureJiraResponse:
+      type: object
+      required: [connection, importedIssues, warnings]
+      properties:
+        connection:
+          $ref: "#/components/schemas/JiraConnection"
+        run:
+          $ref: "#/components/schemas/SyncRun"
+        importedIssues:
+          type: integer
+          minimum: 0
+        warnings:
+          type: array
+          items:
+            type: string
+    ConfigureGitRequest:
+      type: object
+      required: [personaId, provider, repoOwner, repoName]
+      properties:
+        personaId:
+          type: string
+        provider:
+          type: string
+          enum: [github]
+        repoOwner:
+          type: string
+        repoName:
+          type: string
+        defaultBranch:
+          type: string
+    ConfigureGitResponse:
+      type: object
+      required: [connection, importedCommits, warnings]
+      properties:
+        connection:
+          $ref: "#/components/schemas/GitConnection"
+        run:
+          $ref: "#/components/schemas/SyncRun"
+        importedCommits:
+          type: integer
+          minimum: 0
+        warnings:
+          type: array
+          items:
+            type: string
+    ProjectStandupsResponse:
+      type: object
+      required: [viewer, project, sprint, standups, canSubmit, canSync]
+      properties:
+        viewer:
+          $ref: "#/components/schemas/Persona"
+        project:
+          $ref: "#/components/schemas/SprintProject"
+        sprint:
+          $ref: "#/components/schemas/SprintInfo"
+        standups:
+          type: array
+          items:
+            $ref: "#/components/schemas/StandupWithMember"
+        canSubmit:
+          type: boolean
+        canSync:
+          type: boolean
+    MockProjectStandupsResponse:
+      type: object
+      required: [project, standups]
+      properties:
+        project:
+          $ref: "#/components/schemas/SprintProject"
+        standups:
+          type: array
+          items:
+            $ref: "#/components/schemas/StandupEntry"
+    MemberPulseHistoryResponse:
+      type: object
+      required: [viewer, project, member, issues, commits, recommendations, standups]
+      properties:
+        viewer:
+          $ref: "#/components/schemas/Persona"
+        project:
+          $ref: "#/components/schemas/SprintProject"
+        member:
+          $ref: "#/components/schemas/MemberPulse"
+        issues:
+          type: array
+          items:
+            $ref: "#/components/schemas/JiraIssue"
+        commits:
+          type: array
+          items:
+            $ref: "#/components/schemas/GitCommit"
+        recommendations:
+          type: array
+          items:
+            $ref: "#/components/schemas/SprintRecommendation"
+        standups:
+          type: array
+          items:
+            $ref: "#/components/schemas/StandupWithMember"
+    CreateProjectRequest:
+      type: object
+      required: [personaId, projectName, projectKey, sprintName, sprintGoal, startDate, endDate, members]
+      properties:
+        personaId:
+          type: string
+        projectName:
+          type: string
+        projectKey:
+          type: string
+        sprintName:
+          type: string
+        sprintGoal:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProjectMember"
+    CreateProjectResponse:
+      type: object
+      required: [project, warnings]
+      properties:
+        project:
+          $ref: "#/components/schemas/SprintProject"
+        warnings:
+          type: array
+          items:
+            type: string
+    JiraConnectRequest:
+      type: object
+      required: [personaId, jiraSite, projectKey]
+      properties:
+        personaId:
+          type: string
+        jiraSite:
+          type: string
+        projectKey:
+          type: string
+    JiraConnectResponse:
+      type: object
+      required: [project, importedIssues, importedMembers, importedAt, warnings]
+      properties:
+        project:
+          $ref: "#/components/schemas/SprintProject"
+        importedIssues:
+          type: integer
+          minimum: 0
+        importedMembers:
+          type: integer
+          minimum: 0
+        importedAt:
+          type: string
+          format: date-time
+        warnings:
+          type: array
+          items:
+            type: string
+    RiskFlag:
+      type: object
+      required: [id, type, severity, title, message]
+      properties:
+        id:
+          type: string
+        type:
+          $ref: "#/components/schemas/FlagType"
+        severity:
+          $ref: "#/components/schemas/RiskLevel"
+        title:
+          type: string
+        message:
+          type: string
+    TicketSignal:
+      type: object
+      required: [key, title, status, daysIdle]
+      properties:
+        key:
+          type: string
+        title:
+          type: string
+        status:
+          $ref: "#/components/schemas/IssueStatus"
+        daysIdle:
+          type: integer
+          minimum: 0
+    GitSignal:
+      type: object
+      required: [commitsThisSprint, pullRequestsOpen, lastCommitAt, codeChurn]
+      properties:
+        commitsThisSprint:
+          type: integer
+          minimum: 0
+        pullRequestsOpen:
+          type: integer
+          minimum: 0
+        lastCommitAt:
+          type: string
+          format: date-time
+        codeChurn:
+          type: string
+          enum: [low, medium, high]
+    MemberPulse:
+      type: object
+      required:
+        - id
+        - personaId
+        - name
+        - initials
+        - title
+        - hackathonRole
+        - productPersona
+        - healthScore
+        - riskLevel
+        - currentFocus
+        - recommendation
+        - tickets
+        - git
+        - flags
+        - standups
+      properties:
+        id:
+          type: string
+        personaId:
+          type: string
+        name:
+          type: string
+        initials:
+          type: string
+        title:
+          type: string
+        hackathonRole:
+          $ref: "#/components/schemas/HackathonRole"
+        productPersona:
+          $ref: "#/components/schemas/ProductPersona"
+        healthScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+        riskLevel:
+          $ref: "#/components/schemas/RiskLevel"
+        currentFocus:
+          type: string
+        recommendation:
+          type: string
+        tickets:
+          type: array
+          items:
+            $ref: "#/components/schemas/TicketSignal"
+        git:
+          $ref: "#/components/schemas/GitSignal"
+        flags:
+          type: array
+          items:
+            $ref: "#/components/schemas/RiskFlag"
+        standups:
+          type: array
+          items:
+            $ref: "#/components/schemas/StandupEntry"
+    DashboardSummary:
+      type: object
+      required: [sprintName, sprintWindow, teamHealthScore, atRiskCount, openBlockers, totalFlags, readinessScore]
+      properties:
+        sprintName:
+          type: string
+        sprintWindow:
+          type: string
+        teamHealthScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+        atRiskCount:
+          type: integer
+          minimum: 0
+        openBlockers:
+          type: integer
+          minimum: 0
+        totalFlags:
+          type: integer
+          minimum: 0
+        readinessScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+    TeamPreviewItem:
+      type: object
+      required: [id, name, initials, role, score, riskLevel]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        initials:
+          type: string
+        role:
+          $ref: "#/components/schemas/HackathonRole"
+        score:
+          type: integer
+          minimum: 0
+          maximum: 100
+        riskLevel:
+          $ref: "#/components/schemas/RiskLevel"
+    DashboardResponse:
+      type: object
+      required: [viewer, scope, summary, viewerPulse, memberPulses, teamPreview, recommendations]
+      properties:
+        viewer:
+          $ref: "#/components/schemas/Persona"
+        scope:
+          $ref: "#/components/schemas/AccessScope"
+        summary:
+          $ref: "#/components/schemas/DashboardSummary"
+        viewerPulse:
+          $ref: "#/components/schemas/MemberPulse"
+        memberPulses:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemberPulse"
+        teamPreview:
+          type: array
+          items:
+            $ref: "#/components/schemas/TeamPreviewItem"
+        recommendations:
+          type: array
+          items:
+            type: string
+    ProjectDashboardResponse:
+      allOf:
+        - $ref: "#/components/schemas/DashboardResponse"
+        - type: object
+          required: [project]
+          properties:
+            project:
+              $ref: "#/components/schemas/SprintProject"
+    ProjectMemberPulseResponse:
+      type: object
+      required: [member, project]
+      properties:
+        member:
+          $ref: "#/components/schemas/MemberPulse"
+        project:
+          $ref: "#/components/schemas/SprintProject"
+    MembersResponse:
+      type: object
+      required: [members]
+      properties:
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemberPulse"
+    MemberResponse:
+      type: object
+      required: [member]
+      properties:
+        member:
+          $ref: "#/components/schemas/MemberPulse"
+    PersonaActionRequest:
+      type: object
+      required: [personaId]
+      properties:
+        personaId:
+          type: string
+    StandupSubmitRequest:
+      type: object
+      required: [personaId, yesterday, today]
+      properties:
+        personaId:
+          type: string
+        yesterday:
+          type: string
+        today:
+          type: string
+        blockers:
+          type: string
+          default: No blocker.
+    StandupSubmitResponse:
+      type: object
+      required: [entry, member]
+      properties:
+        entry:
+          $ref: "#/components/schemas/StandupEntry"
+        member:
+          $ref: "#/components/schemas/MemberPulse"
+    ProjectStandupSubmitResponse:
+      type: object
+      required: [entry, member, project]
+      properties:
+        entry:
+          oneOf:
+            - $ref: "#/components/schemas/StandupEntry"
+            - $ref: "#/components/schemas/StandupWithMember"
+        member:
+          $ref: "#/components/schemas/MemberPulse"
+        project:
+          $ref: "#/components/schemas/SprintProject"
+    TranscriptParseRequest:
+      type: object
+      required: [transcript]
+      properties:
+        transcript:
+          type: string
+    ProjectTranscriptParseRequest:
+      allOf:
+        - $ref: "#/components/schemas/TranscriptParseRequest"
+        - type: object
+          properties:
+            personaId:
+              type: string
+    ParsedTranscriptEntry:
+      type: object
+      required: [memberId, name, yesterday, today, blockers, confidence]
+      properties:
+        memberId:
+          type: string
+        name:
+          type: string
+        yesterday:
+          type: string
+        today:
+          type: string
+        blockers:
+          type: string
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+    TranscriptParseResponse:
+      type: object
+      required: [mode, note, parsed]
+      properties:
+        mode:
+          type: string
+          example: transcript-parser
+        note:
+          type: string
+        parsed:
+          type: array
+          items:
+            $ref: "#/components/schemas/ParsedTranscriptEntry"
+    ProjectTranscriptParseResponse:
+      allOf:
+        - $ref: "#/components/schemas/TranscriptParseResponse"
+        - type: object
+          required: [project]
+          properties:
+            project:
+              $ref: "#/components/schemas/SprintProject"
+    StandupsSyncResponse:
+      type: object
+      required: [project, syncedAt, importedStandups, warnings]
+      properties:
+        project:
+          $ref: "#/components/schemas/SprintProject"
+        syncedAt:
+          type: string
+          format: date-time
+        importedStandups:
+          type: integer
+          minimum: 0
+        warnings:
+          type: array
+          items:
+            type: string
+    StackItem:
+      type: object
+      required: [layer, choice, reason]
+      properties:
+        layer:
+          type: string
+        choice:
+          type: string
+        reason:
+          type: string
+    Assignment:
+      type: object
+      required: [owner, role, workstream, firstDeliverable]
+      properties:
+        owner:
+          type: string
+        role:
+          $ref: "#/components/schemas/HackathonRole"
+        workstream:
+          type: string
+        firstDeliverable:
+          type: string
+    PlanResponse:
+      type: object
+      required: [stack, assignments, milestones]
+      properties:
+        stack:
+          type: array
+          items:
+            $ref: "#/components/schemas/StackItem"
+        assignments:
+          type: array
+          items:
+            $ref: "#/components/schemas/Assignment"
+        milestones:
+          type: array
+          items:
+            type: object
+            required: [date, target]
+            properties:
+              date:
+                type: string
+              target:
+                type: string
