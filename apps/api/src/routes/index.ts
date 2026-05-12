@@ -8,10 +8,12 @@ import type {
   CreateProjectSprintRequest,
   CreateUserProfileRequest,
   InviteProjectMemberRequest,
+  JiraOAuthStartRequest,
   JiraConnectRequest,
   StandupEntry,
   UpdateProjectMemberRequest
 } from "@sprintpulse/shared";
+import { jiraOAuthConfig, jiraOAuthConfigError, jiraOAuthConfigured } from "../config/jira.js";
 import { dataMode, mockFlowEnabled, realDataNotReadyMessage } from "../config/runtime.js";
 import { supabaseAdminConfigError, supabaseAdminConfigured } from "../lib/supabaseAdmin.js";
 import {
@@ -52,11 +54,13 @@ import {
   buildSupabaseProjectStandups,
   buildSupabaseSprintList,
   buildSupabaseTeam,
+  completeSupabaseJiraOAuth,
   configureSupabaseGit,
   configureSupabaseJira,
   createSupabaseProjectSprint,
   inviteSupabaseProjectMember,
   parseSupabaseProjectTranscript,
+  startSupabaseJiraOAuth,
   submitSupabaseProjectStandup,
   syncSupabaseGit,
   syncSupabaseJira,
@@ -76,6 +80,10 @@ apiRouter.get("/health", (_req, res) => {
       adminConfigured: supabaseAdminConfigured,
       profilesTable,
       adminConfigError: supabaseAdminConfigError
+    },
+    jira: {
+      oauthConfigured: jiraOAuthConfigured,
+      oauthConfigError: jiraOAuthConfigError
     },
     timestamp: new Date().toISOString()
   });
@@ -515,6 +523,36 @@ apiRouter.post("/projects/:projectId/jira/configure", async (req, res) => {
   }
 
   res.status(501).json({ error: realDataNotReadyMessage });
+});
+
+apiRouter.post("/projects/:projectId/jira/oauth/start", async (req, res) => {
+  if (!mockFlowEnabled) {
+    try {
+      res.json(await startSupabaseJiraOAuth(String(req.params.projectId ?? ""), req.body as JiraOAuthStartRequest));
+    } catch (err) {
+      res.status(500).json({ error: err instanceof Error ? err.message : "Unable to start Jira OAuth" });
+    }
+    return;
+  }
+
+  res.status(501).json({ error: realDataNotReadyMessage });
+});
+
+apiRouter.get("/jira/oauth/callback", async (req, res) => {
+  try {
+    const code = String(req.query.code ?? "");
+    const state = String(req.query.state ?? "");
+    if (!code || !state) {
+      res.status(400).json({ error: "Jira OAuth code and state are required" });
+      return;
+    }
+
+    const result = await completeSupabaseJiraOAuth(code, state);
+    res.redirect(result.redirectTo);
+  } catch (err) {
+    const message = encodeURIComponent(err instanceof Error ? err.message : "Jira OAuth callback failed");
+    res.redirect(`${jiraOAuthConfig.frontendBaseUrl.replace(/\/+$/, "")}/projects?jira=error&message=${message}`);
+  }
 });
 
 apiRouter.post("/projects/:projectId/jira/sync", async (req, res) => {

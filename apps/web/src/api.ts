@@ -15,6 +15,8 @@ import type {
   InviteProjectMemberResponse,
   JiraConnectRequest,
   JiraConnectResponse,
+  JiraOAuthStartRequest,
+  JiraOAuthStartResponse,
   MemberPulse,
   MemberPulseHistoryResponse,
   Persona,
@@ -52,7 +54,6 @@ import {
   parseProjectTranscriptForPersonaInSupabase,
   submitProjectStandupToSupabase,
   syncGitInSupabase,
-  syncJiraInSupabase,
   syncProjectStandupsInSupabase,
   updateProjectMemberInSupabase
 } from "./lib/supabaseProjectOps";
@@ -64,6 +65,8 @@ const configuredProjectMutationTimeout = Number(import.meta.env.VITE_PROJECT_MUT
 const PROJECT_MUTATION_TIMEOUT_MS = Number.isFinite(configuredProjectMutationTimeout)
   ? Math.max(configuredProjectMutationTimeout, PROJECT_API_TIMEOUT_MS)
   : 10000;
+const configuredIntegrationTimeout = Number(import.meta.env.VITE_INTEGRATION_API_TIMEOUT_MS ?? 30000);
+const INTEGRATION_API_TIMEOUT_MS = Number.isFinite(configuredIntegrationTimeout) ? configuredIntegrationTimeout : 30000;
 const DIRECT_SUPABASE_PROJECTS = import.meta.env.VITE_DIRECT_SUPABASE_PROJECTS !== "false";
 
 async function request<T>(path: string, init?: RequestInit, options?: { timeoutMs?: number }): Promise<T> {
@@ -128,6 +131,9 @@ const recoverCreatedProject = async (input: CreateProjectRequest): Promise<Creat
     return null;
   }
 };
+
+const integrationRequest = <T>(path: string, init?: RequestInit) =>
+  request<T>(path, init, { timeoutMs: INTEGRATION_API_TIMEOUT_MS });
 
 export const api = {
   getPersonas: () => request<{ personas: Persona[] }>("/personas", undefined, { timeoutMs: PROJECT_API_TIMEOUT_MS }),
@@ -322,12 +328,8 @@ export const api = {
     }
   },
   configureProjectJira: async (projectId: string, input: ConfigureJiraRequest) => {
-    if (DIRECT_SUPABASE_PROJECTS) {
-      return configureJiraInSupabase(projectId, input);
-    }
-
     try {
-      return await projectRequest<ConfigureJiraResponse>(`/projects/${projectId}/jira/configure`, {
+      return await integrationRequest<ConfigureJiraResponse>(`/projects/${projectId}/jira/configure`, {
         method: "POST",
         body: JSON.stringify(input)
       });
@@ -335,19 +337,16 @@ export const api = {
       return configureJiraInSupabase(projectId, input);
     }
   },
+  startProjectJiraOAuth: (projectId: string, input: JiraOAuthStartRequest) =>
+    integrationRequest<JiraOAuthStartResponse>(`/projects/${projectId}/jira/oauth/start`, {
+      method: "POST",
+      body: JSON.stringify(input)
+    }),
   syncProjectJira: async (projectId: string, personaId: string) => {
-    if (DIRECT_SUPABASE_PROJECTS) {
-      return syncJiraInSupabase(projectId, personaId);
-    }
-
-    try {
-      return await projectRequest<ConfigureJiraResponse>(`/projects/${projectId}/jira/sync`, {
-        method: "POST",
-        body: JSON.stringify({ personaId })
-      });
-    } catch {
-      return syncJiraInSupabase(projectId, personaId);
-    }
+    return integrationRequest<ConfigureJiraResponse>(`/projects/${projectId}/jira/sync`, {
+      method: "POST",
+      body: JSON.stringify({ personaId })
+    });
   },
   configureProjectGit: async (projectId: string, input: ConfigureGitRequest) => {
     if (DIRECT_SUPABASE_PROJECTS) {

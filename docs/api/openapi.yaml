@@ -601,7 +601,7 @@ paths:
       tags: [Integrations]
       operationId: configureProjectJira
       summary: Configure Jira for a project.
-      description: In mock flow this route returns `501`.
+      description: Saves Jira site and project key metadata. In mock flow this route returns `501`.
       parameters:
         - $ref: "#/components/parameters/ProjectIdPath"
       requestBody:
@@ -627,12 +627,68 @@ paths:
           $ref: "#/components/responses/InternalServerError"
         "501":
           $ref: "#/components/responses/NotImplemented"
+  /projects/{projectId}/jira/oauth/start:
+    post:
+      tags: [Integrations]
+      operationId: startProjectJiraOAuth
+      summary: Start Atlassian OAuth for a project Jira connection.
+      description: Returns the Atlassian authorization URL. In mock flow this route returns `501`.
+      parameters:
+        - $ref: "#/components/parameters/ProjectIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JiraOAuthStartRequest"
+            examples:
+              startJiraOAuth:
+                value:
+                  personaId: priya
+                  jiraSite: semicolons.atlassian.net
+                  projectKey: SP
+      responses:
+        "200":
+          description: Jira OAuth authorization URL.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JiraOAuthStartResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "501":
+          $ref: "#/components/responses/NotImplemented"
+  /jira/oauth/callback:
+    get:
+      tags: [Integrations]
+      operationId: completeJiraOAuth
+      summary: Complete Atlassian OAuth callback.
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "302":
+          description: Redirects back to the web app integrations page.
+        "400":
+          description: Missing OAuth code or state.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /projects/{projectId}/jira/sync:
     post:
       tags: [Integrations]
       operationId: syncProjectJira
       summary: Import Jira sprint issue signals for a project.
-      description: In mock flow this route returns `501`.
+      description: Requires a completed Atlassian OAuth connection. In mock flow this route returns `501`.
       parameters:
         - $ref: "#/components/parameters/ProjectIdPath"
       requestBody:
@@ -1690,9 +1746,26 @@ components:
           type: string
         status:
           $ref: "#/components/schemas/IntegrationStatus"
+        cloudId:
+          type: string
+        displayName:
+          type: string
+        accountId:
+          type: string
+        boardId:
+          type: integer
+        activeSprintId:
+          type: string
+        activeSprintName:
+          type: string
+        authType:
+          type: string
+          enum: [manual, oauth]
         lastSyncAt:
           type: string
           format: date-time
+        lastError:
+          type: string
     GitConnection:
       type: object
       required: [id, projectId, provider, repoOwner, repoName, defaultBranch, status]
@@ -1725,6 +1798,8 @@ components:
           type: string
         sprintId:
           type: string
+        jiraIssueId:
+          type: string
         issueKey:
           type: string
         summary:
@@ -1735,8 +1810,17 @@ components:
           type: string
         jiraAssigneeId:
           type: string
+        issueType:
+          type: string
+        priority:
+          type: string
+        url:
+          type: string
+          format: uri
+        parentKey:
+          type: string
         storyPoints:
-          type: integer
+          type: number
         daysIdle:
           type: integer
           minimum: 0
@@ -2059,6 +2143,25 @@ components:
           type: string
         projectKey:
           type: string
+    JiraOAuthStartRequest:
+      allOf:
+        - $ref: "#/components/schemas/ConfigureJiraRequest"
+    JiraOAuthStartResponse:
+      type: object
+      required: [authorizationUrl, state, expiresAt, warnings]
+      properties:
+        authorizationUrl:
+          type: string
+          format: uri
+        state:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        warnings:
+          type: array
+          items:
+            type: string
     ConfigureJiraResponse:
       type: object
       required: [connection, importedIssues, warnings]

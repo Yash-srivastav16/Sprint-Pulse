@@ -66,6 +66,7 @@ VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
 VITE_API_URL=http://localhost:4000/api
 VITE_DIRECT_SUPABASE_PROJECTS=true
 VITE_PROJECT_API_TIMEOUT_MS=1200
+VITE_INTEGRATION_API_TIMEOUT_MS=30000
 ```
 
 API env expected in `apps/api/.env`:
@@ -73,11 +74,17 @@ API env expected in `apps/api/.env`:
 ```env
 PORT=4000
 CORS_ORIGIN=http://localhost:5173
+WEB_APP_URL=http://localhost:5173
 ENABLE_MOCK_FLOW=false
 SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
 SUPABASE_PROFILES_TABLE=profiles
 ALLOW_INSECURE_LOCAL_TLS=false
+JIRA_CLIENT_ID=your-atlassian-oauth-client-id
+JIRA_CLIENT_SECRET=your-atlassian-oauth-client-secret
+JIRA_REDIRECT_URI=http://localhost:4000/api/jira/oauth/callback
+JIRA_SCOPES=read:jira-work read:jira-user offline_access
+JIRA_STORY_POINTS_FIELD=customfield_10016
 ```
 
 Important behavior:
@@ -97,6 +104,8 @@ Current SQL files:
 - `database/supabase/005_invite_acceptance.sql`: invite acceptance RPC for users who sign up with invited emails.
 - `database/supabase/006_invite_flow_cleanup.sql`: cleanup for old pending invite rows that were accidentally added as members before signup; reruns the invite acceptance RPC.
 - `database/supabase/007_sprint_management.sql`: sprint update policy and sprint status/date index for add/continue sprint flows.
+- `database/supabase/008_project_visibility_scope.sql`: project visibility scope and related project member access policy updates.
+- `database/supabase/009_jira_oauth_integration.sql`: Jira OAuth metadata, private token/state tables, and imported issue metadata fields.
 
 Known RLS note:
 

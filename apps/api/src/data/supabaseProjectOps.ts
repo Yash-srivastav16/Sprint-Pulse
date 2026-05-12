@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type {
   AppRole,
   ConfigureGitRequest,
@@ -14,6 +15,9 @@ import type {
   InviteProjectMemberResponse,
   JiraConnection,
   JiraIssue,
+  JiraOAuthCallbackResponse,
+  JiraOAuthStartRequest,
+  JiraOAuthStartResponse,
   MemberPulse,
   MemberPulseHistoryResponse,
   Permission,
@@ -38,6 +42,20 @@ import type {
   TeamResponse,
   UpdateProjectMemberRequest
 } from "@sprintpulse/shared";
+import { jiraOAuthConfig, jiraOAuthConfigError, jiraOAuthConfigured } from "../config/jira.js";
+import {
+  buildJiraAuthorizationUrl,
+  exchangeJiraAuthorizationCode,
+  getActiveJiraSprint,
+  getJiraAccessibleResources,
+  getJiraCurrentUser,
+  listJiraBoards,
+  refreshJiraAccessToken,
+  searchJiraIssues,
+  type JiraAccessibleResource,
+  type JiraCloudIssue,
+  type JiraOAuthTokenResponse
+} from "../integrations/jiraCloud.js";
 import { supabaseAdmin } from "../lib/supabaseAdmin.js";
 import { buildSupabaseProjectDetail } from "./supabaseProjects.js";
 import { profilesTable, roleDefaults, toProfile, type ProfileRow } from "./supabaseProfiles.js";
@@ -83,7 +101,33 @@ type JiraConnectionRow = {
   site_url: string;
   project_key: string;
   status: JiraConnection["status"];
+  cloud_id?: string | null;
+  display_name?: string | null;
+  account_id?: string | null;
+  board_id?: number | null;
+  active_sprint_id?: string | null;
+  active_sprint_name?: string | null;
+  auth_type?: JiraConnection["authType"] | null;
   last_sync_at?: string | null;
+  last_error?: string | null;
+};
+
+type JiraOAuthTokenRow = {
+  connection_id: string;
+  access_token: string;
+  refresh_token?: string | null;
+  token_type?: string | null;
+  scopes?: string[] | null;
+  expires_at?: string | null;
+};
+
+type JiraOAuthStateRow = {
+  state: string;
+  project_id: string;
+  persona_id: string;
+  jira_site?: string | null;
+  project_key?: string | null;
+  expires_at: string;
 };
 
 type GitConnectionRow = {
@@ -101,11 +145,16 @@ type JiraIssueRow = {
   id: string;
   project_id: string;
   sprint_id?: string | null;
+  jira_issue_id?: string | null;
   issue_key: string;
   summary: string;
   status: JiraIssue["status"];
   assignee_profile_id?: string | null;
   jira_assignee_id?: string | null;
+  issue_type?: string | null;
+  priority?: string | null;
+  url?: string | null;
+  parent_key?: string | null;
   story_points?: number | null;
   updated_at_source?: string | null;
 };
@@ -248,7 +297,15 @@ const toJiraConnection = (row: JiraConnectionRow): JiraConnection => ({
   siteUrl: row.site_url,
   projectKey: row.project_key,
   status: row.status,
-  lastSyncAt: row.last_sync_at ?? undefined
+  cloudId: row.cloud_id ?? undefined,
+  displayName: row.display_name ?? undefined,
+  accountId: row.account_id ?? undefined,
+  boardId: row.board_id ?? undefined,
+  activeSprintId: row.active_sprint_id ?? undefined,
+  activeSprintName: row.active_sprint_name ?? undefined,
+  authType: row.auth_type ?? undefined,
+  lastSyncAt: row.last_sync_at ?? undefined,
+  lastError: row.last_error ?? undefined
 });
 
 const toGitConnection = (row: GitConnectionRow): GitConnection => ({
@@ -266,11 +323,16 @@ const toJiraIssue = (row: JiraIssueRow): JiraIssue => ({
   id: row.id,
   projectId: row.project_id,
   sprintId: row.sprint_id ?? undefined,
+  jiraIssueId: row.jira_issue_id ?? undefined,
   issueKey: row.issue_key,
   summary: row.summary,
   status: row.status,
   assigneeProfileId: row.assignee_profile_id ?? undefined,
   jiraAssigneeId: row.jira_assignee_id ?? undefined,
+  issueType: row.issue_type ?? undefined,
+  priority: row.priority ?? undefined,
+  url: row.url ?? undefined,
+  parentKey: row.parent_key ?? undefined,
   storyPoints: row.story_points ?? undefined,
   daysIdle: daysIdle(row.updated_at_source ?? undefined),
   updatedAtSource: row.updated_at_source ?? undefined
@@ -1007,7 +1069,9 @@ const insertSyncRun = async (
   projectId: string,
   personaId: string,
   source: SyncRun["source"],
-  stats: SyncRun["stats"]
+  stats: SyncRun["stats"],
+  status: SyncRun["status"] = "succeeded",
+  errorMessage?: string
 ) => {
   const client = requireSupabaseAdmin();
   const now = new Date().toISOString();
@@ -1016,11 +1080,12 @@ const insertSyncRun = async (
     .insert({
       project_id: projectId,
       source,
-      status: "succeeded",
+      status,
       requested_by: personaId,
       started_at: now,
       finished_at: now,
-      stats
+      stats,
+      error_message: errorMessage ?? null
     })
     .select()
     .single();
@@ -1030,6 +1095,176 @@ const insertSyncRun = async (
   }
 
   return toSyncRun(data as SyncRunRow);
+};
+
+const normalizeJiraSite = (site: string) =>
+  site
+    .trim()
+    .replace(/^https?:\/\//i, "")
+    .replace(/\/+$/, "")
+    .toLowerCase();
+
+const jiraBrowseUrl = (siteUrl: string, issueKey: string) => `https://${normalizeJiraSite(siteUrl)}/browse/${issueKey}`;
+
+const tokenExpiryFrom = (tokens: JiraOAuthTokenResponse) =>
+  tokens.expires_in ? new Date(Date.now() + Math.max(0, tokens.expires_in - 60) * 1000).toISOString() : null;
+
+const scopesFrom = (tokens: JiraOAuthTokenResponse) =>
+  (tokens.scope ?? jiraOAuthConfig.scopes.join(" "))
+    .split(/\s+/)
+    .map((scope) => scope.trim())
+    .filter(Boolean);
+
+const saveJiraToken = async (
+  connectionId: string,
+  tokens: JiraOAuthTokenResponse,
+  existingRefreshToken?: string | null
+) => {
+  const client = requireSupabaseAdmin();
+  const { error } = await client.from("jira_oauth_tokens").upsert(
+    {
+      connection_id: connectionId,
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token ?? existingRefreshToken ?? null,
+      token_type: tokens.token_type ?? "Bearer",
+      scopes: scopesFrom(tokens),
+      expires_at: tokenExpiryFrom(tokens),
+      updated_at: new Date().toISOString()
+    },
+    { onConflict: "connection_id" }
+  );
+
+  if (error) {
+    throw new Error(error.message);
+  }
+};
+
+const selectJiraResource = (resources: JiraAccessibleResource[], requestedSite?: string | null) => {
+  const requestedHost = requestedSite ? normalizeJiraSite(requestedSite) : "";
+  const matched = requestedHost
+    ? resources.find((resource) => normalizeJiraSite(resource.url) === requestedHost)
+    : undefined;
+
+  return {
+    resource: matched ?? resources[0] ?? null,
+    warning:
+      requestedHost && !matched && resources[0]
+        ? `Authorized Jira site did not exactly match ${requestedHost}; using ${resources[0].url}.`
+        : undefined
+  };
+};
+
+const getJiraToken = async (connectionId: string) => {
+  const client = requireSupabaseAdmin();
+  const { data, error } = await client
+    .from("jira_oauth_tokens")
+    .select("*")
+    .eq("connection_id", connectionId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data as JiraOAuthTokenRow | null) ?? null;
+};
+
+const getFreshJiraAccessToken = async (connection: JiraConnection) => {
+  const token = await getJiraToken(connection.id);
+  if (!token) {
+    throw new Error("Connect Jira with OAuth before running sync.");
+  }
+
+  const expiresAt = token.expires_at ? new Date(token.expires_at).getTime() : 0;
+  if (!expiresAt || expiresAt > Date.now() + 60 * 1000) {
+    return token.access_token;
+  }
+
+  if (!token.refresh_token) {
+    throw new Error("Jira OAuth access has expired. Reconnect Jira to refresh authorization.");
+  }
+
+  const refreshed = await refreshJiraAccessToken(token.refresh_token);
+  await saveJiraToken(connection.id, refreshed, token.refresh_token);
+
+  return refreshed.access_token;
+};
+
+const mapJiraStatus = (issue: JiraCloudIssue): JiraIssue["status"] => {
+  const name = issue.fields?.status?.name?.toLowerCase() ?? "";
+  const category = issue.fields?.status?.statusCategory?.key?.toLowerCase() ?? "";
+
+  if (category === "done" || name.includes("done") || name.includes("closed") || name.includes("resolved")) {
+    return "Done";
+  }
+  if (name.includes("block")) {
+    return "Blocked";
+  }
+  if (name.includes("review") || name.includes("qa") || name.includes("test")) {
+    return "Review";
+  }
+  if (category === "indeterminate" || name.includes("progress") || name.includes("doing")) {
+    return "In Progress";
+  }
+
+  return "Todo";
+};
+
+const storyPointsFrom = (issue: JiraCloudIssue) => {
+  const value = issue.fields?.[jiraOAuthConfig.storyPointsField];
+  if (typeof value === "number") {
+    return value;
+  }
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+};
+
+const memberForJiraAssignee = (project: SprintProject, issue: JiraCloudIssue) => {
+  const assignee = issue.fields?.assignee;
+  if (!assignee) {
+    return undefined;
+  }
+
+  const accountId = assignee.accountId?.trim();
+  const email = assignee.emailAddress?.trim().toLowerCase();
+
+  return project.members.find(
+    (member) =>
+      (accountId && member.jiraAccountId?.trim() === accountId) ||
+      (email && member.email.trim().toLowerCase() === email)
+  );
+};
+
+const toJiraIssueUpsertRow = (
+  project: SprintProject,
+  sprintId: string,
+  connection: JiraConnection,
+  issue: JiraCloudIssue
+) => {
+  const assignee = issue.fields?.assignee;
+  const member = memberForJiraAssignee(project, issue);
+
+  return {
+    project_id: project.id,
+    sprint_id: sprintId,
+    jira_issue_id: issue.id,
+    issue_key: issue.key,
+    summary: issue.fields?.summary ?? issue.key,
+    status: mapJiraStatus(issue),
+    assignee_profile_id: member?.personaId ?? null,
+    jira_assignee_id: assignee?.accountId ?? null,
+    issue_type: issue.fields?.issuetype?.name ?? null,
+    priority: issue.fields?.priority?.name ?? null,
+    url: jiraBrowseUrl(connection.siteUrl, issue.key),
+    parent_key: issue.fields?.parent?.key ?? null,
+    story_points: storyPointsFrom(issue),
+    updated_at_source: issue.fields?.updated ?? null,
+    raw: issue,
+    updated_at: new Date().toISOString()
+  };
 };
 
 export const configureSupabaseJira = async (
@@ -1047,9 +1282,17 @@ export const configureSupabaseJira = async (
     .upsert(
       {
         project_id: projectId,
-        site_url: input.jiraSite.trim().replace(/^https?:\/\//, ""),
+        site_url: normalizeJiraSite(input.jiraSite),
         project_key: input.projectKey.trim().toUpperCase(),
         status: "configured",
+        cloud_id: null,
+        display_name: null,
+        account_id: null,
+        board_id: null,
+        active_sprint_id: null,
+        active_sprint_name: null,
+        auth_type: "manual",
+        last_error: null,
         created_by: input.personaId,
         updated_at: new Date().toISOString()
       },
@@ -1062,10 +1305,147 @@ export const configureSupabaseJira = async (
     throw new Error(error.message);
   }
 
+  await client.from("jira_oauth_tokens").delete().eq("connection_id", (data as JiraConnectionRow).id);
+
   return {
     connection: toJiraConnection(data as JiraConnectionRow),
     importedIssues: 0,
-    warnings: ["Jira is configured. Run sync to import sprint issues."]
+    warnings: jiraOAuthConfigured
+      ? ["Jira project details are saved. Connect with Atlassian OAuth before running sync."]
+      : ["Jira project details are saved. Add Jira OAuth API credentials before running sync."]
+  };
+};
+
+export const startSupabaseJiraOAuth = async (
+  projectId: string,
+  input: JiraOAuthStartRequest
+): Promise<JiraOAuthStartResponse> => {
+  if (!jiraOAuthConfigured) {
+    throw new Error(jiraOAuthConfigError ?? "Jira OAuth is not configured.");
+  }
+
+  const context = await loadProjectContext(projectId, input.personaId);
+  if (!context?.permissions.includes("project:connect")) {
+    throw new Error("You do not have permission to connect Jira.");
+  }
+
+  const jiraSite = normalizeJiraSite(input.jiraSite);
+  const projectKey = input.projectKey.trim().toUpperCase();
+  if (!jiraSite || !projectKey) {
+    throw new Error("Jira site and project key are required.");
+  }
+
+  const client = requireSupabaseAdmin();
+  const now = new Date().toISOString();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+  const state = randomUUID();
+
+  await client.from("jira_oauth_states").delete().lt("expires_at", now);
+
+  const connectionWrite = await client.from("jira_connections").upsert(
+    {
+      project_id: projectId,
+      site_url: jiraSite,
+      project_key: projectKey,
+      status: "configured",
+      auth_type: "oauth",
+      last_error: null,
+      created_by: input.personaId,
+      updated_at: now
+    },
+    { onConflict: "project_id" }
+  );
+  if (connectionWrite.error) {
+    throw new Error(connectionWrite.error.message);
+  }
+
+  const stateWrite = await client.from("jira_oauth_states").insert({
+    state,
+    project_id: projectId,
+    persona_id: input.personaId,
+    jira_site: jiraSite,
+    project_key: projectKey,
+    expires_at: expiresAt
+  });
+  if (stateWrite.error) {
+    throw new Error(stateWrite.error.message);
+  }
+
+  return {
+    authorizationUrl: buildJiraAuthorizationUrl(state),
+    state,
+    expiresAt,
+    warnings: ["Atlassian authorization expires in 10 minutes."]
+  };
+};
+
+export const completeSupabaseJiraOAuth = async (
+  code: string,
+  state: string
+): Promise<JiraOAuthCallbackResponse> => {
+  if (!jiraOAuthConfigured) {
+    throw new Error(jiraOAuthConfigError ?? "Jira OAuth is not configured.");
+  }
+
+  const client = requireSupabaseAdmin();
+  const { data: stateData, error: stateError } = await client
+    .from("jira_oauth_states")
+    .select("*")
+    .eq("state", state)
+    .maybeSingle();
+
+  if (stateError) {
+    throw new Error(stateError.message);
+  }
+
+  const savedState = (stateData as JiraOAuthStateRow | null) ?? null;
+  if (!savedState || new Date(savedState.expires_at).getTime() < Date.now()) {
+    throw new Error("Jira OAuth state expired. Start the connection flow again.");
+  }
+
+  const tokens = await exchangeJiraAuthorizationCode(code);
+  const resources = await getJiraAccessibleResources(tokens.access_token);
+  const { resource, warning } = selectJiraResource(resources, savedState.jira_site);
+  if (!resource) {
+    throw new Error("No Jira Cloud site was granted to this authorization.");
+  }
+
+  const currentUser = await getJiraCurrentUser(tokens.access_token, resource.id).catch(() => null);
+  const now = new Date().toISOString();
+  const connectionWrite = await client
+    .from("jira_connections")
+    .upsert(
+      {
+        project_id: savedState.project_id,
+        site_url: normalizeJiraSite(resource.url),
+        project_key: (savedState.project_key ?? "").toUpperCase(),
+        status: "configured",
+        cloud_id: resource.id,
+        display_name: resource.name,
+        account_id: currentUser?.accountId ?? null,
+        auth_type: "oauth",
+        last_error: null,
+        created_by: savedState.persona_id,
+        updated_at: now
+      },
+      { onConflict: "project_id" }
+    )
+    .select()
+    .single();
+
+  if (connectionWrite.error) {
+    throw new Error(connectionWrite.error.message);
+  }
+
+  const connection = toJiraConnection(connectionWrite.data as JiraConnectionRow);
+  await saveJiraToken(connection.id, tokens);
+  await client.from("jira_oauth_states").delete().eq("state", state);
+
+  return {
+    projectId: savedState.project_id,
+    connection,
+    redirectTo: `${jiraOAuthConfig.frontendBaseUrl.replace(/\/+$/, "")}/projects/${savedState.project_id}/integrations?jira=connected`,
+    warnings: warning ? [warning] : []
   };
 };
 
@@ -1081,49 +1461,92 @@ export const syncSupabaseJira = async (projectId: string, personaId: string): Pr
     throw new Error("Configure Jira before running sync.");
   }
 
-  const statuses: JiraIssue["status"][] = ["In Progress", "Review", "Blocked", "Todo", "Done"];
-  const rows = context.project.members.flatMap((member, memberIndex) =>
-    [0, 1].map((offset) => {
-      const status = statuses[(memberIndex + offset) % statuses.length];
-      return {
-        project_id: projectId,
-        sprint_id: signals.sprint.id,
-        issue_key: `${signals.jira?.projectKey ?? context.project.key}-${100 + memberIndex * 2 + offset}`,
-        summary:
-          offset === 0
-            ? `Deliver ${context.project.key} sprint task for ${member.name}`
-            : `Review and stabilize ${member.role.replace("-", " ")} workflow`,
-        status,
-        assignee_profile_id: member.personaId,
-        jira_assignee_id: member.jiraAccountId ?? member.email,
-        story_points: offset === 0 ? 5 : 3,
-        updated_at_source: new Date(Date.now() - (status === "Blocked" ? 4 : offset + 1) * 24 * 60 * 60 * 1000).toISOString(),
-        raw: { demoSafe: true }
-      };
-    })
-  );
-
-  const { error } = await client.from("jira_issues").upsert(rows, { onConflict: "project_id,issue_key" });
-  if (error) {
-    throw new Error(error.message);
+  const cloudId = signals.jira.cloudId;
+  if (!cloudId) {
+    throw new Error("Connect Jira with Atlassian OAuth before running sync.");
   }
 
-  const now = new Date().toISOString();
-  await Promise.all([
-    client.from("jira_connections").update({ status: "synced", last_sync_at: now, updated_at: now }).eq("project_id", projectId),
-    client.from("projects").update({ last_sync_at: now, updated_at: now }).eq("id", projectId)
-  ]);
-  const run = await insertSyncRun(projectId, personaId, "jira", {
-    importedIssues: rows.length,
-    importedMembers: context.project.members.length
-  });
+  const jiraConnection = signals.jira;
 
-  return {
-    connection: { ...signals.jira, status: "synced", lastSyncAt: now },
-    run,
-    importedIssues: rows.length,
-    warnings: ["Guided Jira sync imported sprint issues without storing external tokens."]
-  };
+  try {
+    const accessToken = await getFreshJiraAccessToken(jiraConnection);
+    let boardWarning: string | undefined;
+    let sprintWarning: string | undefined;
+    const boards = jiraConnection.boardId
+      ? [{ id: jiraConnection.boardId, name: "Saved Jira board", type: "scrum" }]
+      : await listJiraBoards(accessToken, cloudId, jiraConnection.projectKey).catch((err) => {
+          boardWarning = err instanceof Error ? err.message : "Unable to discover Jira boards.";
+          return [];
+        });
+    const board = boards[0] ?? null;
+    const activeSprint = board
+      ? await getActiveJiraSprint(accessToken, cloudId, board.id).catch((err) => {
+          sprintWarning = err instanceof Error ? err.message : "Unable to discover the active Jira sprint.";
+          return null;
+        })
+      : null;
+    const issues = await searchJiraIssues(accessToken, cloudId, {
+      projectKey: jiraConnection.projectKey,
+      sprintId: activeSprint?.id ? String(activeSprint.id) : undefined
+    });
+    const rows = issues.map((issue) => toJiraIssueUpsertRow(context.project, signals.sprint.id, jiraConnection, issue));
+
+    if (rows.length) {
+      const { error } = await client.from("jira_issues").upsert(rows, { onConflict: "project_id,issue_key" });
+      if (error) {
+        throw new Error(error.message);
+      }
+    }
+
+    const now = new Date().toISOString();
+    const connectionUpdate = {
+      status: "synced",
+      board_id: board?.id ?? null,
+      active_sprint_id: activeSprint?.id ? String(activeSprint.id) : null,
+      active_sprint_name: activeSprint?.name ?? null,
+      last_error: null,
+      last_sync_at: now,
+      updated_at: now
+    };
+    const [connectionWrite, projectWrite] = await Promise.all([
+      client.from("jira_connections").update(connectionUpdate).eq("project_id", projectId).select().single(),
+      client.from("projects").update({ last_sync_at: now, updated_at: now }).eq("id", projectId)
+    ]);
+
+    if (connectionWrite.error) {
+      throw new Error(connectionWrite.error.message);
+    }
+    if (projectWrite.error) {
+      throw new Error(projectWrite.error.message);
+    }
+
+    const run = await insertSyncRun(projectId, personaId, "jira", {
+      importedIssues: rows.length,
+      jiraProjectKey: jiraConnection.projectKey,
+      jiraBoardId: board?.id ?? null,
+      jiraSprintId: activeSprint?.id ?? null
+    });
+
+    return {
+      connection: toJiraConnection(connectionWrite.data as JiraConnectionRow),
+      run,
+      importedIssues: rows.length,
+      warnings: [
+        boardWarning ? `Jira board discovery skipped: ${boardWarning}` : null,
+        sprintWarning ? `Jira sprint discovery skipped: ${sprintWarning}` : null,
+        activeSprint ? null : "No active Jira sprint was found; imported the latest project issues instead."
+      ].filter((warning): warning is string => Boolean(warning))
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Jira sync failed.";
+    const now = new Date().toISOString();
+    await client
+      .from("jira_connections")
+      .update({ status: "failed", last_error: message, updated_at: now })
+      .eq("project_id", projectId);
+    await insertSyncRun(projectId, personaId, "jira", { importedIssues: 0 }, "failed", message).catch(() => undefined);
+    throw err;
+  }
 };
 
 export const configureSupabaseGit = async (

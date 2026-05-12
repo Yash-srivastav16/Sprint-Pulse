@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Cloud, GitBranch, Loader2, PlugZap, RefreshCw, Save, ShieldAlert, TicketCheck } from "lucide-react";
-import { useParams } from "react-router-dom";
+import { Cloud, ExternalLink, GitBranch, KeyRound, Loader2, PlugZap, RefreshCw, Save, ShieldAlert, TicketCheck } from "lucide-react";
+import { useLocation, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import type { IntegrationStatus, IntegrationStatusResponse } from "@sprintpulse/shared";
 import { Input } from "@/components/ui/input";
@@ -40,6 +40,7 @@ function formatStatus(status?: string) {
 
 export function ProjectIntegrationsPage() {
   const { projectId } = useParams();
+  const location = useLocation();
   const { persona } = useAuth();
   const [data, setData] = useState<IntegrationStatusResponse | null>(null);
   const [jiraSite, setJiraSite] = useState("");
@@ -76,6 +77,14 @@ export function ProjectIntegrationsPage() {
   };
 
   useEffect(loadIntegrations, [persona, projectId]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("jira") === "connected") {
+      setSuccess("Jira OAuth connected. Run sync to import sprint issues.");
+      toast.success("Jira connected", { description: "Run sync to import sprint issues." });
+    }
+  }, [location.search]);
 
   const configureJira = async (event: FormEvent) => {
     event.preventDefault();
@@ -122,6 +131,29 @@ export function ProjectIntegrationsPage() {
       setError(message);
       toast.error("Jira sync failed", { description: message });
     } finally {
+      setSaving(null);
+    }
+  };
+
+  const connectJiraOAuth = async () => {
+    if (!persona || !projectId) {
+      return;
+    }
+
+    setSaving("jira-oauth");
+    setError(null);
+    setSuccess(null);
+    try {
+      const response = await api.startProjectJiraOAuth(projectId, {
+        personaId: persona.id,
+        jiraSite,
+        projectKey: jiraKey
+      });
+      window.location.assign(response.authorizationUrl);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Jira OAuth connection failed";
+      setError(message);
+      toast.error("Jira connection failed", { description: message });
       setSaving(null);
     }
   };
@@ -205,7 +237,7 @@ export function ProjectIntegrationsPage() {
     {
       label: "Jira issues",
       value: data.issuePreview.length,
-      detail: `${blockedIssues} blocked · ${staleIssues} stale`,
+      detail: `${blockedIssues} blocked; ${staleIssues} stale`,
       icon: TicketCheck,
       tone: blockedIssues ? ("warning" as const) : ("info" as const)
     },
@@ -299,7 +331,7 @@ export function ProjectIntegrationsPage() {
       <section className="grid items-stretch gap-5 xl:grid-cols-2">
         <SectionPanel>
           <form className="grid gap-5" onSubmit={configureJira}>
-            <PanelHeader eyebrow="Jira" title={data.jira ? "Configured project" : "Connect project"} description="Project key and site URL are enough for the demo-safe import flow." icon={Cloud} tone="info" />
+            <PanelHeader eyebrow="Jira" title={data.jira ? "Configured project" : "Connect project"} description="Save the site and project key, then authorize Atlassian before syncing real issue data." icon={Cloud} tone="info" />
             <div className="grid gap-4">
               <label className="grid gap-2">
                 <span className="text-sm font-black text-slate-700 dark:text-slate-200">Jira site</span>
@@ -313,7 +345,12 @@ export function ProjectIntegrationsPage() {
             <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-white/[0.045]">
               <span className="text-xs font-black uppercase text-slate-500 dark:text-slate-400">Status</span>
               <strong className="mt-1 block text-sm font-black text-slate-950 dark:text-white">{formatStatus(data.jira?.status)}</strong>
-              <small className="text-slate-500 dark:text-slate-400">{data.jira?.lastSyncAt ? new Date(data.jira.lastSyncAt).toLocaleString() : "No sync yet"}</small>
+              <small className="text-slate-500 dark:text-slate-400">{data.jira?.displayName ?? (data.jira?.lastSyncAt ? new Date(data.jira.lastSyncAt).toLocaleString() : "No sync yet")}</small>
+            </div>
+            <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-white/[0.045]">
+              <span className="text-xs font-black uppercase text-slate-500 dark:text-slate-400">OAuth</span>
+              <strong className="mt-1 block text-sm font-black text-slate-950 dark:text-white">{data.jira?.cloudId ? "Connected" : "Required"}</strong>
+              <small className="text-slate-500 dark:text-slate-400">{data.jira?.activeSprintName ?? data.jira?.lastError ?? "Authorize Atlassian before syncing"}</small>
             </div>
             {canConfigure ? (
               <div className="flex flex-wrap gap-3">
@@ -321,7 +358,12 @@ export function ProjectIntegrationsPage() {
                   {saving === "jira" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                   Save Jira
                 </button>
-                <button className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-black text-slate-700 shadow-sm disabled:pointer-events-none disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-slate-100" type="button" onClick={syncJira} disabled={Boolean(saving) || !data.jira}>
+                <button className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-black text-slate-700 shadow-sm disabled:pointer-events-none disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-slate-100" type="button" onClick={connectJiraOAuth} disabled={Boolean(saving) || !jiraSite || !jiraKey}>
+                  {saving === "jira-oauth" ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
+                  Connect Atlassian
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </button>
+                <button className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-black text-slate-700 shadow-sm disabled:pointer-events-none disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-slate-100" type="button" onClick={syncJira} disabled={Boolean(saving) || !data.jira?.cloudId}>
                   {saving === "jira-sync" ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                   Sync issues
                 </button>

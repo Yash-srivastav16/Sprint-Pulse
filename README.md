@@ -32,6 +32,7 @@ VITE_API_URL=http://localhost:4000/api
 VITE_DIRECT_SUPABASE_PROJECTS=true
 VITE_PROJECT_API_TIMEOUT_MS=1200
 VITE_PROJECT_MUTATION_TIMEOUT_MS=10000
+VITE_INTEGRATION_API_TIMEOUT_MS=30000
 ```
 
 Frontend variables must use the `VITE_` prefix. Do not put `SUPABASE_SERVICE_ROLE_KEY` in `apps/web/.env` or expose it with a `VITE_` prefix.
@@ -45,9 +46,16 @@ ENABLE_MOCK_FLOW=false
 SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
 SUPABASE_PROFILES_TABLE=profiles
+WEB_APP_URL=http://localhost:5173
+JIRA_CLIENT_ID=your-atlassian-oauth-client-id
+JIRA_CLIENT_SECRET=your-atlassian-oauth-client-secret
+JIRA_REDIRECT_URI=http://localhost:4000/api/jira/oauth/callback
+JIRA_SCOPES=read:jira-work read:jira-user offline_access
+JIRA_STORY_POINTS_FIELD=customfield_10016
 ```
 
 `ENABLE_MOCK_FLOW=false` keeps seeded rehearsal data off and uses Supabase database profiles, projects, sprints, and project memberships for the real demo flow. Temporarily set `ENABLE_MOCK_FLOW=true` only when you explicitly want the seeded rehearsal workspace. Dashboard scoring and standup intelligence are the next database-backed phases after project setup.
+For Jira OAuth, create an Atlassian developer app, set the callback URL to `http://localhost:4000/api/jira/oauth/callback`, and copy the client ID/secret into `apps/api/.env`.
 
 Run the SQL files in order before using `ENABLE_MOCK_FLOW=false`:
 

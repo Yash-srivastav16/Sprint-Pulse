@@ -111,7 +111,15 @@ type JiraConnectionRow = {
   site_url: string;
   project_key: string;
   status: JiraConnection["status"];
+  cloud_id?: string | null;
+  display_name?: string | null;
+  account_id?: string | null;
+  board_id?: number | null;
+  active_sprint_id?: string | null;
+  active_sprint_name?: string | null;
+  auth_type?: JiraConnection["authType"] | null;
   last_sync_at?: string | null;
+  last_error?: string | null;
 };
 
 type GitConnectionRow = {
@@ -129,11 +137,16 @@ type JiraIssueRow = {
   id: string;
   project_id: string;
   sprint_id?: string | null;
+  jira_issue_id?: string | null;
   issue_key: string;
   summary: string;
   status: JiraIssue["status"];
   assignee_profile_id?: string | null;
   jira_assignee_id?: string | null;
+  issue_type?: string | null;
+  priority?: string | null;
+  url?: string | null;
+  parent_key?: string | null;
   story_points?: number | null;
   updated_at_source?: string | null;
 };
@@ -302,7 +315,15 @@ const toJiraConnection = (row: JiraConnectionRow): JiraConnection => ({
   siteUrl: row.site_url,
   projectKey: row.project_key,
   status: row.status,
-  lastSyncAt: row.last_sync_at ?? undefined
+  cloudId: row.cloud_id ?? undefined,
+  displayName: row.display_name ?? undefined,
+  accountId: row.account_id ?? undefined,
+  boardId: row.board_id ?? undefined,
+  activeSprintId: row.active_sprint_id ?? undefined,
+  activeSprintName: row.active_sprint_name ?? undefined,
+  authType: row.auth_type ?? undefined,
+  lastSyncAt: row.last_sync_at ?? undefined,
+  lastError: row.last_error ?? undefined
 });
 
 const toGitConnection = (row: GitConnectionRow): GitConnection => ({
@@ -329,11 +350,16 @@ const toJiraIssue = (row: JiraIssueRow): JiraIssue => ({
   id: row.id,
   projectId: row.project_id,
   sprintId: row.sprint_id ?? undefined,
+  jiraIssueId: row.jira_issue_id ?? undefined,
   issueKey: row.issue_key,
   summary: row.summary,
   status: row.status,
   assigneeProfileId: row.assignee_profile_id ?? undefined,
   jiraAssigneeId: row.jira_assignee_id ?? undefined,
+  issueType: row.issue_type ?? undefined,
+  priority: row.priority ?? undefined,
+  url: row.url ?? undefined,
+  parentKey: row.parent_key ?? undefined,
   storyPoints: row.story_points ?? undefined,
   daysIdle: daysIdle(row.updated_at_source ?? undefined),
   updatedAtSource: row.updated_at_source ?? undefined
@@ -1081,9 +1107,17 @@ export const configureJiraInSupabase = async (
     .upsert(
       {
         project_id: projectId,
-        site_url: input.jiraSite.trim().replace(/^https?:\/\//, ""),
+        site_url: input.jiraSite.trim().replace(/^https?:\/\//i, "").replace(/\/+$/, "").toLowerCase(),
         project_key: input.projectKey.trim().toUpperCase(),
         status: "configured",
+        cloud_id: null,
+        display_name: null,
+        account_id: null,
+        board_id: null,
+        active_sprint_id: null,
+        active_sprint_name: null,
+        auth_type: "manual",
+        last_error: null,
         created_by: input.personaId,
         updated_at: new Date().toISOString()
       },

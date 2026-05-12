@@ -242,7 +242,15 @@ export interface JiraConnection {
   siteUrl: string;
   projectKey: string;
   status: IntegrationStatus;
+  cloudId?: string;
+  displayName?: string;
+  accountId?: string;
+  boardId?: number;
+  activeSprintId?: string;
+  activeSprintName?: string;
+  authType?: "manual" | "oauth";
   lastSyncAt?: string;
+  lastError?: string;
 }
 
 export interface GitConnection {
@@ -260,11 +268,16 @@ export interface JiraIssue {
   id: string;
   projectId: string;
   sprintId?: string;
+  jiraIssueId?: string;
   issueKey: string;
   summary: string;
   status: "Todo" | "In Progress" | "Review" | "Blocked" | "Done";
   assigneeProfileId?: string;
   jiraAssigneeId?: string;
+  issueType?: string;
+  priority?: string;
+  url?: string;
+  parentKey?: string;
   storyPoints?: number;
   daysIdle: number;
   updatedAtSource?: string;
@@ -411,6 +424,22 @@ export interface ConfigureJiraResponse {
   connection: JiraConnection;
   run?: SyncRun;
   importedIssues: number;
+  warnings: string[];
+}
+
+export interface JiraOAuthStartRequest extends ConfigureJiraRequest {}
+
+export interface JiraOAuthStartResponse {
+  authorizationUrl: string;
+  state: string;
+  expiresAt: string;
+  warnings: string[];
+}
+
+export interface JiraOAuthCallbackResponse {
+  projectId: string;
+  connection: JiraConnection;
+  redirectTo: string;
   warnings: string[];
 }
 
