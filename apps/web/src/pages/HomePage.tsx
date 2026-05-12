@@ -499,7 +499,7 @@ export function HomePage() {
         <div className="public-proof-copy">
           <p className="eyebrow">
             <Radar size={16} />
-            Role aware by design
+            Access built around the team
           </p>
           <h2>Each person sees the part of the sprint they can act on.</h2>
           <p>

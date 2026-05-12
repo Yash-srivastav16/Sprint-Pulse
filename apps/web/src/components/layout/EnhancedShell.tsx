@@ -30,7 +30,7 @@ export function EnhancedShell({ children }: EnhancedShellProps) {
         >
           <Button
             size="icon"
-            className="h-14 w-14 rounded-full border border-white/20 bg-gradient-to-br from-ai-500 via-primary-500 to-info-500 shadow-float hover:shadow-glow-lg"
+            className="h-14 w-14 rounded-full border border-white/25 bg-gradient-to-br from-ai-500 via-primary-500 to-info-500 shadow-float ring-1 ring-primary-200/20 hover:shadow-glow-lg"
             onClick={() => setAiChatOpen(true)}
           >
             <motion.div

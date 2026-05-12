@@ -1,9 +1,23 @@
 import { FormEvent, useEffect, useState } from "react";
 import { BadgeCheck, Check, Edit3, GitBranch, Loader2, MailPlus, Save, ShieldAlert, TicketCheck, UsersRound, X } from "lucide-react";
 import { useParams } from "react-router-dom";
+import { toast } from "sonner";
 import type { AppRole, ProjectInvite, ProjectRole, TeamResponse } from "@sprintpulse/shared";
+import { Input } from "@/components/ui/input";
+import {
+  EmptyPanel,
+  MemberAvatar,
+  PanelHeader,
+  SectionPanel,
+  StatusPill,
+  WorkspaceError,
+  WorkspaceHero,
+  WorkspaceLoading,
+  workspacePageClass
+} from "@/components/workspace/WorkspaceChrome";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
+import { cn } from "../lib/utils";
 
 const projectRoles: ProjectRole[] = ["product-owner", "scrum-master", "engineering-manager", "architect", "developer", "qa"];
 type TeamEntryMode = "existing" | "invite";
@@ -12,7 +26,7 @@ type TeamMember = TeamResponse["members"][number];
 const roleLabel = (role: string) =>
   role
     .split("-")
-    .map((part) => part[0].toUpperCase() + part.slice(1))
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
 
 const appRoleForProjectRole = (role: ProjectRole): AppRole => {
@@ -43,6 +57,29 @@ const signupLinkForInvite = (invite: ProjectInvite, name?: string) => {
 
   return `/signup?${params.toString()}`;
 };
+
+function SelectField({
+  value,
+  onChange,
+  children,
+  ariaLabel
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  children: React.ReactNode;
+  ariaLabel?: string;
+}) {
+  return (
+    <select
+      aria-label={ariaLabel}
+      className="min-h-10 rounded-md border border-slate-200 bg-white/80 px-3 text-sm font-semibold text-slate-950 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:border-white/10 dark:bg-slate-950/40 dark:text-white"
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    >
+      {children}
+    </select>
+  );
+}
 
 export function ProjectTeamPage() {
   const { projectId } = useParams();
@@ -142,9 +179,14 @@ export function ProjectTeamPage() {
           ? `${memberName} was added to this project. They can open it after signing in.`
           : `${memberName} is pending. Copy the signup link below and send it to ${memberEmail}.`
       );
+      toast.success(response.invite.status === "accepted" ? "Member added" : "Invite created", {
+        description: response.invite.status === "accepted" ? `${memberName} can open this project now.` : `Signup link is ready for ${memberEmail}.`
+      });
       loadTeam();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to add team member");
+      const message = err instanceof Error ? err.message : "Unable to add team member";
+      setError(message);
+      toast.error("Unable to add member", { description: message });
     } finally {
       setSaving(false);
     }
@@ -162,8 +204,10 @@ export function ProjectTeamPage() {
 
       await navigator.clipboard.writeText(link);
       setSuccess(`Signup link copied for ${invite.email}. Send it to the invited user.`);
+      toast.success("Signup link copied", { description: invite.email });
     } catch {
       setError(`Copy failed. Signup link: ${link}`);
+      toast.error("Copy failed", { description: "The signup link is shown inline." });
     }
   };
 
@@ -201,28 +245,26 @@ export function ProjectTeamPage() {
       setTeam(response);
       setEditingMemberId(null);
       setSuccess(`${member.name}'s Jira and GitHub mapping was updated.`);
+      toast.success("Member mapping updated", { description: member.name });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to update team mapping");
+      const message = err instanceof Error ? err.message : "Unable to update team mapping";
+      setError(message);
+      toast.error("Mapping update failed", { description: message });
     } finally {
       setSavingMemberId(null);
     }
   };
 
   if (loading) {
-    return (
-      <div className="center-state">
-        <Loader2 className="spin" size={26} />
-        <span>Loading team</span>
-      </div>
-    );
+    return <WorkspaceLoading label="Loading team" />;
   }
 
   if (error && !team) {
-    return <div className="center-state error-state">{error}</div>;
+    return <WorkspaceError label={error} />;
   }
 
   if (!team) {
-    return <div className="center-state error-state">Team unavailable</div>;
+    return <WorkspaceError label="Team unavailable" />;
   }
 
   const jiraMapped = team.members.filter((member) => member.jiraAccountId).length;
@@ -232,299 +274,309 @@ export function ProjectTeamPage() {
   const selectedWorkspaceUser = entryMode === "existing" ? availableUsers.find((user) => user.id === selectedProfileId) : undefined;
   const pendingInvites = team.invites.filter((invite) => invite.status === "pending");
   const acceptedInvites = team.invites.filter((invite) => invite.status === "accepted");
+  const teamStats = [
+    {
+      label: "Delivery leads",
+      value: deliveryLeads,
+      detail: "Product, scrum, and architecture owners",
+      icon: BadgeCheck,
+      tone: "primary" as const,
+      progress: team.members.length ? (deliveryLeads / team.members.length) * 100 : 0
+    },
+    {
+      label: "Jira mapped",
+      value: `${jiraMapped}/${team.members.length}`,
+      detail: "Needed for issue ownership",
+      icon: TicketCheck,
+      tone: "info" as const,
+      progress: team.members.length ? (jiraMapped / team.members.length) * 100 : 0
+    },
+    {
+      label: "GitHub mapped",
+      value: `${gitMapped}/${team.members.length}`,
+      detail: "Needed for commit and PR signals",
+      icon: GitBranch,
+      tone: "ai" as const,
+      progress: team.members.length ? (gitMapped / team.members.length) * 100 : 0
+    },
+    {
+      label: "Pending invites",
+      value: pendingInvites.length,
+      detail: "Signup links waiting for users",
+      icon: MailPlus,
+      tone: pendingInvites.length ? ("warning" as const) : ("success" as const),
+      progress: team.members.length ? Math.max(8, Math.min(100, (pendingInvites.length / team.members.length) * 100)) : 0
+    }
+  ];
 
   return (
-    <div className="page-stack ops-page">
-      <section className="page-heading ops-heading">
-        <div>
-          <p className="eyebrow">{team.project.key} team</p>
-          <h1>Team management</h1>
-          <p>Map people to project roles, Jira accounts, and GitHub usernames so sprint signals land on the right person.</p>
-        </div>
-        <div className="ops-hero-metrics">
-          <div>
-            <strong>{team.members.length}</strong>
-            <span>members</span>
-          </div>
-          <div>
-            <strong>{pendingInvites.length}</strong>
-            <span>pending</span>
-          </div>
-          <div className="ops-heading-icon">
-            <UsersRound size={28} />
-          </div>
-        </div>
-      </section>
+    <div className={workspacePageClass}>
+      <WorkspaceHero
+        eyebrow={
+          <>
+            <StatusPill icon={UsersRound} tone="primary">
+              {team.project.key} team
+            </StatusPill>
+            <StatusPill icon={BadgeCheck} tone={team.canEditTeam ? "success" : "neutral"}>
+              {team.canEditTeam ? "Editable" : "Read only"}
+            </StatusPill>
+          </>
+        }
+        title="Team management"
+        description="Map people to project roles, Jira accounts, and GitHub usernames so sprint signals land on the right owner."
+        score={team.members.length}
+        scoreLabel="Project members"
+        scoreTone="primary"
+        scoreDetail={`${pendingInvites.length} pending invite${pendingInvites.length === 1 ? "" : "s"} · ${deliveryLeads} delivery lead${deliveryLeads === 1 ? "" : "s"}`}
+      />
 
-      <section className="ops-kpi-grid">
-        <article className="ops-kpi-card">
-          <BadgeCheck size={20} />
-          <span>Leadership coverage</span>
-          <strong>{deliveryLeads}</strong>
-          <small>owner, scrum, architect roles</small>
-        </article>
-        <article className="ops-kpi-card">
-          <TicketCheck size={20} />
-          <span>Jira mapped</span>
-          <strong>{jiraMapped}/{team.members.length}</strong>
-          <small>issue ownership can resolve cleanly</small>
-        </article>
-        <article className="ops-kpi-card">
-          <GitBranch size={20} />
-          <span>Git mapped</span>
-          <strong>{gitMapped}/{team.members.length}</strong>
-          <small>commits can attach to people</small>
-        </article>
+      <section className="grid auto-rows-fr items-stretch gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {teamStats.map((stat) => {
+          const StatIcon = stat.icon;
+          return (
+            <SectionPanel className="p-4" key={stat.label}>
+              <div className="flex items-start justify-between gap-3">
+                <StatusPill icon={StatIcon} tone={stat.tone}>
+                  {stat.label}
+                </StatusPill>
+                <strong className="font-mono text-2xl font-bold text-slate-950 dark:text-white">{stat.value}</strong>
+              </div>
+              <p className="m-0 mt-4 text-sm leading-6 text-slate-600 dark:text-slate-300">{stat.detail}</p>
+              <span className="mt-4 block h-2 overflow-hidden rounded-full bg-slate-200/80 dark:bg-white/10" aria-hidden="true">
+                <span
+                  className={cn(
+                    "block h-full rounded-full bg-gradient-to-r",
+                    stat.tone === "warning"
+                      ? "from-warning-500 to-amber-300"
+                      : stat.tone === "ai"
+                        ? "from-ai-500 to-info-400"
+                        : stat.tone === "info"
+                          ? "from-info-500 to-primary-400"
+                          : "from-primary-500 to-emerald-400"
+                  )}
+                  style={{ width: `${Math.max(8, Math.min(100, stat.progress))}%` }}
+                />
+              </span>
+            </SectionPanel>
+          );
+        })}
       </section>
 
       {team.canEditTeam ? (
-        <form className="panel setup-form compact-form" onSubmit={inviteMember}>
-          <div className="panel-heading">
-            <div>
-              <p className="eyebrow">Team access</p>
-              <h2>Add project member</h2>
-              <span className="panel-subtitle">
-                Add a signed-up SprintPulse user directly, or create a signup link for someone new.
-              </span>
+        <SectionPanel>
+          <form className="grid gap-5" onSubmit={inviteMember}>
+            <PanelHeader
+              eyebrow="Team access"
+              title="Add project member"
+              description="Add a signed-up SprintPulse user directly, or create a signup link for someone new."
+              icon={MailPlus}
+              action={
+                <div className="inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1 dark:border-white/10 dark:bg-white/[0.055]">
+                  {(["existing", "invite"] as TeamEntryMode[]).map((item) => (
+                    <button
+                      className={cn(
+                        "min-h-9 rounded-lg px-3 text-sm font-black capitalize transition",
+                        entryMode === item ? "bg-white text-primary-700 shadow-sm dark:bg-white/10 dark:text-primary-100" : "text-slate-500 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white"
+                      )}
+                      key={item}
+                      type="button"
+                      onClick={() => changeEntryMode(item)}
+                    >
+                      {item === "existing" ? "Existing account" : "Invite by email"}
+                    </button>
+                  ))}
+                </div>
+              }
+            />
+
+            <div className="grid items-start gap-4 lg:grid-cols-2">
+              {entryMode === "existing" ? (
+                <>
+                  <label className="grid gap-2 lg:col-span-2">
+                    <span className="text-sm font-black text-slate-700 dark:text-slate-200">Add existing SprintPulse account</span>
+                    <SelectField value={selectedProfileId} onChange={setSelectedProfileId}>
+                      <option value="">Choose an account</option>
+                      {availableUsers.map((user) => (
+                        <option value={user.id} key={user.id}>
+                          {user.name} · {user.email} · {roleLabel(user.appRole)}
+                        </option>
+                      ))}
+                    </SelectField>
+                    <small className="text-sm text-slate-500 dark:text-slate-400">
+                      {availableUsers.length
+                        ? "Only accounts not already in this project are listed."
+                        : "No unassigned accounts are available yet. Use Invite by email for a new person."}
+                    </small>
+                  </label>
+                  {selectedWorkspaceUser ? (
+                    <div className="flex items-center gap-3 rounded-xl border border-primary-500/20 bg-primary-500/10 p-4 lg:col-span-2">
+                      <MemberAvatar initials={selectedWorkspaceUser.initials} />
+                      <span className="min-w-0">
+                        <strong className="block truncate text-sm font-black text-slate-950 dark:text-white">{selectedWorkspaceUser.name}</strong>
+                        <small className="block truncate text-slate-500 dark:text-slate-400">{selectedWorkspaceUser.email} · {roleLabel(selectedWorkspaceUser.appRole)}</small>
+                      </span>
+                    </div>
+                  ) : null}
+                </>
+              ) : (
+                <>
+                  <label className="grid gap-2">
+                    <span className="text-sm font-black text-slate-700 dark:text-slate-200">Name</span>
+                    <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Priya Sharma" required={!selectedWorkspaceUser} />
+                  </label>
+                  <label className="grid gap-2">
+                    <span className="text-sm font-black text-slate-700 dark:text-slate-200">Email</span>
+                    <Input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="priya@company.com" required={!selectedWorkspaceUser} />
+                  </label>
+                </>
+              )}
+              <label className="grid gap-2 lg:col-span-2">
+                <span className="text-sm font-black text-slate-700 dark:text-slate-200">Project role</span>
+                <SelectField value={projectRole} onChange={(value) => setProjectRole(value as ProjectRole)}>
+                  {projectRoles.map((role) => (
+                    <option value={role} key={role}>
+                      {roleLabel(role)}
+                    </option>
+                  ))}
+                </SelectField>
+                <small className="text-sm text-slate-500 dark:text-slate-400">This controls project permissions and how SprintPulse groups Jira, Git, and standup signals.</small>
+              </label>
+              <label className="grid gap-2">
+                <span className="text-sm font-black text-slate-700 dark:text-slate-200">Jira account</span>
+                <Input value={jiraAccountId} onChange={(event) => setJiraAccountId(event.target.value)} placeholder="Jira account id or email" />
+              </label>
+              <label className="grid gap-2">
+                <span className="text-sm font-black text-slate-700 dark:text-slate-200">GitHub username</span>
+                <Input value={githubUsername} onChange={(event) => setGithubUsername(event.target.value)} placeholder="github-handle" />
+              </label>
             </div>
-            <MailPlus size={22} />
-          </div>
-          <div className="segmented-control team-entry-tabs" role="tablist" aria-label="Member entry mode">
-            <button className={entryMode === "existing" ? "active" : ""} type="button" onClick={() => changeEntryMode("existing")}>
-              Existing account
+            <button className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-primary-500 to-info-500 px-6 text-sm font-black text-white shadow-[0_16px_40px_rgba(16,169,154,0.24)] transition hover:-translate-y-0.5 disabled:pointer-events-none disabled:opacity-60" type="submit" disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {entryMode === "existing" ? "Add selected account" : "Create invite"}
             </button>
-            <button className={entryMode === "invite" ? "active" : ""} type="button" onClick={() => changeEntryMode("invite")}>
-              Invite by email
-            </button>
-          </div>
-          <div className="form-grid">
-            {entryMode === "existing" ? (
-              <>
-                <label className="field-group wide">
-                  <span>Add existing SprintPulse account</span>
-                  <select value={selectedProfileId} onChange={(event) => setSelectedProfileId(event.target.value)}>
-                    <option value="">Choose an account</option>
-                    {availableUsers.map((user) => (
-                      <option value={user.id} key={user.id}>
-                        {user.name} · {user.email} · {roleLabel(user.appRole)}
-                      </option>
-                    ))}
-                  </select>
-                  <small className="field-hint">
-                    {availableUsers.length
-                      ? "Only accounts not already in this project are listed."
-                      : "No unassigned accounts are available yet. Use Invite by email for a new person."}
-                  </small>
-                </label>
-                {selectedWorkspaceUser ? (
-                  <div className="selected-user-card wide">
-                    <strong>{selectedWorkspaceUser.initials}</strong>
-                    <span>
-                      <b>{selectedWorkspaceUser.name}</b>
-                      <small>{selectedWorkspaceUser.email} · {roleLabel(selectedWorkspaceUser.appRole)}</small>
-                    </span>
-                  </div>
-                ) : null}
-              </>
-            ) : (
-              <>
-                <label className="field-group">
-                  <span>Name</span>
-                  <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Priya Sharma" required={!selectedWorkspaceUser} />
-                </label>
-                <label className="field-group">
-                  <span>Email</span>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    placeholder="priya@company.com"
-                    required={!selectedWorkspaceUser}
-                  />
-                </label>
-              </>
-            )}
-            <label className="field-group wide">
-              <span>Project role</span>
-              <select value={projectRole} onChange={(event) => setProjectRole(event.target.value as ProjectRole)}>
-                {projectRoles.map((role) => (
-                  <option value={role} key={role}>{roleLabel(role)}</option>
-                ))}
-              </select>
-              <small className="field-hint">This controls project permissions and how SprintPulse groups Jira, Git, and standup signals.</small>
-            </label>
-            <label className="field-group">
-              <span>Jira account</span>
-              <input value={jiraAccountId} onChange={(event) => setJiraAccountId(event.target.value)} placeholder="Jira account id or email" />
-            </label>
-            <label className="field-group">
-              <span>GitHub username</span>
-              <input value={githubUsername} onChange={(event) => setGithubUsername(event.target.value)} placeholder="github-handle" />
-            </label>
-          </div>
-          <button className="primary-button" type="submit" disabled={saving}>
-            {saving ? <Loader2 className="spin" size={18} /> : <Save size={18} />}
-            <span>{entryMode === "existing" ? "Add selected account" : "Create invite"}</span>
-          </button>
-        </form>
+          </form>
+        </SectionPanel>
       ) : (
-        <section className="panel permission-panel">
-          <ShieldAlert size={20} />
-          <span>Team configuration is managed by the project Scrum Master or owner.</span>
-        </section>
+        <SectionPanel className="border-warning-500/20 bg-warning-500/10">
+          <div className="flex items-center gap-3 text-warning-700 dark:text-warning-100">
+            <ShieldAlert className="h-5 w-5" />
+            <span className="font-semibold">Team configuration is managed by the project Scrum Master or owner.</span>
+          </div>
+        </SectionPanel>
       )}
 
-      {error ? <p className="form-error">{error}</p> : null}
-      {success ? <p className="form-success">{success}</p> : null}
+      {error ? <div className="rounded-xl border border-danger-500/20 bg-danger-500/10 px-4 py-3 text-sm font-semibold text-danger-700 dark:text-danger-100">{error}</div> : null}
+      {success ? <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-700 dark:text-emerald-100">{success}</div> : null}
 
-      <section className="panel">
-        <div className="panel-heading">
-          <div>
-            <p className="eyebrow">Members</p>
-            <h2>{team.members.length} people mapped to this project</h2>
-          </div>
-        </div>
-        <div className={`ops-table team-mapping-table ${team.canEditTeam ? "has-actions" : ""}`}>
-          <div className="ops-table-head">
-            <span>Person</span>
-            <span>Role</span>
-            <span>Jira</span>
-            <span>GitHub</span>
-            {team.canEditTeam ? <span>Actions</span> : null}
-          </div>
+      <SectionPanel>
+        <PanelHeader eyebrow="Members" title={`${team.members.length} people mapped to this project`} description="Edit role and delivery-system mappings from one compact roster." icon={UsersRound} />
+        <div className="grid gap-3">
           {team.members.map((member) => {
             const isEditing = editingMemberId === member.personaId;
             const isSavingMember = savingMemberId === member.personaId;
 
             return (
-              <div className="ops-table-row" key={member.personaId}>
-                <span className="member-cell">
-                  <strong>{member.initials}</strong>
-                  <span>
-                    {member.name}
-                    <small>{member.email}</small>
+              <article className="grid gap-4 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-white/[0.045] xl:grid-cols-[minmax(220px,1fr)_190px_minmax(180px,0.8fr)_minmax(180px,0.8fr)_auto]" key={member.personaId}>
+                <div className="flex min-w-0 items-center gap-3">
+                  <MemberAvatar initials={member.initials} />
+                  <span className="min-w-0">
+                    <strong className="block truncate text-sm font-black text-slate-950 dark:text-white">{member.name}</strong>
+                    <small className="block truncate text-slate-500 dark:text-slate-400">{member.email}</small>
                   </span>
-                </span>
-                <span className="member-mapping-cell">
+                </div>
+                <div className="grid gap-1">
+                  <small className="text-xs font-black uppercase text-slate-500 dark:text-slate-400">Role</small>
                   {isEditing ? (
-                    <select
-                      aria-label={`Project role for ${member.name}`}
-                      value={memberDraft.role}
-                      onChange={(event) => setMemberDraft((draft) => ({ ...draft, role: event.target.value as ProjectRole }))}
-                    >
+                    <SelectField ariaLabel={`Project role for ${member.name}`} value={memberDraft.role} onChange={(value) => setMemberDraft((draft) => ({ ...draft, role: value as ProjectRole }))}>
                       {projectRoles.map((role) => (
                         <option value={role} key={role}>
                           {roleLabel(role)}
                         </option>
                       ))}
-                    </select>
+                    </SelectField>
                   ) : (
-                    roleLabel(member.role)
+                    <strong className="text-sm text-slate-950 dark:text-white">{roleLabel(member.role)}</strong>
                   )}
-                </span>
-                <span className="member-mapping-cell">
+                </div>
+                <div className="grid gap-1">
+                  <small className="text-xs font-black uppercase text-slate-500 dark:text-slate-400">Jira</small>
                   {isEditing ? (
-                    <input
-                      aria-label={`Jira account for ${member.name}`}
-                      value={memberDraft.jiraAccountId}
-                      onChange={(event) => setMemberDraft((draft) => ({ ...draft, jiraAccountId: event.target.value }))}
-                      placeholder="Jira account id or email"
-                    />
+                    <Input aria-label={`Jira account for ${member.name}`} value={memberDraft.jiraAccountId} onChange={(event) => setMemberDraft((draft) => ({ ...draft, jiraAccountId: event.target.value }))} placeholder="Jira account id or email" />
                   ) : (
-                    member.jiraAccountId || <em>Not mapped</em>
+                    <strong className={cn("text-sm", member.jiraAccountId ? "text-slate-950 dark:text-white" : "text-warning-700 dark:text-warning-100")}>{member.jiraAccountId || "Not mapped"}</strong>
                   )}
-                </span>
-                <span className="member-mapping-cell">
+                </div>
+                <div className="grid gap-1">
+                  <small className="text-xs font-black uppercase text-slate-500 dark:text-slate-400">GitHub</small>
                   {isEditing ? (
-                    <input
-                      aria-label={`GitHub username for ${member.name}`}
-                      value={memberDraft.githubUsername}
-                      onChange={(event) => setMemberDraft((draft) => ({ ...draft, githubUsername: event.target.value }))}
-                      placeholder="github-handle"
-                    />
+                    <Input aria-label={`GitHub username for ${member.name}`} value={memberDraft.githubUsername} onChange={(event) => setMemberDraft((draft) => ({ ...draft, githubUsername: event.target.value }))} placeholder="github-handle" />
                   ) : (
-                    member.githubUsername || <em>Not mapped</em>
+                    <strong className={cn("text-sm", member.githubUsername ? "text-slate-950 dark:text-white" : "text-warning-700 dark:text-warning-100")}>{member.githubUsername || "Not mapped"}</strong>
                   )}
-                </span>
+                </div>
                 {team.canEditTeam ? (
-                  <span className="member-actions">
+                  <div className="flex items-center justify-end gap-2">
                     {isEditing ? (
                       <>
-                        <button
-                          aria-label={`Save mappings for ${member.name}`}
-                          className="table-icon-button is-save"
-                          type="button"
-                          onClick={() => void saveMemberMapping(member)}
-                          disabled={Boolean(savingMemberId)}
-                        >
-                          {isSavingMember ? <Loader2 className="spin" size={16} /> : <Check size={16} />}
+                        <button className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-500/10 text-emerald-700 transition hover:bg-emerald-500/15 dark:text-emerald-100" type="button" onClick={() => void saveMemberMapping(member)} disabled={Boolean(savingMemberId)} aria-label={`Save mappings for ${member.name}`}>
+                          {isSavingMember ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                         </button>
-                        <button
-                          aria-label={`Cancel editing ${member.name}`}
-                          className="table-icon-button"
-                          type="button"
-                          onClick={cancelEditingMember}
-                          disabled={Boolean(savingMemberId)}
-                        >
-                          <X size={16} />
+                        <button className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:text-slate-950 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:text-white" type="button" onClick={cancelEditingMember} disabled={Boolean(savingMemberId)} aria-label={`Cancel editing ${member.name}`}>
+                          <X className="h-4 w-4" />
                         </button>
                       </>
                     ) : (
-                      <button className="icon-text-button table-edit-button" type="button" onClick={() => startEditingMember(member)}>
-                        <Edit3 size={15} />
-                        <span>{member.jiraAccountId && member.githubUsername ? "Edit" : "Map user"}</span>
+                      <button className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-black text-slate-700 shadow-sm transition hover:-translate-y-0.5 dark:border-white/10 dark:bg-white/5 dark:text-slate-100" type="button" onClick={() => startEditingMember(member)}>
+                        <Edit3 className="h-4 w-4" />
+                        {member.jiraAccountId && member.githubUsername ? "Edit" : "Map user"}
                       </button>
                     )}
-                  </span>
+                  </div>
                 ) : null}
-              </div>
+              </article>
             );
           })}
         </div>
+      </SectionPanel>
+
+      <section className="grid auto-rows-fr items-stretch gap-5 xl:grid-cols-2">
+        {pendingInvites.length ? (
+          <SectionPanel>
+            <PanelHeader eyebrow="Invites" title={`${pendingInvites.length} pending signup ${pendingInvites.length === 1 ? "link" : "links"}`} icon={MailPlus} tone="warning" />
+            <div className="grid gap-3">
+              {pendingInvites.map((invite) => (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-white/[0.045]" key={invite.id}>
+                  <span>
+                    <strong className="block text-sm font-black text-slate-950 dark:text-white">{invite.email}</strong>
+                    <small className="text-slate-500 dark:text-slate-400">{roleLabel(invite.role)} · waiting for account signup</small>
+                  </span>
+                  <button className="inline-flex min-h-10 items-center rounded-xl bg-primary-500/10 px-4 text-sm font-black text-primary-700 dark:text-primary-100" type="button" onClick={() => void copySignupLink(invite)}>
+                    Copy signup link
+                  </button>
+                </div>
+              ))}
+            </div>
+          </SectionPanel>
+        ) : (
+          <EmptyPanel icon={MailPlus} title="No pending invites" description="Pending signup links will appear here when new people are invited by email." />
+        )}
+
+        {acceptedInvites.length ? (
+          <SectionPanel>
+            <PanelHeader eyebrow="Access history" title={`${acceptedInvites.length} accepted ${acceptedInvites.length === 1 ? "invite" : "invites"}`} icon={BadgeCheck} tone="success" />
+            <div className="grid gap-3">
+              {acceptedInvites.slice(0, 4).map((invite) => (
+                <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-white/[0.045]" key={invite.id}>
+                  <strong className="block text-sm font-black text-slate-950 dark:text-white">{invite.email}</strong>
+                  <small className="text-slate-500 dark:text-slate-400">{roleLabel(invite.role)} · accepted</small>
+                </div>
+              ))}
+            </div>
+          </SectionPanel>
+        ) : (
+          <EmptyPanel icon={BadgeCheck} title="No accepted invite history" description="Accepted project invitations will be listed here once users complete signup." />
+        )}
       </section>
-
-      {pendingInvites.length ? (
-        <section className="panel">
-          <div className="panel-heading">
-            <div>
-              <p className="eyebrow">Invites</p>
-              <h2>{pendingInvites.length} pending signup {pendingInvites.length === 1 ? "link" : "links"}</h2>
-            </div>
-          </div>
-          <div className="invite-list">
-            {pendingInvites.map((invite) => (
-              <span key={invite.id}>
-                <strong>{invite.email}</strong>
-                <small>
-                  {roleLabel(invite.role)} · waiting for account signup
-                </small>
-                <button className="text-link invite-link-button" type="button" onClick={() => void copySignupLink(invite)}>
-                  Copy signup link
-                </button>
-              </span>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {acceptedInvites.length ? (
-        <section className="panel compact-panel">
-          <div className="panel-heading">
-            <div>
-              <p className="eyebrow">Access history</p>
-              <h2>{acceptedInvites.length} accepted {acceptedInvites.length === 1 ? "invite" : "invites"}</h2>
-            </div>
-          </div>
-          <div className="invite-list">
-            {acceptedInvites.slice(0, 4).map((invite) => (
-              <span key={invite.id}>
-                <strong>{invite.email}</strong>
-                <small>{roleLabel(invite.role)} · accepted</small>
-              </span>
-            ))}
-          </div>
-        </section>
-      ) : null}
     </div>
   );
 }

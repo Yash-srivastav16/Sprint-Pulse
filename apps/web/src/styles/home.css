@@ -6,12 +6,12 @@
   --home-muted: #5f6f83;
   --home-soft: #f4f7fb;
   --home-line: rgba(134, 151, 170, 0.2);
-  --home-teal: #159a8c;
+  --home-teal: #10a99a;
   --home-teal-bright: #48c2b6;
-  --home-coral: #e4614f;
-  --home-amber: #c98918;
-  --home-blue: #3d70b8;
-  --home-violet: #7254b8;
+  --home-coral: #f26d5b;
+  --home-amber: #e7a52e;
+  --home-blue: #447bdb;
+  --home-violet: #8462e8;
   min-height: 100vh;
   overflow-x: hidden;
   color: var(--home-ink);

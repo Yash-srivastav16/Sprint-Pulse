@@ -23,23 +23,23 @@
   --color-input: hsl(var(--sp-input));
   --color-ring: hsl(var(--sp-ring));
 
-  --color-primary-50: #e6f7f5;
-  --color-primary-100: #b3e8e1;
-  --color-primary-200: #80d9cd;
-  --color-primary-300: #4dcab9;
-  --color-primary-400: #2bb5a3;
-  --color-primary-500: #159a8c;
-  --color-primary-600: #127d71;
-  --color-primary-700: #0f6056;
-  --color-primary-800: #0c433b;
-  --color-primary-900: #0a4b43;
+  --color-primary-50: #e6fbf7;
+  --color-primary-100: #bdf4eb;
+  --color-primary-200: #83e7d8;
+  --color-primary-300: #46d5c2;
+  --color-primary-400: #1fc0ad;
+  --color-primary-500: #10a99a;
+  --color-primary-600: #0d897f;
+  --color-primary-700: #0c6e67;
+  --color-primary-800: #0c5852;
+  --color-primary-900: #083b38;
 
   --color-danger-50: #fef2f2;
   --color-danger-100: #fee2e2;
   --color-danger-200: #fecaca;
   --color-danger-300: #fca5a5;
   --color-danger-400: #f87171;
-  --color-danger-500: #e4614f;
+  --color-danger-500: #f26d5b;
   --color-danger-600: #dc2626;
   --color-danger-700: #b91c1c;
   --color-danger-800: #991b1b;
@@ -50,7 +50,7 @@
   --color-warning-200: #fef08a;
   --color-warning-300: #fde047;
   --color-warning-400: #facc15;
-  --color-warning-500: #c98918;
+  --color-warning-500: #e7a52e;
   --color-warning-600: #ca8a04;
   --color-warning-700: #a16207;
   --color-warning-800: #854d0e;
@@ -60,9 +60,9 @@
   --color-info-100: #dbeafe;
   --color-info-200: #bfdbfe;
   --color-info-300: #93c5fd;
-  --color-info-400: #60a5fa;
-  --color-info-500: #3d70b8;
-  --color-info-600: #2563eb;
+  --color-info-400: #62a8ff;
+  --color-info-500: #447bdb;
+  --color-info-600: #2f63c4;
   --color-info-700: #1d4ed8;
   --color-info-800: #1e40af;
   --color-info-900: #1e3a8a;
@@ -71,86 +71,86 @@
   --color-ai-100: #ede9fe;
   --color-ai-200: #ddd6fe;
   --color-ai-300: #c4b5fd;
-  --color-ai-400: #a78bfa;
-  --color-ai-500: #7254b8;
-  --color-ai-600: #7c3aed;
+  --color-ai-400: #b394ff;
+  --color-ai-500: #8462e8;
+  --color-ai-600: #7248d6;
   --color-ai-700: #6d28d9;
   --color-ai-800: #5b21b6;
   --color-ai-900: #4c1d95;
 
-  --color-dark-bg: #0a0e1a;
-  --color-dark-surface: #141824;
-  --color-dark-elevated: #1c212e;
-  --color-dark-border: #2a3142;
-  --color-dark-text: #e2e8f0;
-  --color-dark-muted: #94a3b8;
+  --color-dark-bg: #070b14;
+  --color-dark-surface: #101827;
+  --color-dark-elevated: #172238;
+  --color-dark-border: #26344a;
+  --color-dark-text: #edf7fb;
+  --color-dark-muted: #99a9bd;
 
   --radius-sm: calc(var(--sp-radius) - 4px);
   --radius-md: calc(var(--sp-radius) - 2px);
   --radius-lg: var(--sp-radius);
 
-  --shadow-glow-sm: 0 0 20px rgba(21, 154, 140, 0.15);
-  --shadow-glow-md: 0 0 40px rgba(21, 154, 140, 0.25);
-  --shadow-glow-lg: 0 0 60px rgba(21, 154, 140, 0.35);
-  --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.12);
-  --shadow-elevated: 0 20px 60px rgba(0, 0, 0, 0.2);
-  --shadow-float: 0 30px 80px rgba(0, 0, 0, 0.3);
+  --shadow-glow-sm: 0 0 20px rgba(16, 169, 154, 0.18);
+  --shadow-glow-md: 0 0 44px rgba(16, 169, 154, 0.28);
+  --shadow-glow-lg: 0 0 70px rgba(16, 169, 154, 0.38);
+  --shadow-glass: 0 12px 40px rgba(15, 23, 42, 0.12);
+  --shadow-elevated: 0 24px 70px rgba(15, 23, 42, 0.2);
+  --shadow-float: 0 34px 90px rgba(7, 11, 20, 0.32);
 
-  --font-sans: "Inter var", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", monospace;
 }
 
 @layer base {
   :root {
-    --sp-background: 0 0% 100%;
-    --sp-foreground: 222.2 84% 4.9%;
+    --sp-background: 205 46% 97%;
+    --sp-foreground: 222 54% 7%;
     --sp-card: 0 0% 100%;
-    --sp-card-foreground: 222.2 84% 4.9%;
+    --sp-card-foreground: 222 54% 7%;
     --sp-popover: 0 0% 100%;
-    --sp-popover-foreground: 222.2 84% 4.9%;
-    --sp-primary: 174 78% 35%;
+    --sp-popover-foreground: 222 54% 7%;
+    --sp-primary: 174 83% 36%;
     --sp-primary-foreground: 0 0% 100%;
-    --sp-secondary: 210 40% 96.1%;
-    --sp-secondary-foreground: 222.2 47.4% 11.2%;
-    --sp-muted: 210 40% 96.1%;
-    --sp-muted-foreground: 215.4 16.3% 46.9%;
-    --sp-accent: 210 40% 96.1%;
-    --sp-accent-foreground: 222.2 47.4% 11.2%;
-    --sp-destructive: 0 84.2% 60.2%;
+    --sp-secondary: 204 42% 93%;
+    --sp-secondary-foreground: 222 48% 12%;
+    --sp-muted: 204 42% 93%;
+    --sp-muted-foreground: 215 18% 42%;
+    --sp-accent: 203 55% 92%;
+    --sp-accent-foreground: 222 48% 12%;
+    --sp-destructive: 7 86% 65%;
     --sp-destructive-foreground: 0 0% 100%;
-    --sp-border: 214.3 31.8% 91.4%;
-    --sp-input: 214.3 31.8% 91.4%;
-    --sp-ring: 174 78% 35%;
+    --sp-border: 210 28% 87%;
+    --sp-input: 210 28% 87%;
+    --sp-ring: 174 83% 36%;
     --sp-radius: 0.5rem;
     
     /* Custom variables */
-    --accent-teal: #159a8c;
-    --accent-coral: #e4614f;
-    --accent-amber: #c98918;
-    --accent-blue: #3d70b8;
-    --accent-violet: #7254b8;
+    --accent-teal: #10a99a;
+    --accent-coral: #f26d5b;
+    --accent-amber: #e7a52e;
+    --accent-blue: #447bdb;
+    --accent-violet: #8462e8;
   }
 
   .dark {
-    --sp-background: 222 47% 6%;
+    --sp-background: 222 50% 5%;
     --sp-foreground: 210 40% 98%;
-    --sp-card: 222 40% 9%;
+    --sp-card: 222 42% 8%;
     --sp-card-foreground: 210 40% 98%;
-    --sp-popover: 222 40% 9%;
+    --sp-popover: 222 42% 8%;
     --sp-popover-foreground: 210 40% 98%;
-    --sp-primary: 174 78% 35%;
+    --sp-primary: 174 78% 43%;
     --sp-primary-foreground: 0 0% 100%;
-    --sp-secondary: 217.2 32.6% 17.5%;
+    --sp-secondary: 218 34% 16%;
     --sp-secondary-foreground: 210 40% 98%;
-    --sp-muted: 217.2 32.6% 17.5%;
-    --sp-muted-foreground: 215 20.2% 65.1%;
-    --sp-accent: 217.2 32.6% 17.5%;
+    --sp-muted: 218 34% 16%;
+    --sp-muted-foreground: 214 22% 68%;
+    --sp-accent: 219 38% 18%;
     --sp-accent-foreground: 210 40% 98%;
-    --sp-destructive: 0 62.8% 30.6%;
+    --sp-destructive: 7 68% 40%;
     --sp-destructive-foreground: 210 40% 98%;
-    --sp-border: 217.2 32.6% 17.5%;
-    --sp-input: 217.2 32.6% 17.5%;
-    --sp-ring: 174 78% 35%;
+    --sp-border: 218 30% 19%;
+    --sp-input: 218 30% 19%;
+    --sp-ring: 174 78% 43%;
   }
 }
 
@@ -161,7 +161,30 @@
   
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.55;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+    font-optical-sizing: auto;
+    text-rendering: geometricPrecision;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-sans);
+    font-weight: 800;
+    line-height: 1.12;
+  }
+
+  code,
+  kbd,
+  samp,
+  pre {
+    font-family: var(--font-mono);
   }
 }
 
@@ -194,5 +217,64 @@
   
   .dark .glass-heavy {
     background: rgba(255, 255, 255, 0.12);
+  }
+
+  .premium-surface {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.86), rgba(244, 249, 251, 0.72)),
+      radial-gradient(circle at 14% 0%, rgba(16, 169, 154, 0.12), transparent 34%),
+      radial-gradient(circle at 100% 8%, rgba(132, 98, 232, 0.12), transparent 32%);
+    box-shadow: 0 22px 70px rgba(15, 23, 42, 0.09);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+
+  .dark .premium-surface {
+    border-color: rgba(255, 255, 255, 0.1);
+    background:
+      linear-gradient(135deg, rgba(16, 24, 39, 0.88), rgba(8, 13, 25, 0.84)),
+      radial-gradient(circle at 18% 0%, rgba(16, 169, 154, 0.16), transparent 35%),
+      radial-gradient(circle at 100% 6%, rgba(132, 98, 232, 0.18), transparent 36%);
+    box-shadow: 0 26px 90px rgba(0, 0, 0, 0.34);
+  }
+
+  .ambient-border {
+    border-color: rgba(148, 163, 184, 0.28);
+  }
+
+  .dark .ambient-border {
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .workspace-page {
+    width: 100%;
+    min-width: 0;
+    align-items: stretch;
+  }
+
+  .workspace-page > *,
+  .workspace-page article,
+  .workspace-page form,
+  .workspace-page .premium-surface {
+    min-width: 0;
+  }
+
+  .workspace-page > section,
+  .workspace-page > .premium-surface {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

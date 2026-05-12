@@ -13,8 +13,7 @@ import {
   PlugZap,
   Zap,
   ChevronRight,
-  Sparkles,
-  ShieldCheck
+  Sparkles
 } from 'lucide-react';
 import type { ProjectSummary, SprintSummary } from '@sprintpulse/shared';
 import { api } from '@/api';
@@ -132,8 +131,8 @@ export function Sidebar() {
     ...(selectedProjectId && projectBase
       ? [
           { name: 'Workspace', href: projectBase, icon: Activity, end: true },
-          { name: 'Standups', href: `${projectBase}/standups`, icon: ClipboardCheck },
           { name: 'Dashboard', href: `${projectBase}/dashboard`, icon: Gauge },
+          { name: 'Standups', href: `${projectBase}/standups`, icon: ClipboardCheck },
           { name: 'Team', href: `${projectBase}/team`, icon: Users },
           { name: 'Sprints', href: `${projectBase}/sprints`, icon: CalendarDays },
           { name: 'Integrations', href: `${projectBase}/integrations`, icon: PlugZap },
@@ -179,16 +178,17 @@ export function Sidebar() {
       initial={{ x: -280 }}
       animate={{ x: 0 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="relative z-20 hidden w-72 flex-col overflow-hidden border-r border-white/10 bg-gradient-to-b from-slate-950 via-slate-900 to-[#0e1726] text-white shadow-2xl dark:from-dark-bg dark:via-dark-surface dark:to-dark-bg lg:flex"
+      className="relative z-20 hidden h-screen w-80 shrink-0 flex-col overflow-hidden border-r border-white/10 bg-gradient-to-b from-[#060a13] via-[#0d1422] to-[#111a2b] text-white shadow-2xl dark:from-dark-bg dark:via-dark-surface dark:to-dark-bg lg:flex"
     >
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[linear-gradient(135deg,rgba(21,154,140,0.16),transparent_58%)]" />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-56 bg-[linear-gradient(20deg,rgba(114,84,184,0.14),transparent_62%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-48 bg-[radial-gradient(circle_at_22%_0%,rgba(16,169,154,0.26),transparent_42%)]" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-64 bg-[radial-gradient(circle_at_78%_100%,rgba(132,98,232,0.20),transparent_46%)]" />
+      <div className="pointer-events-none absolute inset-0 opacity-[0.12] [background-image:linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.10)_1px,transparent_1px)] [background-size:34px_34px]" />
       {/* Logo Section */}
       <div className="relative border-b border-white/10 p-5">
         <Link to={selectedProjectId ? projectBase : '/projects'} className="flex items-center gap-3 group">
           <motion.div
             whileHover={{ scale: 1.05 }}
-            className="flex h-11 w-11 items-center justify-center rounded-lg bg-gradient-to-br from-primary-300 via-primary-500 to-info-500 shadow-glow-sm"
+            className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-300 via-primary-500 to-info-500 shadow-glow-sm ring-1 ring-white/25"
           >
             <Zap className="h-6 w-6 text-white" />
           </motion.div>
@@ -209,7 +209,7 @@ export function Sidebar() {
               id="project-switcher"
               value={selectedProjectId ?? ''}
               onChange={(event) => handleProjectChange(event.target.value)}
-              className="h-11 w-full appearance-none rounded-lg border border-white/10 bg-white/[0.07] px-3 pr-9 text-sm font-bold text-white outline-none transition focus:border-primary-300/70 focus:bg-white/[0.1] [&>option]:bg-slate-900 [&>option]:text-white"
+              className="h-11 w-full appearance-none rounded-2xl border border-white/10 bg-white/[0.07] px-3 pr-9 text-sm font-bold text-white outline-none transition focus:border-primary-300/70 focus:bg-white/[0.1] [&>option]:bg-slate-900 [&>option]:text-white"
             >
               <option value="">Choose project</option>
               {projects.map((item) => (
@@ -232,7 +232,7 @@ export function Sidebar() {
                 id="sprint-switcher"
                 value={activeSprint?.id ?? ''}
                 onChange={(event) => handleSprintChange(event.target.value)}
-                className="h-11 w-full appearance-none rounded-lg border border-white/10 bg-white/[0.07] px-3 pr-9 text-sm font-bold text-white outline-none transition focus:border-info-300/70 focus:bg-white/[0.1] [&>option]:bg-slate-900 [&>option]:text-white"
+                className="h-11 w-full appearance-none rounded-2xl border border-white/10 bg-white/[0.07] px-3 pr-9 text-sm font-bold text-white outline-none transition focus:border-info-300/70 focus:bg-white/[0.1] [&>option]:bg-slate-900 [&>option]:text-white"
               >
                 {sprints.length ? null : <option value="">Active sprint</option>}
                 {sprints.map((sprint) => (
@@ -247,7 +247,7 @@ export function Sidebar() {
           </div>
         ) : null}
 
-        <div className="rounded-lg border border-white/10 bg-white/[0.055] p-3 shadow-glass">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.065] p-3 shadow-glass backdrop-blur">
           <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-primary-200">
             <Sparkles className="h-3.5 w-3.5" />
             Current context
@@ -263,7 +263,7 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="relative flex-1 space-y-2 overflow-y-auto p-4">
+      <nav className="relative min-h-0 flex-1 space-y-2 overflow-y-auto p-4">
         {navigation.map((item) => {
           return (
             <NavLink key={item.name} to={item.href} end={item.end}>
@@ -272,24 +272,30 @@ export function Sidebar() {
                   whileHover={{ x: 4 }}
                   whileTap={{ scale: 0.98 }}
                   className={cn(
-                    'group flex items-center gap-3 rounded-lg px-4 py-3 transition-all duration-200',
+                    'group relative flex items-center gap-3 overflow-hidden rounded-2xl px-4 py-3 transition-all duration-200',
                     isActive
-                      ? 'bg-gradient-to-r from-primary-500/24 via-primary-500/12 to-transparent border border-primary-400/30 text-white shadow-glow-sm'
+                      ? 'border border-primary-300/30 bg-gradient-to-r from-primary-400/24 via-info-500/12 to-white/[0.035] text-white shadow-glow-sm'
                       : 'text-slate-300 hover:bg-white/[0.07] hover:text-white'
                   )}
                 >
+                  {isActive ? (
+                    <motion.span
+                      layoutId="sidebar-active-rail"
+                      className="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-primary-300 shadow-glow-sm"
+                    />
+                  ) : null}
                   <item.icon className={cn(
-                    'w-5 h-5 transition-colors',
-                    isActive ? 'text-primary-400' : 'text-slate-400 group-hover:text-primary-400'
+                    'relative h-5 w-5 transition-colors',
+                    isActive ? 'text-primary-200' : 'text-slate-400 group-hover:text-primary-300'
                   )} />
-                  <span className="font-medium flex-1">{item.name}</span>
+                  <span className="relative flex-1 font-semibold">{item.name}</span>
                   {isActive && (
                     <motion.div
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                     >
-                      <ChevronRight className="w-4 h-4 text-primary-400" />
+                      <ChevronRight className="h-4 w-4 text-primary-200" />
                     </motion.div>
                   )}
                 </motion.div>
@@ -298,24 +304,20 @@ export function Sidebar() {
           );
         })}
         {!selectedProjectId ? (
-          <div className="mt-4 rounded-lg border border-dashed border-white/12 bg-white/[0.035] p-4 text-sm text-slate-400">
+          <div className="mt-4 rounded-2xl border border-dashed border-white/12 bg-white/[0.04] p-4 text-sm leading-6 text-slate-400">
             <strong className="mb-1 block text-xs uppercase tracking-[0.16em] text-slate-300">Project pages</strong>
-            Choose a project to open Workspace, Standups, Dashboard, Team, Sprints, and Integrations.
+            Choose a project to open Workspace, Dashboard, Standups, Team, Sprints, and Integrations.
           </div>
         ) : null}
       </nav>
 
       {/* User Profile Section */}
-      <div className="relative p-4 border-t border-white/10">
-        <div className="mb-3 flex items-center gap-2 rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-xs font-semibold text-emerald-100">
-          <ShieldCheck className="h-4 w-4" />
-          Role-aware workspace
-        </div>
+      <div className="relative shrink-0 border-t border-white/10 bg-slate-950/35 p-4 backdrop-blur">
         <motion.div
           whileHover={{ scale: 1.02 }}
-          className="flex items-center gap-3 p-3 rounded-lg bg-slate-800/50 border border-slate-700/50 cursor-pointer hover:bg-slate-800/70 transition-colors"
+          className="flex cursor-pointer items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.065] p-3 shadow-glass transition-colors hover:bg-white/[0.09]"
         >
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-info-500 flex items-center justify-center text-white font-bold">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary-400 via-info-500 to-ai-500 font-bold text-white ring-1 ring-white/25">
             {persona?.initials || user?.email?.charAt(0).toUpperCase() || 'SP'}
           </div>
           <div className="flex-1 min-w-0">
@@ -326,7 +328,7 @@ export function Sidebar() {
           </div>
           <button
             aria-label="Logout"
-            className="grid h-8 w-8 place-items-center rounded-md text-slate-400 transition-colors hover:bg-slate-700/70 hover:text-white"
+            className="grid h-8 w-8 place-items-center rounded-xl text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
             type="button"
             onClick={handleLogout}
           >

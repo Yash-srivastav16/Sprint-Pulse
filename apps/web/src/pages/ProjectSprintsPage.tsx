@@ -1,12 +1,46 @@
 import { useEffect, useState } from "react";
 import { CalendarDays, CheckCircle2, GitCommitHorizontal, Loader2, MessageSquareText, TicketCheck } from "lucide-react";
 import { useParams } from "react-router-dom";
-import type { SprintListResponse } from "@sprintpulse/shared";
+import type { SprintInfo, SprintListResponse } from "@sprintpulse/shared";
+import { SignalBarChart } from "@/components/charts/SignalBarChart";
+import {
+  EmptyPanel,
+  PanelHeader,
+  SectionPanel,
+  StatusPill,
+  WorkspaceError,
+  WorkspaceHero,
+  WorkspaceLoading,
+  workspacePageClass
+} from "@/components/workspace/WorkspaceChrome";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { useProject } from "../context/ProjectContext";
+import { cn } from "../lib/utils";
 
-const statusLabel = (status: string) => status[0].toUpperCase() + status.slice(1);
+const statusLabel = (status: string) => status.charAt(0).toUpperCase() + status.slice(1);
+
+function statusTone(status: SprintInfo["status"]) {
+  if (status === "active") {
+    return "success" as const;
+  }
+  if (status === "planned") {
+    return "info" as const;
+  }
+  return "neutral" as const;
+}
+
+function formatDate(value: string) {
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function progressWidth(score: number, min = 5) {
+  return `${Math.max(min, Math.min(100, score))}%`;
+}
 
 export function ProjectSprintsPage() {
   const { projectId } = useParams();
@@ -46,123 +80,198 @@ export function ProjectSprintsPage() {
   }, [persona, projectId, selectProject, selectedSprintId]);
 
   if (loading) {
-    return (
-      <div className="center-state">
-        <Loader2 className="spin" size={26} />
-        <span>Loading sprints</span>
-      </div>
-    );
+    return <WorkspaceLoading label="Loading sprints" />;
   }
 
   if (error || !data) {
-    return <div className="center-state error-state">{error ?? "Sprints unavailable"}</div>;
+    return <WorkspaceError label={error ?? "Sprints unavailable"} />;
   }
 
-  const totalIssues = data.sprints.reduce((sum, sprint) => sum + sprint.issueCount, 0);
-  const totalStandups = data.sprints.reduce((sum, sprint) => sum + sprint.standupCount, 0);
-  const totalCommits = data.sprints.reduce((sum, sprint) => sum + sprint.commitCount, 0);
+  const selectedSprint = data.sprints.find((sprint) => sprint.id === selectedSprintId) ?? data.currentSprint ?? data.sprints[0];
+  const sprintHealthBars = data.sprints.map((sprint) => ({
+    label: sprint.name.replace(/^(.{18}).+$/, "$1..."),
+    value: sprint.healthScore,
+    detail: sprint.goal,
+    tone: sprint.healthScore >= 80 ? ("success" as const) : sprint.healthScore >= 65 ? ("warning" as const) : ("danger" as const)
+  }));
 
   return (
-    <div className="page-stack ops-page">
-      <section className="page-heading ops-heading">
-        <div>
-          <p className="eyebrow">{data.project.key} sprint history</p>
-          <h1>Sprints</h1>
-          <p>Review the active sprint and older sprint signals without mixing project context.</p>
-        </div>
-        <div className="ops-hero-metrics">
-          <div>
-            <strong>{data.sprints.length}</strong>
-            <span>sprints</span>
-          </div>
-          <div>
-            <strong>{data.currentSprint?.healthScore ?? "--"}</strong>
-            <span>active health</span>
-          </div>
-          <div className="ops-heading-icon">
-            <CalendarDays size={28} />
-          </div>
-        </div>
-      </section>
+    <div className={workspacePageClass}>
+      <WorkspaceHero
+        eyebrow={
+          <>
+            <StatusPill icon={CalendarDays} tone="primary">
+              {data.project.key} sprint history
+            </StatusPill>
+            {selectedSprint ? (
+              <StatusPill tone={statusTone(selectedSprint.status)}>
+                {statusLabel(selectedSprint.status)}
+              </StatusPill>
+            ) : null}
+          </>
+        }
+        title="Sprints"
+        description="Review the active sprint and older sprint signals without mixing project context."
+        score={data.sprints.length}
+        scoreLabel="Sprint records"
+        scoreTone="primary"
+        scoreDetail={selectedSprint ? `${selectedSprint.name} · ${selectedSprint.healthScore} health · ${selectedSprint.standupCount} standups` : "No sprint selected"}
+        pills={
+          selectedSprint ? (
+            <>
+              <StatusPill icon={TicketCheck} tone="neutral">
+                {selectedSprint.issueCount} issues
+              </StatusPill>
+              <StatusPill icon={MessageSquareText} tone="neutral">
+                {selectedSprint.standupCount} standups
+              </StatusPill>
+              <StatusPill icon={GitCommitHorizontal} tone="neutral">
+                {selectedSprint.commitCount} commits
+              </StatusPill>
+            </>
+          ) : null
+        }
+      />
 
-      <section className="ops-kpi-grid">
-        <article className="ops-kpi-card">
-          <TicketCheck size={20} />
-          <span>Issues tracked</span>
-          <strong>{totalIssues}</strong>
-          <small>across sprint history</small>
-        </article>
-        <article className="ops-kpi-card">
-          <MessageSquareText size={20} />
-          <span>Standups captured</span>
-          <strong>{totalStandups}</strong>
-          <small>daily context preserved</small>
-        </article>
-        <article className="ops-kpi-card">
-          <GitCommitHorizontal size={20} />
-          <span>Commits synced</span>
-          <strong>{totalCommits}</strong>
-          <small>delivery evidence attached</small>
-        </article>
+      <section className="grid items-stretch gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
+        <SectionPanel>
+          <PanelHeader
+            eyebrow="Sprint trend"
+            title="Health by sprint"
+            description="Historical sprint health becomes visible instead of buried in cards."
+            icon={CalendarDays}
+          />
+          <SignalBarChart data={sprintHealthBars} valueSuffix="%" />
+        </SectionPanel>
+
+        <SectionPanel>
+          <PanelHeader
+            eyebrow="Selected sprint"
+            title={selectedSprint ? selectedSprint.name : "No sprint selected"}
+            description={selectedSprint ? `${statusLabel(selectedSprint.status)} · ${formatDate(selectedSprint.startDate)} - ${formatDate(selectedSprint.endDate)}` : "No sprint selected"}
+            icon={TicketCheck}
+            tone="info"
+          />
+          {selectedSprint ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {[
+                [TicketCheck, selectedSprint.issueCount, "Jira issues"],
+                [MessageSquareText, selectedSprint.standupCount, "Standups"],
+                [GitCommitHorizontal, selectedSprint.commitCount, "Commits"],
+                [CalendarDays, selectedSprint.blockerCount, "Blockers"]
+              ].map(([Icon, value, label]) => {
+                const ItemIcon = Icon as typeof TicketCheck;
+                return (
+                  <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-white/[0.045]" key={label as string}>
+                    <ItemIcon className="h-4 w-4 text-primary-600 dark:text-primary-200" />
+                    <strong className="mt-3 block font-mono text-2xl font-bold text-slate-950 dark:text-white">{value as number}</strong>
+                    <span className="text-xs font-black uppercase text-slate-500 dark:text-slate-400">{label as string}</span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <EmptyPanel icon={TicketCheck} title="No sprint selected" description="Choose a sprint from the timeline below." />
+          )}
+        </SectionPanel>
       </section>
 
       {data.currentSprint ? (
-        <section className="current-sprint-band">
-          <div>
-            <p className="eyebrow">Active sprint</p>
-            <h2>{data.currentSprint.name}</h2>
-            <span>{data.currentSprint.startDate} to {data.currentSprint.endDate}</span>
+        <SectionPanel>
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_220px] lg:items-center">
+            <div>
+              <div className="mb-3 flex flex-wrap gap-2">
+                <StatusPill icon={CheckCircle2} tone="success">
+                  Active sprint
+                </StatusPill>
+                <StatusPill tone="neutral">
+                  {formatDate(data.currentSprint.startDate)} - {formatDate(data.currentSprint.endDate)}
+                </StatusPill>
+              </div>
+              <h2 className="m-0 text-2xl font-black tracking-normal text-slate-950 dark:text-white">{data.currentSprint.name}</h2>
+              <p className="m-0 mt-2 max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-300">{data.currentSprint.goal}</p>
+            </div>
+            <div className="rounded-2xl border border-primary-500/20 bg-primary-500/10 p-5 text-center text-primary-700 dark:text-primary-100">
+              <strong className="block text-5xl font-black leading-none">{data.currentSprint.healthScore}</strong>
+              <span className="mt-2 block text-xs font-black uppercase">health</span>
+            </div>
           </div>
-          <div className="sprint-health-chip">
-            <strong>{data.currentSprint.healthScore}</strong>
-            <span>health</span>
-          </div>
-        </section>
+        </SectionPanel>
       ) : null}
 
-      <section className="sprint-grid">
-        {data.sprints.map((sprint) => {
-          const isSelected = (selectedSprintId ?? data.currentSprint?.id) === sprint.id;
-          return (
-          <article className={`sprint-card ${isSelected ? "selected" : ""}`} key={sprint.id}>
-            <div className="sprint-card-top">
-              <span className={`source-pill source-${sprint.status}`}>{statusLabel(sprint.status)}</span>
-              {sprint.status === "active" ? <CheckCircle2 size={18} /> : null}
-            </div>
-            <h2>{sprint.name}</h2>
-            <p>{sprint.goal}</p>
-            <div className="project-stat-row">
-              <span>
-                <strong>{sprint.issueCount}</strong>
-                <TicketCheck size={15} />
-                Issues
-              </span>
-              <span>
-                <strong>{sprint.standupCount}</strong>
-                <MessageSquareText size={15} />
-                Standups
-              </span>
-              <span>
-                <strong>{sprint.commitCount}</strong>
-                <GitCommitHorizontal size={15} />
-                Commits
-              </span>
-            </div>
-            <div className="sprint-card-footer">
-              <span>{sprint.startDate}</span>
-              <span>{sprint.endDate}</span>
-            </div>
-            <button
-              className="ghost-action-button sprint-switch-button"
-              type="button"
-              onClick={() => selectSprint(sprint.id, { sprintName: sprint.name, sprintGoal: sprint.goal })}
-            >
-              {isSelected ? "Selected sprint" : "View this sprint"}
-            </button>
-          </article>
-          );
-        })}
-      </section>
+      <SectionPanel>
+        <PanelHeader eyebrow="Sprint timeline" title="Project sprint history" description="Switching a sprint updates dashboard, standup, and member views through the shared project context." icon={CalendarDays} />
+        {data.sprints.length ? (
+          <div className="grid auto-rows-fr items-stretch gap-4 xl:grid-cols-2">
+            {data.sprints.map((sprint) => {
+              const isSelected = (selectedSprintId ?? data.currentSprint?.id) === sprint.id;
+              return (
+                <article
+                  className={cn(
+                    "relative h-full overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-50/80 p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-primary-500/35 dark:border-white/10 dark:bg-white/[0.045]",
+                    isSelected && "ring-1 ring-primary-500/35"
+                  )}
+                  key={sprint.id}
+                >
+                  <div className="absolute inset-x-0 top-0 h-1.5 bg-slate-200 dark:bg-white/10" aria-hidden="true">
+                    <span className="block h-full rounded-r-full bg-gradient-to-r from-primary-500 to-info-500" style={{ width: progressWidth(sprint.healthScore, 12) }} />
+                  </div>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="flex flex-wrap gap-2">
+                      <StatusPill tone={statusTone(sprint.status)}>
+                        {statusLabel(sprint.status)}
+                      </StatusPill>
+                      {isSelected ? (
+                        <StatusPill icon={CheckCircle2} tone="primary">
+                          Selected
+                        </StatusPill>
+                      ) : null}
+                    </div>
+                    <strong className="text-2xl font-black text-slate-950 dark:text-white">{sprint.healthScore}</strong>
+                  </div>
+                  <h3 className="m-0 mt-5 text-xl font-black tracking-normal text-slate-950 dark:text-white">{sprint.name}</h3>
+                  <p className="m-0 mt-2 line-clamp-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{sprint.goal}</p>
+                  <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                    {[
+                      [TicketCheck, sprint.issueCount, "Issues"],
+                      [MessageSquareText, sprint.standupCount, "Standups"],
+                      [GitCommitHorizontal, sprint.commitCount, "Commits"]
+                    ].map(([Icon, value, label]) => {
+                      const ItemIcon = Icon as typeof TicketCheck;
+                      return (
+                        <span className="grid gap-1 rounded-xl border border-slate-200/80 bg-white/70 p-3 text-sm dark:border-white/10 dark:bg-white/[0.045]" key={label as string}>
+                          <ItemIcon className="h-4 w-4 text-primary-600 dark:text-primary-200" />
+                          <strong className="text-xl font-black text-slate-950 dark:text-white">{value as number}</strong>
+                          <small className="font-bold text-slate-500 dark:text-slate-400">{label as string}</small>
+                        </span>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+                    <span className="text-sm font-bold text-slate-500 dark:text-slate-400">
+                      {formatDate(sprint.startDate)} - {formatDate(sprint.endDate)}
+                    </span>
+                    <button
+                      className={cn(
+                        "inline-flex min-h-10 items-center rounded-xl px-4 text-sm font-black transition",
+                        isSelected
+                          ? "bg-primary-500/10 text-primary-700 dark:text-primary-100"
+                          : "border border-slate-200 bg-white text-slate-700 hover:-translate-y-0.5 dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
+                      )}
+                      type="button"
+                      onClick={() => selectSprint(sprint.id, { sprintName: sprint.name, sprintGoal: sprint.goal })}
+                    >
+                      {isSelected ? "Selected sprint" : "View this sprint"}
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <EmptyPanel icon={CalendarDays} title="No sprint history yet" description="Create or sync a sprint to start building project history." />
+        )}
+      </SectionPanel>
     </div>
   );
 }
