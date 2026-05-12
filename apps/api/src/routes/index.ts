@@ -406,6 +406,7 @@ apiRouter.get("/projects/:projectId/team", async (req, res) => {
   res.json({
     ...detail,
     members: detail.project.members,
+    availableUsers: [],
     invites: [],
     canEditTeam: detail.permissions.includes("project:editTeam")
   });

@@ -1,0 +1,2154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SprintPulse AI — Hackathon Plan</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1a1a2e; line-height: 1.6; background: #f4f4f8; }
+
+        /* Hero */
+        .hero {
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: #fff; padding: 60px 40px; text-align: center;
+        }
+        .hero h1 { font-size: 2.8rem; margin-bottom: 10px; }
+        .hero .tagline { font-size: 1.1rem; color: #a8a8d8; margin-bottom: 20px; }
+        .badge {
+            display: inline-block; background: #ff6b6b; color: #fff;
+            padding: 6px 20px; border-radius: 30px; font-weight: bold; font-size: 0.85rem; margin: 5px;
+        }
+        .badge.green { background: #2ecc71; }
+        .badge.blue { background: #3498db; }
+
+        /* Nav */
+        .nav {
+            background: #1a1930; padding: 0 40px; display: flex; gap: 0;
+            position: sticky; top: 0; z-index: 100; border-bottom: 2px solid #302b63;
+            overflow-x: auto;
+        }
+        .nav a {
+            color: #a8a8d8; text-decoration: none; padding: 15px 20px;
+            font-size: 0.85rem; white-space: nowrap; border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        .nav a:hover { color: #fff; border-bottom-color: #ff6b6b; }
+
+        /* Sections */
+        .section { padding: 50px 40px; max-width: 1200px; margin: 0 auto; }
+        .section-wrap { background: #fff; margin: 20px 0; border-radius: 0; }
+        .section-wrap.dark { background: #f4f4f8; }
+        .section h2 {
+            font-size: 1.8rem; margin-bottom: 8px; color: #302b63;
+            border-left: 5px solid #ff6b6b; padding-left: 15px;
+        }
+        .section h2 span { color: #ff6b6b; }
+        .subtitle { color: #666; margin-bottom: 25px; font-size: 1rem; }
+
+        /* Cards */
+        .card-grid { display: grid; gap: 15px; margin-top: 20px; }
+        .card-grid.col2 { grid-template-columns: repeat(2, 1fr); }
+        .card-grid.col3 { grid-template-columns: repeat(3, 1fr); }
+        .card-grid.col4 { grid-template-columns: repeat(4, 1fr); }
+        .card {
+            background: #fff; border-radius: 10px; padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06); border-top: 4px solid #302b63;
+        }
+        .card.red { border-top-color: #ff6b6b; }
+        .card.green { border-top-color: #2ecc71; }
+        .card.blue { border-top-color: #3498db; }
+        .card.yellow { border-top-color: #f1c40f; }
+        .card.purple { border-top-color: #9b59b6; }
+        .card h3 { font-size: 1rem; margin-bottom: 10px; color: #302b63; }
+        .card p { font-size: 0.9rem; color: #555; }
+        .card ul { padding-left: 16px; }
+        .card li { font-size: 0.88rem; color: #555; margin-bottom: 5px; }
+
+        /* Timeline */
+        .timeline { display: flex; flex-direction: column; gap: 0; margin-top: 20px; }
+        .tl-item { display: grid; grid-template-columns: 120px 30px 1fr; align-items: stretch; }
+        .tl-label { font-size: 0.8rem; color: #888; text-align: right; padding: 15px 12px 15px 0; font-weight: 600; }
+        .tl-dot-col { display: flex; flex-direction: column; align-items: center; }
+        .tl-dot { width: 14px; height: 14px; border-radius: 50%; margin-top: 16px; flex-shrink: 0; }
+        .tl-line { width: 2px; flex: 1; background: #e0e0e0; }
+        .tl-content {
+            background: #fff; border-radius: 10px; padding: 15px 18px;
+            margin: 5px 0 5px 12px; border: 1px solid #e8e8f0; font-size: 0.88rem;
+        }
+        .tl-content h4 { color: #302b63; margin-bottom: 6px; font-size: 0.95rem; }
+        .tl-content ul { padding-left: 16px; }
+        .tl-content li { margin-bottom: 4px; color: #555; }
+
+        /* Table */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9rem; }
+        th { background: #302b63; color: #fff; padding: 12px 14px; text-align: left; }
+        td { padding: 10px 14px; border-bottom: 1px solid #e8e8f0; }
+        tr:nth-child(even) { background: #f9f9fc; }
+        .tag {
+            display: inline-block; padding: 2px 10px; border-radius: 12px;
+            font-size: 0.75rem; font-weight: 600;
+        }
+        .tag.red { background: rgba(255,107,107,0.15); color: #e74c3c; }
+        .tag.green { background: rgba(46,204,113,0.15); color: #27ae60; }
+        .tag.yellow { background: rgba(241,196,15,0.15); color: #d4a017; }
+        .tag.blue { background: rgba(52,152,219,0.15); color: #2980b9; }
+        .tag.purple { background: rgba(155,89,182,0.15); color: #8e44ad; }
+
+        /* Code block */
+        .code-block {
+            background: #1a1a2e; color: #e0e0e0; border-radius: 10px;
+            padding: 20px; font-family: 'Courier New', monospace; font-size: 0.82rem;
+            margin-top: 15px; overflow-x: auto; white-space: pre;
+        }
+
+        /* Info box */
+        .info-box {
+            border-radius: 10px; padding: 20px; margin: 15px 0;
+            border-left: 5px solid #302b63;
+        }
+        .info-box.blue { background: #eaf4fd; border-color: #3498db; }
+        .info-box.green { background: #eafaf1; border-color: #2ecc71; }
+        .info-box.red { background: #fdf0f0; border-color: #ff6b6b; }
+        .info-box.yellow { background: #fefdf0; border-color: #f1c40f; }
+        .info-box p { font-size: 0.9rem; color: #444; }
+        .info-box strong { color: #302b63; }
+
+        /* Hour badge */
+        .hour-badge {
+            display: inline-block; background: #302b63; color: #fff;
+            padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 700;
+            margin-left: 8px;
+        }
+
+        /* Person chip */
+        .person-chip {
+            display: inline-block; padding: 3px 10px; border-radius: 12px;
+            font-size: 0.75rem; font-weight: 600; margin: 2px;
+        }
+
+        /* Flow */
+        .flow { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 20px 0; justify-content: center; }
+        .flow-box {
+            background: #302b63; color: #fff; padding: 12px 16px;
+            border-radius: 8px; text-align: center; font-size: 0.82rem; min-width: 120px;
+        }
+        .flow-box.highlight { background: #ff6b6b; }
+        .flow-arrow { color: #302b63; font-size: 1.3rem; font-weight: bold; }
+
+        /* Footer */
+        .footer {
+            background: #0f0c29; color: #a8a8d8;
+            text-align: center; padding: 25px; font-size: 0.85rem;
+        }
+
+        @media (max-width: 768px) {
+            .card-grid.col2, .card-grid.col3, .card-grid.col4 { grid-template-columns: 1fr; }
+            .hero h1 { font-size: 1.8rem; }
+            .tl-item { grid-template-columns: 80px 25px 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+    <div>
+        <span class="badge">⚡ SprintPulse AI</span>
+        <span class="badge blue">36-Hour Hackathon</span>
+        <span class="badge green">POC Plan</span>
+    </div>
+    <h1 style="margin-top:20px;">Hackathon Execution Plan</h1>
+    <p class="tagline">Everything you need to build SprintPulse AI in 36 hours — approach, architecture, tasks, and code</p>
+</div>
+
+<!-- NAV -->
+<div class="nav">
+    <a href="#approach">🎯 Approach</a>
+    <a href="#architecture">🏗️ Architecture</a>
+    <a href="#stack">🛠️ Tech Stack</a>
+    <a href="#schema">🗄️ DB Schema</a>
+    <a href="#tasks">📋 Tasks</a>
+    <a href="#timeline">⏱️ 36hr Timeline</a>
+    <a href="#prep">📦 Pre-Hackathon</a>
+    <a href="#apis">🔌 API Contracts</a>
+    <a href="#ai">🤖 AI Prompts</a>
+    <a href="#integrations">🔌 Integrations</a>
+    <a href="#team">👥 Team Split</a>
+</div>
+</body>
+</html>
+
+<!-- APPROACH -->
+<div class="section-wrap" id="approach">
+<div class="section">
+    <h2>🎯 The <span>Approach</span></h2>
+    <p class="subtitle">Fastest path to a working POC in 36 hours — no CDK, no complex infra, just ship it</p>
+
+    <div class="info-box blue">
+        <p><strong>Core Decision:</strong> Skip AWS CDK entirely. Use AWS Console + plain Lambda zip deploys to get functions running in minutes. Focus 80% of time on product logic, not infrastructure.</p>
+    </div>
+
+    <div class="card-grid col3">
+        <div class="card green">
+            <h3>✅ What We Build</h3>
+            <ul>
+                <li>Standup ingestion — web form + transcript paste + audio upload</li>
+                <li>OpenAI-powered transcript parser with speaker separation</li>
+                <li>Analysis engine — 5 detection types</li>
+                <li>GitHub + Jira API integration for say-do gap</li>
+                <li>React dashboard with real data</li>
+                <li>Sprint health score per person</li>
+            </ul>
+        </div>
+        <div class="card yellow">
+            <h3>⚠️ What We Mock</h3>
+            <ul>
+                <li>2 weeks of pre-loaded historical standup data</li>
+                <li>Jira if access unavailable — mock ticket responses</li>
+                <li>Auth — hardcoded team config, no login</li>
+                <li>Slack/email notifications — just show on dashboard</li>
+            </ul>
+        </div>
+        <div class="card red">
+            <h3>❌ What We Skip</h3>
+            <ul>
+                <li>AWS CDK / CloudFormation</li>
+                <li>Bot joining live calls in real-time</li>
+                <li>Multi-tenant team management</li>
+                <li>User authentication / login</li>
+                <li>Production error handling</li>
+                <li>CI/CD pipeline</li>
+            </ul>
+        </div>
+    </div>
+
+    <div style="margin-top:25px;">
+        <h3 style="color:#302b63; margin-bottom:15px; padding-left:5px;">📥 3 Input Modes</h3>
+        <div class="card-grid col3">
+            <div class="card blue">
+                <h3>🎙️ Mode 1 — Audio Upload</h3>
+                <p>Upload .mp3/.wav of standup call → AWS Transcribe converts to text → OpenAI parses per speaker → structured standup extracted automatically</p>
+                <br><span class="tag blue">WOW FACTOR</span>
+            </div>
+            <div class="card blue">
+                <h3>📋 Mode 2 — Paste Transcript</h3>
+                <p>Copy transcript from Zoom / Teams / Google Meet → paste into text area → OpenAI parses per speaker → same structured output</p>
+                <br><span class="tag green">EASIEST TO DEMO</span>
+            </div>
+            <div class="card blue">
+                <h3>✍️ Mode 3 — Manual Form</h3>
+                <p>Each person fills Yesterday / Today / Blockers manually via web form. Simple fallback that always works.</p>
+                <br><span class="tag yellow">FALLBACK</span>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- ARCHITECTURE -->
+<div class="section-wrap dark" id="architecture">
+<div class="section">
+    <h2>🏗️ <span>Architecture</span></h2>
+    <p class="subtitle">Simple, fast, serverless — built to ship in 36 hours</p>
+
+    <div class="flow">
+        <div class="flow-box">🎙️ Audio Upload<br><small>S3 + Transcribe</small></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box highlight">🤖 OpenAI<br><small>Parse Transcript</small></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box">⚡ Lambda<br><small>Ingestion API</small></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box">🗄️ DynamoDB<br><small>Store Standups</small></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box highlight">🧠 Analysis Engine<br><small>Lambda</small></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box">📊 React Dashboard</div>
+    </div>
+
+    <div class="flow">
+        <div class="flow-box">🐙 GitHub API<br><small>Commits per person</small></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box highlight">🧠 Analysis Engine<br><small>Say-Do Gap</small></div>
+        <div class="flow-arrow">←</div>
+        <div class="flow-box">📌 Jira API<br><small>Ticket transitions</small></div>
+    </div>
+
+    <div class="card-grid col2" style="margin-top:25px;">
+        <div class="card">
+            <h3>Backend — AWS Lambda (Node.js)</h3>
+            <ul>
+                <li><strong>POST /ingest</strong> — accepts text/transcript/audio, stores to DynamoDB</li>
+                <li><strong>POST /parse-transcript</strong> — calls OpenAI, extracts per-person standups</li>
+                <li><strong>GET /analyze</strong> — runs all 5 detections, fetches Git+Jira, scores</li>
+                <li><strong>GET /dashboard</strong> — returns full team analysis for React</li>
+                <li><strong>POST /upload-audio</strong> — S3 presigned URL + triggers Transcribe</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h3>Frontend — React + Vite</h3>
+            <ul>
+                <li><strong>Dashboard</strong> — team health score, member cards, flags</li>
+                <li><strong>Submit Standup</strong> — 3 input modes (audio/transcript/manual)</li>
+                <li><strong>Member Detail</strong> — standup history timeline, flag breakdown</li>
+                <li><strong>Leaderboard</strong> — suspicion scores, trends over sprint</li>
+                <li>Hosted on <strong>localhost</strong> for demo (or S3 static hosting)</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="info-box green" style="margin-top:20px;">
+        <p><strong>Fastest infra setup (~45 mins):</strong> Create 5 Lambda functions in AWS Console → attach API Gateway HTTP API → one DynamoDB table → one S3 bucket for audio files. Done. No CDK, no YAML, no waiting.</p>
+    </div>
+</div>
+</div>
+
+<!-- TECH STACK -->
+<div class="section-wrap" id="stack">
+<div class="section">
+    <h2>🛠️ Tech <span>Stack</span></h2>
+    <p class="subtitle">Every tool chosen for speed — things the team already knows or can pick up in minutes</p>
+
+    <div class="card-grid col4">
+        <div class="card blue">
+            <h3>⚡ AWS Lambda</h3>
+            <p>Node.js 20. All backend logic. Deploy as zip via console. No servers to manage.</p>
+        </div>
+        <div class="card blue">
+            <h3>🌐 API Gateway</h3>
+            <p>HTTP API (not REST). Faster to set up, cheaper, CORS built-in. Attach to all Lambdas.</p>
+        </div>
+        <div class="card blue">
+            <h3>🗄️ DynamoDB</h3>
+            <p>Single table design. On-demand pricing. No schema migrations. Fast to query.</p>
+        </div>
+        <div class="card blue">
+            <h3>🪣 S3</h3>
+            <p>Audio file uploads. Presigned URLs for direct browser upload. Triggers Transcribe job.</p>
+        </div>
+        <div class="card red">
+            <h3>🤖 OpenAI GPT-4o</h3>
+            <p>Transcript parsing, vagueness scoring, recommendation generation. The brain of the system.</p>
+        </div>
+        <div class="card red">
+            <h3>🎙️ AWS Transcribe</h3>
+            <p>Speech-to-text for audio uploads. Supports speaker diarization (who said what).</p>
+        </div>
+        <div class="card green">
+            <h3>⚛️ React + Vite</h3>
+            <p>Frontend. Fast dev server. TailwindCSS or plain CSS. Axios for API calls.</p>
+        </div>
+        <div class="card green">
+            <h3>🐙 GitHub API</h3>
+            <p>Fetch commits per author per date. Free with personal access token. No OAuth needed for demo.</p>
+        </div>
+        <div class="card green">
+            <h3>📌 Jira REST API</h3>
+            <p>Fetch ticket status and changelog. Basic auth with API token. Works on Jira Cloud free tier.</p>
+        </div>
+        <div class="card yellow">
+            <h3>📦 Node.js Libraries</h3>
+            <p>axios, @aws-sdk/client-dynamodb, @aws-sdk/client-s3, @aws-sdk/client-transcribe, openai</p>
+        </div>
+        <div class="card yellow">
+            <h3>🎨 React Libraries</h3>
+            <p>recharts (charts), axios, react-router-dom, date-fns. Keep it minimal.</p>
+        </div>
+        <div class="card yellow">
+            <h3>🔧 Dev Tools</h3>
+            <p>Postman for API testing. AWS Console for infra. VS Code. No local AWS setup needed.</p>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- DB SCHEMA -->
+<div class="section-wrap dark" id="schema">
+<div class="section">
+    <h2>🗄️ DynamoDB <span>Schema</span></h2>
+    <p class="subtitle">Single table design — everything in one table, partitioned by person and type</p>
+
+    <div class="card-grid col2">
+        <div class="card">
+            <h3>📝 Standup Entry</h3>
+            <div class="code-block">pk: "yash.srivastav@company.com"
+sk: "STANDUP#2025-01-15"
+yesterday: "Worked on API integration"
+today: "Working on API integration"
+blockers: "None"
+source: "transcript" | "manual" | "audio"
+rawTranscript: "..." (optional)
+createdAt: "2025-01-15T09:30:00Z"</div>
+        </div>
+        <div class="card">
+            <h3>📊 Analysis Result</h3>
+            <div class="code-block">pk: "yash.srivastav@company.com"
+sk: "ANALYSIS#2025-01-15"
+healthScore: 34
+flags: [
+  { type: "STALE_WORK", severity: "high",
+    message: "API integration 8 days" },
+  { type: "COPY_PASTE", severity: "medium",
+    similarityScore: 0.87 },
+  { type: "SAY_DO_GAP", severity: "critical",
+    gitCommits: 0, jiraChanged: false }
+]
+vaguenessScore: 0.72
+stalenessCount: 8
+gitCommits: 0
+jiraTicketMoved: false
+recommendation: "Schedule 1:1..."</div>
+        </div>
+        <div class="card">
+            <h3>👥 Team Config</h3>
+            <div class="code-block">pk: "TEAM#alpha"
+sk: "CONFIG"
+members: [
+  { email: "yash@...", name: "Yash Srivastav",
+    githubUsername: "yash-s",
+    jiraAccountId: "abc123" },
+  { email: "atharv@...", name: "Atharv Arolkar",
+    githubUsername: "atharv-a" }
+]
+sprintStart: "2025-01-06"
+sprintEnd: "2025-01-17"
+sprintName: "Sprint 24"
+repo: "org/repo-name"
+jiraProject: "PROJ"</div>
+        </div>
+        <div class="card">
+            <h3>📈 Sprint Summary</h3>
+            <div class="code-block">pk: "TEAM#alpha"
+sk: "SPRINT#2025-01-17"
+sprintHealthScore: 62
+atRiskMembers: ["yash@...", "atharv@..."]
+totalFlags: 14
+avgVaguenessScore: 0.45
+avgStalenessCount: 3.2
+memberScores: {
+  "yash@...": 34,
+  "atharv@...": 58,
+  "vipindas@...": 88,
+  "akash@...": 82
+}
+generatedAt: "2025-01-17T18:00:00Z"</div>
+        </div>
+    </div>
+
+    <div class="info-box yellow" style="margin-top:20px;">
+        <p><strong>GSI (Global Secondary Index):</strong> Add a GSI on <code>sk</code> begins_with "STANDUP#" to query all standups for a date range across all team members efficiently.</p>
+    </div>
+</div>
+</div>
+
+<!-- TASKS -->
+<div class="section-wrap" id="tasks">
+<div class="section">
+    <h2>📋 Task <span>Breakdown</span></h2>
+    <p class="subtitle">Every task needed to build SprintPulse AI — with effort estimates</p>
+
+    <h3 style="color:#302b63; margin-bottom:12px; padding-left:5px;">Backend Tasks</h3>
+    <table>
+        <thead>
+            <tr><th>#</th><th>Task</th><th>What exactly</th><th>Effort</th><th>Priority</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>B1</td><td>AWS Infra Setup</td><td>Create DynamoDB table, S3 bucket, 5 Lambda functions, API Gateway in console</td><td><span class="tag blue">1.5 hrs</span></td><td><span class="tag red">MUST</span></td></tr>
+            <tr><td>B2</td><td>Standup Ingestion API</td><td>POST /ingest — accepts manual standup JSON, validates, stores to DynamoDB</td><td><span class="tag blue">2 hrs</span></td><td><span class="tag red">MUST</span></td></tr>
+            <tr><td>B3</td><td>Transcript Parser</td><td>POST /parse-transcript — sends raw transcript to OpenAI, extracts per-person yesterday/today/blockers</td><td><span class="tag blue">3 hrs</span></td><td><span class="tag red">MUST</span></td></tr>
+            <tr><td>B4</td><td>Audio Upload + Transcribe</td><td>POST /upload-audio — S3 presigned URL, trigger AWS Transcribe, poll for result, then call B3</td><td><span class="tag blue">4 hrs</span></td><td><span class="tag yellow">NICE</span></td></tr>
+            <tr><td>B5</td><td>Analysis Engine — Text</td><td>Vague phrase detection, cosine similarity, staleness counter, blocker anomaly — pure logic</td><td><span class="tag blue">4 hrs</span></td><td><span class="tag red">MUST</span></td></tr>
+            <tr><td>B6</td><td>GitHub Integration</td><td>Fetch commits per author per date range using GitHub REST API, store commit count per person per day</td><td><span class="tag blue">2 hrs</span></td><td><span class="tag red">MUST</span></td></tr>
+            <tr><td>B7</td><td>Jira Integration</td><td>Fetch ticket status + changelog per assignee, detect if ticket moved in last N days</td><td><span class="tag blue">2 hrs</span></td><td><span class="tag red">MUST</span></td></tr>
+            <tr><td>B8</td><td>Say-Do Gap Scoring</td><td>Combine standup text + git commits + jira movement into a single gap score per person per day</td><td><span class="tag blue">3 hrs</span></td><td><span class="tag red">MUST</span></td></tr>
+            <tr><td>B9</td><td>OpenAI Recommendations</td><td>Send full analysis context to OpenAI, get human-readable recommendation per at-risk member</td><td><span class="tag blue">2 hrs</span></td><td><span class="tag red">MUST</span></td></tr>
+            <tr><td>B10</td><td>Dashboard API</td><td>GET /dashboard — aggregate all analysis results, return full team health object for React</td><td><span class="tag blue">2 hrs</span></td><td><span class="tag red">MUST</span></td></tr>
+            <tr><td>B11</td><td>Seed Mock Data</td><td>Script to pre-load 2 weeks of realistic standup data for demo purposes</td><td><span class="tag blue">1.5 hrs</span></td><td><span class="tag red">MUST</span></td></tr>
+        </tbody>
+    </table>
+
+    <h3 style="color:#302b63; margin:25px 0 12px; padding-left:5px;">Frontend Tasks</h3>
+    <table>
+        <thead>
+            <tr><th>#</th><th>Task</th><th>What exactly</th><th>Effort</th><th>Priority</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>F1</td><td>React App Setup</td><td>Vite + React, routing, Axios config, basic layout with nav sidebar</td><td><span class="tag blue">1.5 hrs</span></td><td><span class="tag red">MUST</span></td></tr>
+            <tr><td>F2</td><td>Submit Standup Page</td><td>3 tabs — manual form, paste transcript, audio upload. Calls backend APIs.</td><td><span class="tag blue">4 hrs</span></td><td><span class="tag red">MUST</span></td></tr>
+            <tr><td>F3</td><td>Dashboard Page</td><td>Sprint health score, 4 stat cards, team member cards with risk badges and flags</td><td><span class="tag blue">5 hrs</span></td><td><span class="tag red">MUST</span></td></tr>
+            <tr><td>F4</td><td>Member Detail Page</td><td>Click on member card → standup history timeline, flag breakdown, git/jira activity</td><td><span class="tag blue">3 hrs</span></td><td><span class="tag red">MUST</span></td></tr>
+            <tr><td>F5</td><td>Leaderboard + Recommendations</td><td>Ranked list by health score, AI recommendation cards per at-risk member</td><td><span class="tag blue">2 hrs</span></td><td><span class="tag red">MUST</span></td></tr>
+            <tr><td>F6</td><td>Health Score Gauge + Charts</td><td>Semicircle gauge for sprint health, bar chart for member scores using recharts</td><td><span class="tag blue">2 hrs</span></td><td><span class="tag yellow">NICE</span></td></tr>
+            <tr><td>F7</td><td>Polish + Demo Data</td><td>Loading states, error handling, make sure demo flow works end to end</td><td><span class="tag blue">2 hrs</span></td><td><span class="tag red">MUST</span></td></tr>
+        </tbody>
+    </table>
+
+    <div class="card-grid col3" style="margin-top:25px;">
+        <div class="card green">
+            <h3>Total Backend</h3>
+            <p style="font-size:2rem; font-weight:800; color:#2ecc71;">27 hrs</p>
+            <p>Across 2 backend people = ~13.5 hrs each</p>
+        </div>
+        <div class="card blue">
+            <h3>Total Frontend</h3>
+            <p style="font-size:2rem; font-weight:800; color:#3498db;">19.5 hrs</p>
+            <p>Across 2 frontend people = ~10 hrs each</p>
+        </div>
+        <div class="card red">
+            <h3>Total Project</h3>
+            <p style="font-size:2rem; font-weight:800; color:#ff6b6b;">46.5 hrs</p>
+            <p>Across 4 people = ~11.5 hrs each — fits in 36 hrs with buffer</p>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- 36HR TIMELINE -->
+<div class="section-wrap dark" id="timeline">
+<div class="section">
+    <h2>⏱️ 36-Hour <span>Timeline</span></h2>
+    <p class="subtitle">Hour by hour execution plan — what each person should be doing at every stage</p>
+
+    <div class="timeline">
+        <div class="tl-item">
+            <div class="tl-label">Hour 0–2</div>
+            <div class="tl-dot-col">
+                <div class="tl-dot" style="background:#3498db;"></div>
+                <div class="tl-line"></div>
+            </div>
+            <div class="tl-content">
+                <h4>🚀 Setup Sprint — Everyone</h4>
+                <ul>
+                    <li>Create AWS account resources — DynamoDB table, S3 bucket, Lambda functions, API Gateway (1 person)</li>
+                    <li>Scaffold React app with Vite, install dependencies, set up routing (1 person)</li>
+                    <li>Set up GitHub repo, agree on API contracts, share env variables (all)</li>
+                    <li>Load OpenAI API key, GitHub token, Jira token into Lambda env vars</li>
+                </ul>
+            </div>
+        </div>
+        <div class="tl-item">
+            <div class="tl-label">Hour 2–8</div>
+            <div class="tl-dot-col">
+                <div class="tl-dot" style="background:#2ecc71;"></div>
+                <div class="tl-line"></div>
+            </div>
+            <div class="tl-content">
+                <h4>🔨 Core Build — Split by role</h4>
+                <ul>
+                    <li><strong>Backend P1:</strong> B2 (Ingestion API) + B5 (Analysis Engine text checks)</li>
+                    <li><strong>Backend P2:</strong> B3 (Transcript Parser with OpenAI) + B6 (GitHub API)</li>
+                    <li><strong>Frontend P1:</strong> F1 (App setup) + F3 (Dashboard page structure)</li>
+                    <li><strong>Frontend P2:</strong> F2 (Submit standup page — manual form first)</li>
+                </ul>
+            </div>
+        </div>
+        <div class="tl-item">
+            <div class="tl-label">Hour 8–16</div>
+            <div class="tl-dot-col">
+                <div class="tl-dot" style="background:#f1c40f;"></div>
+                <div class="tl-line"></div>
+            </div>
+            <div class="tl-content">
+                <h4>⚙️ Integration Sprint — Connect everything</h4>
+                <ul>
+                    <li><strong>Backend P1:</strong> B7 (Jira API) + B8 (Say-Do Gap scoring) + B10 (Dashboard API)</li>
+                    <li><strong>Backend P2:</strong> B9 (OpenAI recommendations) + B11 (Seed mock data)</li>
+                    <li><strong>Frontend P1:</strong> Connect dashboard to real API, member cards with live data</li>
+                    <li><strong>Frontend P2:</strong> F2 transcript paste tab + F4 (Member detail page)</li>
+                    <li><strong>Checkpoint:</strong> End-to-end flow working — submit standup → see it on dashboard</li>
+                </ul>
+            </div>
+        </div>
+        <div class="tl-item">
+            <div class="tl-label">Hour 16–24</div>
+            <div class="tl-dot-col">
+                <div class="tl-dot" style="background:#ff6b6b;"></div>
+                <div class="tl-line"></div>
+            </div>
+            <div class="tl-content">
+                <h4>✨ Polish + Wow Features</h4>
+                <ul>
+                    <li><strong>Backend P1:</strong> B4 (Audio upload + AWS Transcribe) — the wow feature</li>
+                    <li><strong>Backend P2:</strong> Bug fixes, edge cases, improve scoring accuracy</li>
+                    <li><strong>Frontend P1:</strong> F5 (Leaderboard + recommendations) + F6 (Charts/gauge)</li>
+                    <li><strong>Frontend P2:</strong> F2 audio upload tab + loading states + error handling</li>
+                </ul>
+            </div>
+        </div>
+        <div class="tl-item">
+            <div class="tl-label">Hour 24–30</div>
+            <div class="tl-dot-col">
+                <div class="tl-dot" style="background:#9b59b6;"></div>
+                <div class="tl-line"></div>
+            </div>
+            <div class="tl-content">
+                <h4>🎬 Demo Prep</h4>
+                <ul>
+                    <li>Load realistic demo data — 2 weeks of standups for all 4 team members</li>
+                    <li>Record a short fake standup audio file to demo the audio upload feature</li>
+                    <li>Prepare a fake Zoom transcript to paste and show parsing in action</li>
+                    <li>Run full demo flow end to end — fix any broken parts</li>
+                    <li>Deploy React to S3 static hosting or keep on localhost</li>
+                </ul>
+            </div>
+        </div>
+        <div class="tl-item">
+            <div class="tl-label">Hour 30–36</div>
+            <div class="tl-dot-col">
+                <div class="tl-dot" style="background:#ff6b6b;"></div>
+            </div>
+            <div class="tl-content">
+                <h4>🏁 Final Polish + Presentation</h4>
+                <ul>
+                    <li>Final bug fixes only — no new features</li>
+                    <li>Rehearse demo flow — who shows what, in what order</li>
+                    <li>Prepare 2-minute verbal pitch to go alongside the demo</li>
+                    <li>Make sure dashboard looks good on the presentation screen</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- PRE HACKATHON -->
+<div class="section-wrap" id="prep">
+<div class="section">
+    <h2>📦 Pre-Hackathon <span>Preparation</span></h2>
+    <p class="subtitle">Everything to do BEFORE the hackathon starts — so you don't waste a single minute on day one</p>
+
+    <div class="card-grid col2">
+        <div class="card green">
+            <h3>✅ AWS Setup (Do this week)</h3>
+            <ul>
+                <li>Create AWS account or confirm access to existing one</li>
+                <li>Create IAM user with DynamoDB + S3 + Lambda + Transcribe permissions</li>
+                <li>Create DynamoDB table named <strong>sprintpulse-main</strong> with pk (String) + sk (String)</li>
+                <li>Create S3 bucket named <strong>sprintpulse-audio</strong> with public read off</li>
+                <li>Create 5 Lambda functions (empty) — ingest, parseTranscript, analyze, dashboard, uploadAudio</li>
+                <li>Create API Gateway HTTP API, attach all 5 Lambdas with routes</li>
+                <li>Enable CORS on API Gateway</li>
+                <li>Note down the API Gateway base URL</li>
+            </ul>
+        </div>
+        <div class="card green">
+            <h3>✅ API Keys (Do this week)</h3>
+            <ul>
+                <li><strong>OpenAI:</strong> Create account at platform.openai.com, generate API key, add $10 credit</li>
+                <li><strong>GitHub:</strong> Settings → Developer Settings → Personal Access Token → repo + read:user scope</li>
+                <li><strong>Jira:</strong> Atlassian account → API tokens → create token. Note your Jira domain (xxx.atlassian.net)</li>
+                <li>Store all keys in Lambda environment variables — never in code</li>
+                <li>Create a <strong>.env.example</strong> file listing all required keys for the team</li>
+            </ul>
+        </div>
+        <div class="card blue">
+            <h3>✅ Code Scaffold (Do this week)</h3>
+            <ul>
+                <li>Create GitHub repo — <strong>sprintpulse-ai</strong></li>
+                <li>Scaffold React app: <code>npm create vite@latest frontend -- --template react</code></li>
+                <li>Install frontend deps: <code>axios recharts react-router-dom date-fns</code></li>
+                <li>Create <strong>/backend</strong> folder with one index.js per Lambda function</li>
+                <li>Install backend deps: <code>@aws-sdk/client-dynamodb @aws-sdk/client-s3 openai axios</code></li>
+                <li>Set up shared API base URL config in React</li>
+            </ul>
+        </div>
+        <div class="card blue">
+            <h3>✅ Demo Data (Do this week)</h3>
+            <ul>
+                <li>Write a seed script that loads 10 days of standup data for all 4 team members</li>
+                <li>Make sure Yash has high suspicion scores (stale work + copy paste)</li>
+                <li>Make sure Atharv has medium scores (burnout signals)</li>
+                <li>Vipindas and Akash should be healthy (low scores)</li>
+                <li>Record a 2-minute fake standup audio file — 4 people, realistic updates</li>
+                <li>Save a fake Zoom transcript text file for the paste demo</li>
+            </ul>
+        </div>
+        <div class="card yellow">
+            <h3>✅ Team Agreements (Do this week)</h3>
+            <ul>
+                <li>Agree on who owns which tasks (see Team Split section)</li>
+                <li>Share all API keys in a secure group chat before hackathon day</li>
+                <li>Agree on API contract format (see API Contracts section)</li>
+                <li>Set up a shared Postman collection for testing APIs</li>
+                <li>Decide demo flow — who presents, who drives the laptop</li>
+            </ul>
+        </div>
+        <div class="card yellow">
+            <h3>✅ Test Connections (Do this week)</h3>
+            <ul>
+                <li>Test GitHub API: fetch commits from a real repo using your token</li>
+                <li>Test Jira API: fetch one ticket's changelog using your token</li>
+                <li>Test OpenAI: send a sample transcript, confirm parsing works</li>
+                <li>Test AWS Transcribe: upload a short audio file, confirm transcript comes back</li>
+                <li>Test DynamoDB: write and read one item from the table</li>
+            </ul>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- API CONTRACTS -->
+<div class="section-wrap dark" id="apis">
+<div class="section">
+    <h2>🔌 API <span>Contracts</span></h2>
+    <p class="subtitle">Agreed request/response shapes — frontend and backend work in parallel without blocking each other</p>
+
+    <div class="card-grid col2">
+        <div class="card">
+            <h3>POST /ingest — Submit Manual Standup</h3>
+            <div class="code-block">// Request
+{
+  "person": "yash.srivastav@company.com",
+  "date": "2025-01-15",
+  "yesterday": "Worked on API integration",
+  "today": "Continue API integration",
+  "blockers": "None",
+  "source": "manual"
+}
+
+// Response 200
+{ "success": true, "id": "STANDUP#2025-01-15" }
+
+// Response 400
+{ "error": "Missing required fields" }</div>
+        </div>
+        <div class="card">
+            <h3>POST /parse-transcript — Parse Meeting Transcript</h3>
+            <div class="code-block">// Request
+{
+  "transcript": "Yash: Yesterday I worked on...\nAtharv: I was looking into...",
+  "date": "2025-01-15",
+  "teamMembers": ["Yash Srivastav", "Atharv Arolkar"]
+}
+
+// Response 200
+{
+  "parsed": [
+    {
+      "person": "yash.srivastav@company.com",
+      "yesterday": "Worked on API integration",
+      "today": "Continue API integration",
+      "blockers": "None"
+    }
+  ]
+}</div>
+        </div>
+        <div class="card">
+            <h3>GET /analyze?team=alpha&date=2025-01-15</h3>
+            <div class="code-block">// Response 200
+{
+  "teamHealthScore": 62,
+  "sprintName": "Sprint 24",
+  "members": [
+    {
+      "person": "yash.srivastav@company.com",
+      "name": "Yash Srivastav",
+      "healthScore": 34,
+      "riskLevel": "high",
+      "flags": [
+        {
+          "type": "STALE_WORK",
+          "severity": "high",
+          "message": "API integration mentioned 8 days"
+        },
+        {
+          "type": "SAY_DO_GAP",
+          "severity": "critical",
+          "message": "0 commits, ticket unchanged 4 days"
+        }
+      ],
+      "gitCommits": 0,
+      "jiraTicketMoved": false,
+      "recommendation": "Schedule a 1:1..."
+    }
+  ]
+}</div>
+        </div>
+        <div class="card">
+            <h3>POST /upload-audio — Upload Standup Recording</h3>
+            <div class="code-block">// Request
+{
+  "fileName": "standup-2025-01-15.mp3",
+  "contentType": "audio/mpeg",
+  "date": "2025-01-15"
+}
+
+// Response 200 — presigned URL for direct S3 upload
+{
+  "uploadUrl": "https://s3.amazonaws.com/...",
+  "jobId": "transcribe-job-abc123",
+  "key": "audio/standup-2025-01-15.mp3"
+}
+
+// Frontend then:
+// 1. PUT file directly to uploadUrl
+// 2. Poll GET /transcribe-status?jobId=abc123
+// 3. When complete, result auto-ingested</div>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- AI PROMPTS -->
+<div class="section-wrap" id="ai">
+<div class="section">
+    <h2>🤖 OpenAI <span>Prompts</span></h2>
+    <p class="subtitle">Exact prompts to use — copy paste these into your Lambda functions</p>
+
+    <div class="card">
+        <h3>Prompt 1 — Parse Transcript into Structured Standups</h3>
+        <div class="code-block">const prompt = `
+You are an AI assistant that parses standup meeting transcripts.
+Extract each person's standup update from the transcript below.
+
+Team members: ${teamMembers.join(', ')}
+Date: ${date}
+
+Transcript:
+${transcript}
+
+Return a JSON array with this exact structure:
+[
+  {
+    "name": "Full Name",
+    "email": "email@company.com",
+    "yesterday": "what they did yesterday",
+    "today": "what they plan to do today",
+    "blockers": "any blockers or None"
+  }
+]
+
+Rules:
+- If someone didn't speak, omit them
+- Keep yesterday/today/blockers concise but accurate
+- If blockers not mentioned, set to "None"
+- Return ONLY valid JSON, no explanation
+`;</div>
+    </div>
+
+    <div class="card" style="margin-top:15px;">
+        <h3>Prompt 2 — Score Vagueness of a Standup Update</h3>
+        <div class="code-block">const prompt = `
+Rate the specificity of this standup update on a scale of 0 to 1.
+0 = extremely vague (e.g. "working on stuff", "making progress")
+1 = extremely specific (e.g. "fixed bug in auth middleware, PR #123 raised")
+
+Standup update:
+Yesterday: ${yesterday}
+Today: ${today}
+Blockers: ${blockers}
+
+Return ONLY a JSON object:
+{
+  "vaguenessScore": 0.0-1.0,
+  "vagueReasons": ["reason1", "reason2"]
+}
+`;</div>
+    </div>
+
+    <div class="card" style="margin-top:15px;">
+        <h3>Prompt 3 — Generate Scrum Master Recommendation</h3>
+        <div class="code-block">const prompt = `
+You are an experienced scrum master. Based on the data below,
+give a short, actionable recommendation for this team member.
+Be empathetic — the goal is to help, not blame.
+
+Team member: ${name}
+Sprint health score: ${healthScore}/100
+Risk level: ${riskLevel}
+
+Flags detected:
+${flags.map(f => `- ${f.type}: ${f.message}`).join('\n')}
+
+Git commits this week: ${gitCommits}
+Jira ticket moved: ${jiraTicketMoved}
+Days reporting same task: ${stalenessCount}
+
+Return ONLY a JSON object:
+{
+  "recommendation": "2-3 sentence actionable recommendation",
+  "urgency": "immediate | this-week | monitor",
+  "suggestedAction": "1:1 | team-discussion | no-action"
+}
+`;</div>
+    </div>
+</div>
+</div>
+
+<!-- TEAM SPLIT -->
+<div class="section-wrap dark" id="team">
+<div class="section">
+    <h2>👥 Team <span>Split</span></h2>
+    <p class="subtitle">Suggested ownership — adjust based on everyone's strengths</p>
+
+    <div class="card-grid col2">
+        <div class="card red">
+            <h3>🧑‍💻 Person 1 — Backend Core</h3>
+            <p style="margin-bottom:10px; font-size:0.85rem; color:#888;">Best for: someone comfortable with AWS + Node.js</p>
+            <ul>
+                <li>B1 — AWS infra setup (DynamoDB, S3, Lambda, API Gateway)</li>
+                <li>B2 — Standup ingestion API</li>
+                <li>B5 — Analysis engine (text checks)</li>
+                <li>B10 — Dashboard API endpoint</li>
+                <li>B11 — Seed mock data script</li>
+            </ul>
+            <br><span class="tag red">~13 hrs</span>
+        </div>
+        <div class="card red">
+            <h3>🧑‍💻 Person 2 — AI + Integrations</h3>
+            <p style="margin-bottom:10px; font-size:0.85rem; color:#888;">Best for: someone comfortable with APIs + OpenAI</p>
+            <ul>
+                <li>B3 — Transcript parser (OpenAI)</li>
+                <li>B4 — Audio upload + AWS Transcribe</li>
+                <li>B6 — GitHub API integration</li>
+                <li>B7 — Jira API integration</li>
+                <li>B8 — Say-Do gap scoring</li>
+                <li>B9 — OpenAI recommendations</li>
+            </ul>
+            <br><span class="tag red">~16 hrs</span>
+        </div>
+        <div class="card blue">
+            <h3>🧑‍💻 Person 3 — Frontend Core</h3>
+            <p style="margin-bottom:10px; font-size:0.85rem; color:#888;">Best for: someone comfortable with React</p>
+            <ul>
+                <li>F1 — React app setup + routing</li>
+                <li>F3 — Dashboard page (main page)</li>
+                <li>F4 — Member detail page</li>
+                <li>F6 — Health score gauge + charts</li>
+                <li>F7 — Polish + demo flow</li>
+            </ul>
+            <br><span class="tag blue">~13.5 hrs</span>
+        </div>
+        <div class="card blue">
+            <h3>🧑‍💻 Person 4 — Frontend Features</h3>
+            <p style="margin-bottom:10px; font-size:0.85rem; color:#888;">Best for: someone comfortable with React + UX</p>
+            <ul>
+                <li>F2 — Submit standup page (all 3 modes)</li>
+                <li>F5 — Leaderboard + recommendations panel</li>
+                <li>F7 — Loading states, error handling, responsive</li>
+                <li>Demo data preparation + fake audio recording</li>
+            </ul>
+            <br><span class="tag blue">~11.5 hrs</span>
+        </div>
+    </div>
+
+    <div class="info-box yellow" style="margin-top:20px;">
+        <p><strong>Rule for the hackathon:</strong> If you finish your tasks early, help whoever is behind — don't start new features. The goal is a working demo, not a feature-complete product. The demo flow matters more than anything else.</p>
+    </div>
+
+    <h3 style="color:#302b63; margin: 25px 0 15px; padding-left:5px;">🎬 Demo Flow (Practice This)</h3>
+    <table>
+        <thead><tr><th>Step</th><th>What to show</th><th>Who presents</th><th>Time</th></tr></thead>
+        <tbody>
+            <tr><td>1</td><td>Open dashboard — show team health score 62, 2 at-risk members</td><td>Person 3</td><td>30 sec</td></tr>
+            <tr><td>2</td><td>Click Yash's card — show flags: stale work 8 days, copy-paste 87%, say-do gap</td><td>Person 3</td><td>45 sec</td></tr>
+            <tr><td>3</td><td>Go to Submit Standup → paste a fake Zoom transcript → show it parse into structured standups</td><td>Person 4</td><td>60 sec</td></tr>
+            <tr><td>4</td><td>Upload the fake audio file → show AWS Transcribe running → show result parsed</td><td>Person 2</td><td>60 sec</td></tr>
+            <tr><td>5</td><td>Go back to dashboard → show updated scores → show AI recommendation for Yash</td><td>Person 1</td><td>45 sec</td></tr>
+            <tr><td>6</td><td>Show leaderboard — fun suspicion ranking</td><td>Person 4</td><td>20 sec</td></tr>
+        </tbody>
+    </table>
+</div>
+</div>
+
+
+
+
+
+<style>
+.app-shell { display: flex; height: 680px; background: #080812; font-family: 'Segoe UI', sans-serif; border-radius: 0 0 16px 16px; overflow: hidden; box-shadow: 0 30px 80px rgba(0,0,0,0.6); margin: 0 40px; border: 1px solid #1e1d3a; border-top: none; }
+.sidebar { width: 240px; background: linear-gradient(180deg, #12112a 0%, #0e0d22 100%); border-right: 1px solid #1e1d3a; display: flex; flex-direction: column; flex-shrink: 0; }
+.sidebar-logo { padding: 22px 20px; font-size: 1.15rem; font-weight: 800; color: #fff; border-bottom: 1px solid #1e1d3a; display: flex; align-items: center; gap: 8px; }
+.sidebar-logo span { color: #ff6b6b; }
+.sidebar-logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, #ff6b6b, #ff8e53); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+.sidebar-nav { padding: 12px 0; flex: 1; }
+.sidebar-section { padding: 8px 20px 4px; font-size: 0.65rem; color: #444; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; }
+.sidebar-link { display: flex; align-items: center; gap: 10px; padding: 10px 20px; color: #666; font-size: 0.83rem; cursor: pointer; border-left: 3px solid transparent; transition: all 0.2s; margin: 1px 0; }
+.sidebar-link:hover { color: #ccc; background: rgba(255,255,255,0.04); border-left-color: #333; }
+.sidebar-link.active { color: #fff; background: linear-gradient(90deg, rgba(255,107,107,0.12), transparent); border-left-color: #ff6b6b; }
+.sidebar-link .sl-icon { font-size: 0.95rem; width: 20px; text-align: center; }
+.sidebar-footer { padding: 15px 20px; border-top: 1px solid #1e1d3a; }
+.sidebar-avatar { display: flex; align-items: center; gap: 8px; }
+.sa-pic { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg,#ff6b6b,#ff8e53); display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 800; color: #fff; }
+.sa-name { color: #888; font-size: 0.75rem; }
+.sa-role { color: #555; font-size: 0.65rem; }
+.main-area { flex: 1; overflow-y: auto; background: #080812; scrollbar-width: thin; scrollbar-color: #1e1d3a transparent; }
+.topbar { display: flex; justify-content: space-between; align-items: center; padding: 14px 28px; background: rgba(18,17,42,0.95); border-bottom: 1px solid #1e1d3a; backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 10; }
+.topbar-title { color: #fff; font-weight: 700; font-size: 0.95rem; }
+.topbar-right { display: flex; gap: 10px; align-items: center; }
+.topbar-select { background: #12112a; color: #aaa; border: 1px solid #1e1d3a; padding: 5px 10px; border-radius: 7px; font-size: 0.78rem; cursor: pointer; }
+.topbar-badge { background: rgba(255,107,107,0.15); color: #ff6b6b; border: 1px solid rgba(255,107,107,0.3); padding: 4px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 700; }
+.page { padding: 25px; display: none; }
+.page.active { display: block; }
+.pg-title { color: #fff; font-size: 1.3rem; font-weight: 700; margin-bottom: 5px; }
+.pg-sub { color: #666; font-size: 0.85rem; margin-bottom: 20px; }
+.stat-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
+.stat-box { background: #1a1930; border-radius: 10px; padding: 18px; text-align: center; border: 1px solid #2a2950; }
+.stat-box .sv { font-size: 2rem; font-weight: 800; }
+.stat-box .sl { font-size: 0.72rem; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+.sc-red { color: #ff6b6b; } .sc-green { color: #2ecc71; } .sc-yellow { color: #f1c40f; } .sc-blue { color: #3498db; }
+.member-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; margin-bottom: 20px; }
+.mc { background: #1a1930; border-radius: 10px; padding: 18px; border: 1px solid #2a2950; cursor: pointer; transition: border-color 0.2s; }
+.mc:hover { border-color: #ff6b6b; }
+.mc.high { border-left: 4px solid #ff6b6b; }
+.mc.medium { border-left: 4px solid #f1c40f; }
+.mc.low { border-left: 4px solid #2ecc71; }
+.mc-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.mc-avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.85rem; color: #fff; flex-shrink: 0; }
+.mc-name { color: #fff; font-weight: 600; font-size: 0.9rem; }
+.mc-role { color: #888; font-size: 0.72rem; }
+.mc-score-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.mc-score { font-size: 1.4rem; font-weight: 800; }
+.risk-badge { padding: 2px 8px; border-radius: 10px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; }
+.rb-high { background: rgba(255,107,107,0.2); color: #ff6b6b; }
+.rb-medium { background: rgba(241,196,15,0.2); color: #f1c40f; }
+.rb-low { background: rgba(46,204,113,0.2); color: #2ecc71; }
+.bar-bg { width: 100%; height: 5px; background: #2a2950; border-radius: 3px; margin-bottom: 10px; }
+.bar-fill { height: 5px; border-radius: 3px; }
+.flag-list { display: flex; flex-direction: column; gap: 4px; }
+.flag-item { display: flex; gap: 6px; align-items: flex-start; font-size: 0.75rem; color: #aaa; background: rgba(255,255,255,0.03); padding: 5px 7px; border-radius: 5px; }
+.section-title { color: #ccc; font-size: 0.82rem; font-weight: 700; margin-bottom: 14px; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 6px; }
+.reco-card { background: linear-gradient(135deg,#12112a,#0e0d22); border: 1px solid #1e1d3a; border-radius: 12px; padding: 18px; display: flex; gap: 14px; margin-bottom: 10px; transition: border-color 0.2s; }
+.reco-card:hover { border-color: #2e2d5a; }
+.reco-icon { font-size: 1.4rem; flex-shrink: 0; }
+.reco-title { color: #fff; font-weight: 700; font-size: 0.85rem; margin-bottom: 5px; }
+.reco-text { color: #555; font-size: 0.78rem; line-height: 1.5; }
+.lb-card { background: linear-gradient(135deg,#12112a,#0e0d22); border-radius: 12px; padding: 20px; border: 1px solid #1e1d3a; margin-bottom: 20px; }
+.lb-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #0e0d22; }
+.lb-row:last-child { border-bottom: none; }
+.lb-rank { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.75rem; flex-shrink: 0; }
+.lb-name { flex: 1; color: #bbb; font-size: 0.85rem; }
+.lb-bar-bg { width: 110px; height: 4px; background: #1e1d3a; border-radius: 2px; }
+.lb-bar { height: 4px; border-radius: 2px; }
+.lb-score { font-weight: 800; font-size: 0.9rem; min-width: 30px; text-align: right; }
+.tl-wrap { display: flex; flex-direction: column; gap: 0; }
+.tl-row { display: grid; grid-template-columns: 70px 24px 1fr; align-items: stretch; }
+.tl-date { font-size: 0.7rem; color: #444; text-align: right; padding: 12px 10px 12px 0; font-weight: 600; }
+.tl-dc { display: flex; flex-direction: column; align-items: center; }
+.tl-d { width: 10px; height: 10px; border-radius: 50%; margin-top: 15px; flex-shrink: 0; }
+.tl-l { width: 1px; flex: 1; background: #1e1d3a; }
+.tl-c { background: linear-gradient(135deg,#12112a,#0e0d22); border-radius: 10px; padding: 12px 14px; margin: 4px 0 4px 12px; border: 1px solid #1e1d3a; font-size: 0.78rem; }
+.tl-c .tl-cl { color: #333; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+.tl-c .tl-ct { color: #bbb; margin-bottom: 7px; }
+.tl-chips { display: flex; gap: 4px; flex-wrap: wrap; }
+.chip { padding: 2px 7px; border-radius: 6px; font-size: 0.6rem; font-weight: 700; }
+.chip-r { background: rgba(255,107,107,0.12); color: #ff6b6b; border: 1px solid rgba(255,107,107,0.2); }
+.chip-y { background: rgba(241,196,15,0.12); color: #f1c40f; border: 1px solid rgba(241,196,15,0.2); }
+.chip-g { background: rgba(46,204,113,0.12); color: #2ecc71; border: 1px solid rgba(46,204,113,0.2); }
+.form-card { background: linear-gradient(135deg,#12112a,#0e0d22); border-radius: 12px; padding: 22px; border: 1px solid #1e1d3a; margin-bottom: 14px; }
+.tab-row { display: flex; gap: 0; margin-bottom: 22px; border-bottom: 1px solid #1e1d3a; }
+.tab-btn { padding: 10px 20px; color: #444; font-size: 0.82rem; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; background: none; border-top: none; border-left: none; border-right: none; transition: all 0.2s; }
+.tab-btn:hover { color: #aaa; }
+.tab-btn.active { color: #fff; border-bottom-color: #ff6b6b; }
+.form-label { color: #444; font-size: 0.72rem; margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.5px; }
+.form-input { width: 100%; background: #080812; border: 1px solid #1e1d3a; color: #fff; padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 14px; font-family: inherit; transition: border-color 0.2s; }
+.form-input:focus { outline: none; border-color: #ff6b6b; }
+.form-textarea { width: 100%; background: #080812; border: 1px solid #1e1d3a; color: #ccc; padding: 10px 14px; border-radius: 8px; font-size: 0.8rem; margin-bottom: 14px; font-family: 'Courier New', monospace; resize: vertical; min-height: 120px; transition: border-color 0.2s; }
+.form-textarea:focus { outline: none; border-color: #ff6b6b; }
+.btn { padding: 10px 22px; border-radius: 8px; font-size: 0.82rem; font-weight: 700; cursor: pointer; border: none; transition: all 0.2s; letter-spacing: 0.3px; }
+.btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+.btn-primary { background: linear-gradient(135deg,#ff6b6b,#ff8e53); color: #fff; }
+.btn-secondary { background: #12112a; color: #777; border: 1px solid #1e1d3a; }
+.btn-green { background: linear-gradient(135deg,#2ecc71,#27ae60); color: #fff; }
+.upload-zone { border: 1px dashed #2e2d5a; border-radius: 12px; padding: 40px; text-align: center; color: #333; cursor: pointer; transition: all 0.2s; margin-bottom: 14px; background: rgba(255,255,255,0.01); }
+.upload-zone:hover { border-color: #ff6b6b; color: #777; background: rgba(255,107,107,0.03); }
+.upload-zone .uz-icon { font-size: 2.5rem; margin-bottom: 10px; }
+.upload-zone p { font-size: 0.82rem; }
+.parsed-result { background: #080812; border-radius: 10px; padding: 16px; border: 1px solid rgba(46,204,113,0.25); margin-top: 14px; }
+.parsed-person { margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid #12112a; }
+.parsed-person:last-child { border-bottom: none; margin-bottom: 0; }
+.parsed-name { color: #2ecc71; font-weight: 700; font-size: 0.82rem; margin-bottom: 7px; }
+.parsed-field { font-size: 0.75rem; color: #444; margin-bottom: 3px; }
+.parsed-field span { color: #bbb; }
+.teams-card { background: linear-gradient(135deg,#12112a,#0e0d22); border-radius: 12px; padding: 20px; border: 1px solid #1e1d3a; margin-bottom: 14px; }
+.teams-step { display: flex; gap: 14px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid #0e0d22; }
+.teams-step:last-child { border-bottom: none; }
+.step-num { width: 26px; height: 26px; border-radius: 8px; background: linear-gradient(135deg,#ff6b6b,#ff8e53); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.75rem; flex-shrink: 0; }
+.step-content { flex: 1; }
+.step-title { color: #ddd; font-weight: 600; font-size: 0.85rem; margin-bottom: 3px; }
+.step-desc { color: #555; font-size: 0.77rem; line-height: 1.5; }
+.code-inline { background: #080812; color: #ff8e53; padding: 1px 6px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 0.72rem; border: 1px solid #1e1d3a; }
+.alert-box { border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; font-size: 0.8rem; display: flex; gap: 8px; align-items: flex-start; }
+.alert-box.info { background: rgba(52,152,219,0.07); border: 1px solid rgba(52,152,219,0.2); color: #7ec8e3; }
+.alert-box.success { background: rgba(46,204,113,0.07); border: 1px solid rgba(46,204,113,0.2); color: #7dcea0; }
+.alert-box.warning { background: rgba(241,196,15,0.07); border: 1px solid rgba(241,196,15,0.2); color: #f9e79f; }
+.processing-bar { background: #1e1d3a; border-radius: 4px; height: 5px; margin: 8px 0; overflow: hidden; }
+.processing-fill { height: 5px; background: linear-gradient(90deg,#ff6b6b,#ff8e53,#f1c40f); border-radius: 4px; animation: progress 2s ease-in-out infinite; }
+@keyframes progress { 0%{width:10%} 50%{width:75%} 100%{width:100%} }
+</style>
+
+<!-- UI MOCKUP SECTION HEADER -->
+<div class="section-wrap" id="ui">
+<div class="section">
+    <h2>🖥️ Live UI <span>Mockup</span></h2>
+    <p class="subtitle">Fully interactive — click the sidebar links to switch between pages</p>
+    <div style="display:flex;gap:8px;margin-top:15px;">
+        <span style="display:inline-flex;align-items:center;gap:6px;background:#eafaf1;color:#27ae60;border:1px solid #a9dfbf;padding:5px 14px;border-radius:20px;font-size:0.8rem;font-weight:600;">✅ All 5 pages interactive</span>
+        <span style="display:inline-flex;align-items:center;gap:6px;background:#eaf4fd;color:#2980b9;border:1px solid #aed6f1;padding:5px 14px;border-radius:20px;font-size:0.8rem;font-weight:600;">🎙️ Audio upload simulation</span>
+        <span style="display:inline-flex;align-items:center;gap:6px;background:#fdf0f0;color:#e74c3c;border:1px solid #f1948a;padding:5px 14px;border-radius:20px;font-size:0.8rem;font-weight:600;">🤖 AI parsing animation</span>
+    </div>
+</div>
+</div>
+
+<div style="background:#080812;padding:20px 40px 0;border-radius:20px 20px 0 0;margin-top:0;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <div style="width:12px;height:12px;border-radius:50%;background:#ff5f57;"></div>
+        <div style="width:12px;height:12px;border-radius:50%;background:#febc2e;"></div>
+        <div style="width:12px;height:12px;border-radius:50%;background:#28c840;"></div>
+        <div style="flex:1;background:#1a1930;border-radius:6px;padding:4px 12px;font-size:0.72rem;color:#444;margin-left:8px;">sprintpulse.ai/dashboard</div>
+    </div>
+</div>
+
+<!-- APP SHELL -->
+<div class="app-shell">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <div class="sidebar-logo"><div class="sidebar-logo-icon">⚡</div> Sprint<span>Pulse</span></div>
+        <div class="sidebar-nav">
+            <div class="sidebar-section">Main</div>
+            <div class="sidebar-link active" onclick="showPage('dashboard')" id="nav-dashboard">
+                <span class="sl-icon">📊</span> Dashboard
+            </div>
+            <div class="sidebar-link" onclick="showPage('submit')" id="nav-submit">
+                <span class="sl-icon">✍️</span> Submit Standup
+            </div>
+            <div class="sidebar-link" onclick="showPage('member')" id="nav-member">
+                <span class="sl-icon">👤</span> Member Detail
+            </div>
+            <div class="sidebar-link" onclick="showPage('leaderboard')" id="nav-leaderboard">
+                <span class="sl-icon">🏆</span> Leaderboard
+            </div>
+            <div class="sidebar-section" style="margin-top:10px;">Integrations</div>
+            <div class="sidebar-link" onclick="showPage('teams-bot')" id="nav-teams-bot">
+                <span class="sl-icon">🤖</span> Teams Bot Setup
+            </div>
+        </div>
+        <div class="sidebar-footer">
+            <div class="sidebar-avatar">
+                <div class="sa-pic">SM</div>
+                <div><div class="sa-name">Scrum Master</div><div class="sa-role">Team Alpha</div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN AREA -->
+    <div class="main-area">
+
+        <!-- TOP BAR -->
+        <div class="topbar">
+            <div class="topbar-title" id="topbar-title">📊 Dashboard</div>
+            <div class="topbar-right">
+                <select class="topbar-select"><option>Sprint 24 (Jan 6–17)</option><option>Sprint 23</option></select>
+                <select class="topbar-select"><option>Team Alpha</option></select>
+                <div class="topbar-badge">🟡 Sprint 24 Active</div>
+            <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#ff6b6b,#ff8e53);display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:800;color:#fff;">SM</div>
+            </div>
+        </div>
+
+        <!-- PAGE: DASHBOARD -->
+        <div class="page active" id="page-dashboard">
+            <div style="padding:25px;">
+                <div class="pg-title">Sprint Health Overview</div>
+                <div class="pg-sub">Sprint 24 · Jan 6–17 · Team Alpha · 4 members</div>
+
+                <div class="stat-row">
+                    <div class="stat-box"><div class="sl">Sprint Health</div><div class="sv sc-yellow">62</div><div class="sl">/ 100</div></div>
+                    <div class="stat-box"><div class="sl">Flags Raised</div><div class="sv sc-red">14</div><div class="sl">this sprint</div></div>
+                    <div class="stat-box"><div class="sl">At-Risk Members</div><div class="sv sc-red">2</div><div class="sl">of 4</div></div>
+                    <div class="stat-box"><div class="sl">Avg Update Quality</div><div class="sv sc-green">71%</div><div class="sl">↑ 5% vs last sprint</div></div>
+                </div>
+
+                <div class="section-title">👥 Team Members <span style="color:#666;font-size:0.75rem;font-weight:400;">— click a card to see details</span></div>
+                <div class="member-grid">
+                    <div class="mc high" onclick="showMember('yash')">
+                        <div class="mc-header">
+                            <div class="mc-avatar" style="background:#ff6b6b;">YS</div>
+                            <div><div class="mc-name">Yash Srivastav</div><div class="mc-role">Backend Developer</div></div>
+                        </div>
+                        <div class="mc-score-row">
+                            <div class="mc-score sc-red">34<span style="font-size:0.75rem;color:#666;">/100</span></div>
+                            <div class="risk-badge rb-high">HIGH RISK</div>
+                        </div>
+                        <div class="bar-bg"><div class="bar-fill" style="width:34%;background:#ff6b6b;"></div></div>
+                        <div class="flag-list">
+                            <div class="flag-item">🔁 <span>"API integration" mentioned 8 days straight</span></div>
+                            <div class="flag-item">📋 <span>87% copy-paste similarity Jan 14→15</span></div>
+                            <div class="flag-item">🚨 <span>Say-Do Gap: 0 commits, ticket unchanged 4 days</span></div>
+                        </div>
+                    </div>
+                    <div class="mc medium" onclick="showMember('atharv')">
+                        <div class="mc-header">
+                            <div class="mc-avatar" style="background:#f1c40f;">AA</div>
+                            <div><div class="mc-name">Atharv Arolkar</div><div class="mc-role">Full Stack Developer</div></div>
+                        </div>
+                        <div class="mc-score-row">
+                            <div class="mc-score sc-yellow">58<span style="font-size:0.75rem;color:#666;">/100</span></div>
+                            <div class="risk-badge rb-medium">MEDIUM RISK</div>
+                        </div>
+                        <div class="bar-bg"><div class="bar-fill" style="width:58%;background:#f1c40f;"></div></div>
+                        <div class="flag-list">
+                            <div class="flag-item">🔥 <span>3 late-night commits this week</span></div>
+                            <div class="flag-item">📉 <span>Update detail declining over 5 days</span></div>
+                        </div>
+                    </div>
+                    <div class="mc low" onclick="showMember('vipindas')">
+                        <div class="mc-header">
+                            <div class="mc-avatar" style="background:#2ecc71;">VN</div>
+                            <div><div class="mc-name">Vipindas Nambiar</div><div class="mc-role">Frontend Developer</div></div>
+                        </div>
+                        <div class="mc-score-row">
+                            <div class="mc-score sc-green">88<span style="font-size:0.75rem;color:#666;">/100</span></div>
+                            <div class="risk-badge rb-low">LOW RISK</div>
+                        </div>
+                        <div class="bar-bg"><div class="bar-fill" style="width:88%;background:#2ecc71;"></div></div>
+                        <div class="flag-list">
+                            <div class="flag-item">✅ <span>No issues detected this sprint</span></div>
+                        </div>
+                    </div>
+                    <div class="mc low" onclick="showMember('akash')">
+                        <div class="mc-header">
+                            <div class="mc-avatar" style="background:#3498db;">AK</div>
+                            <div><div class="mc-name">Akash Kumar</div><div class="mc-role">QA Engineer</div></div>
+                        </div>
+                        <div class="mc-score-row">
+                            <div class="mc-score sc-blue">82<span style="font-size:0.75rem;color:#666;">/100</span></div>
+                            <div class="risk-badge rb-low">LOW RISK</div>
+                        </div>
+                        <div class="bar-bg"><div class="bar-fill" style="width:82%;background:#3498db;"></div></div>
+                        <div class="flag-list">
+                            <div class="flag-item">💬 <span>"Testing various things" used 3 times</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-title">🤖 AI Recommendations</div>
+                <div class="reco-card">
+                    <div class="reco-icon">🎯</div>
+                    <div>
+                        <div class="reco-title">Schedule a 1:1 with Yash Srivastav — Immediate</div>
+                        <div class="reco-text">Yash has reported "API integration" for 8 consecutive days with 0 commits since Jan 10. Updates show 87% copy-paste similarity. He likely needs help but isn't asking for it. A private check-in could unblock him and save the sprint.</div>
+                    </div>
+                </div>
+                <div class="reco-card">
+                    <div class="reco-icon">⚠️</div>
+                    <div>
+                        <div class="reco-title">Watch: Atharv Arolkar showing early burnout signals — This Week</div>
+                        <div class="reco-text">3 late-night commits, declining update detail, increasing cycle time. Not critical yet but worth a casual check-in before it escalates into a bigger issue.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAGE: SUBMIT STANDUP -->
+        <div class="page" id="page-submit">
+            <div style="padding:25px;">
+                <div class="pg-title">Submit Standup</div>
+                <div class="pg-sub">Choose how to submit today's standup updates</div>
+
+                <div class="tab-row">
+                    <button class="tab-btn active" onclick="showTab('manual', this)">✍️ Manual Form</button>
+                    <button class="tab-btn" onclick="showTab('transcript', this)">📋 Paste Transcript</button>
+                    <button class="tab-btn" onclick="showTab('audio', this)">🎙️ Upload Audio</button>
+                </div>
+
+                <!-- MANUAL TAB -->
+                <div id="tab-manual">
+                    <div class="form-card">
+                        <label class="form-label">Team Member</label>
+                        <select class="form-input" style="cursor:pointer;">
+                            <option>Yash Srivastav</option>
+                            <option>Atharv Arolkar</option>
+                            <option>Vipindas Nambiar</option>
+                            <option>Akash Kumar</option>
+                        </select>
+                        <label class="form-label">Date</label>
+                        <input type="date" class="form-input" value="2025-01-15"/>
+                        <label class="form-label">What did you do yesterday?</label>
+                        <textarea class="form-textarea" placeholder="e.g. Fixed the authentication bug in the login API, raised PR #45"></textarea>
+                        <label class="form-label">What will you do today?</label>
+                        <textarea class="form-textarea" placeholder="e.g. Review PR feedback, start working on the dashboard API endpoint"></textarea>
+                        <label class="form-label">Any blockers?</label>
+                        <textarea class="form-textarea" style="min-height:60px;" placeholder="e.g. Waiting for design approval on the new UI components"></textarea>
+                        <button class="btn btn-primary" onclick="submitManual()">Submit Standup →</button>
+                    </div>
+                    <div id="manual-success" style="display:none;">
+                        <div class="alert-box success">✅ <span>Standup submitted successfully! Analysis will update in a few seconds.</span></div>
+                    </div>
+                </div>
+
+                <!-- TRANSCRIPT TAB -->
+                <div id="tab-transcript" style="display:none;">
+                    <div class="form-card">
+                        <div class="alert-box info">💡 <span>Copy the transcript from your Zoom / Teams / Google Meet call and paste it below. Our AI will automatically extract each person's standup.</span></div>
+                        <label class="form-label">Meeting Date</label>
+                        <input type="date" class="form-input" value="2025-01-15"/>
+                        <label class="form-label">Paste Transcript</label>
+                        <textarea class="form-textarea" style="min-height:180px;" id="transcript-input" placeholder="Yash: Yesterday I worked on the API integration. Today I'll continue with the same. No blockers.&#10;&#10;Atharv: I was looking into the frontend performance issues. Today I'll try to fix the rendering bug. No blockers.&#10;&#10;Vipindas: Completed the dashboard components yesterday. Today working on the mobile responsive layout. Blocker: waiting for API spec."></textarea>
+                        <button class="btn btn-primary" onclick="parseTranscript()">🤖 Parse with AI →</button>
+                    </div>
+                    <div id="transcript-processing" style="display:none;">
+                        <div class="alert-box info">🤖 <span>OpenAI is parsing the transcript...</span></div>
+                        <div class="processing-bar"><div class="processing-fill"></div></div>
+                    </div>
+                    <div id="transcript-result" style="display:none;">
+                        <div class="alert-box success">✅ <span>Transcript parsed successfully! Review and confirm below.</span></div>
+                        <div class="parsed-result">
+                            <div class="parsed-person">
+                                <div class="parsed-name">✅ Yash Srivastav</div>
+                                <div class="parsed-field">Yesterday: <span>Worked on API integration</span></div>
+                                <div class="parsed-field">Today: <span>Continue API integration</span></div>
+                                <div class="parsed-field">Blockers: <span>None</span></div>
+                            </div>
+                            <div class="parsed-person">
+                                <div class="parsed-name">✅ Atharv Arolkar</div>
+                                <div class="parsed-field">Yesterday: <span>Investigated frontend performance issues</span></div>
+                                <div class="parsed-field">Today: <span>Fix the rendering bug</span></div>
+                                <div class="parsed-field">Blockers: <span>None</span></div>
+                            </div>
+                            <div class="parsed-person">
+                                <div class="parsed-name">✅ Vipindas Nambiar</div>
+                                <div class="parsed-field">Yesterday: <span>Completed dashboard components</span></div>
+                                <div class="parsed-field">Today: <span>Mobile responsive layout</span></div>
+                                <div class="parsed-field">Blockers: <span>Waiting for API spec</span></div>
+                            </div>
+                        </div>
+                        <br>
+                        <button class="btn btn-green" onclick="confirmTranscript()">✅ Confirm & Save All →</button>
+                    </div>
+                    <div id="transcript-saved" style="display:none;">
+                        <div class="alert-box success">✅ <span>All 3 standups saved! Dashboard will update shortly.</span></div>
+                    </div>
+                </div>
+
+                <!-- AUDIO TAB -->
+                <div id="tab-audio" style="display:none;">
+                    <div class="form-card">
+                        <div class="alert-box info">💡 <span>Upload your standup call recording. AWS Transcribe will convert speech to text, then AI will extract each person's update automatically.</span></div>
+                        <label class="form-label">Meeting Date</label>
+                        <input type="date" class="form-input" value="2025-01-15"/>
+                        <div class="upload-zone" onclick="simulateUpload()">
+                            <div class="uz-icon">🎙️</div>
+                            <p><strong>Click to upload audio file</strong></p>
+                            <p style="font-size:0.75rem;margin-top:5px;">Supports .mp3, .wav, .m4a — Max 500MB</p>
+                        </div>
+                        <div id="audio-processing" style="display:none;">
+                            <div class="alert-box warning">⏳ <span>Step 1/3: Uploading to S3...</span></div>
+                            <div class="processing-bar"><div class="processing-fill"></div></div>
+                        </div>
+                        <div id="audio-transcribing" style="display:none;">
+                            <div class="alert-box info">🎙️ <span>Step 2/3: AWS Transcribe is converting speech to text (speaker diarization enabled)...</span></div>
+                            <div class="processing-bar"><div class="processing-fill"></div></div>
+                        </div>
+                        <div id="audio-parsing" style="display:none;">
+                            <div class="alert-box info">🤖 <span>Step 3/3: OpenAI is parsing transcript per speaker...</span></div>
+                            <div class="processing-bar"><div class="processing-fill"></div></div>
+                        </div>
+                        <div id="audio-result" style="display:none;">
+                            <div class="alert-box success">✅ <span>Audio processed! 4 standups extracted from recording.</span></div>
+                            <div class="parsed-result">
+                                <div class="parsed-person">
+                                    <div class="parsed-name">✅ Yash Srivastav <span style="color:#666;font-size:0.7rem;">(Speaker 1 — 00:00–01:12)</span></div>
+                                    <div class="parsed-field">Yesterday: <span>Worked on API integration</span></div>
+                                    <div class="parsed-field">Today: <span>Continue API integration</span></div>
+                                    <div class="parsed-field">Blockers: <span>None</span></div>
+                                </div>
+                                <div class="parsed-person">
+                                    <div class="parsed-name">✅ Atharv Arolkar <span style="color:#666;font-size:0.7rem;">(Speaker 2 — 01:12–02:30)</span></div>
+                                    <div class="parsed-field">Yesterday: <span>Investigated frontend performance</span></div>
+                                    <div class="parsed-field">Today: <span>Fix rendering bug</span></div>
+                                    <div class="parsed-field">Blockers: <span>None</span></div>
+                                </div>
+                            </div>
+                            <br>
+                            <button class="btn btn-green">✅ Confirm & Save All →</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAGE: MEMBER DETAIL -->
+        <div class="page" id="page-member">
+            <div style="padding:25px;">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+                    <button class="btn btn-secondary" onclick="showPage('dashboard')" style="padding:6px 14px;font-size:0.8rem;">← Back</button>
+                    <div>
+                        <div class="pg-title" id="member-title">Yash Srivastav — Member Detail</div>
+                        <div class="pg-sub" id="member-sub">Backend Developer · HIGH RISK · Score: 34/100</div>
+                    </div>
+                </div>
+
+                <div class="stat-row">
+                    <div class="stat-box"><div class="sl">Health Score</div><div class="sv sc-red" id="m-score">34</div><div class="sl">/ 100</div></div>
+                    <div class="stat-box"><div class="sl">Git Commits</div><div class="sv sc-red" id="m-commits">0</div><div class="sl">this week</div></div>
+                    <div class="stat-box"><div class="sl">Ticket Moved</div><div class="sv sc-red" id="m-jira">No</div><div class="sl">last 4 days</div></div>
+                    <div class="stat-box"><div class="sl">Days Stale</div><div class="sv sc-red" id="m-stale">8</div><div class="sl">same task</div></div>
+                </div>
+
+                <div class="section-title">📅 Standup History</div>
+                <div class="tl-wrap" id="member-timeline"></div>
+            </div>
+        </div>
+
+        <!-- PAGE: LEADERBOARD -->
+        <div class="page" id="page-leaderboard">
+            <div style="padding:25px;">
+                <div class="pg-title">🏆 Sprint Suspicion Leaderboard</div>
+                <div class="pg-sub">Ranked by health score — lower score = more suspicious 👀</div>
+
+                <div class="lb-card">
+                    <div class="lb-row">
+                        <div class="lb-rank" style="background:#ff6b6b;color:#fff;">1</div>
+                        <span style="font-size:1rem;">🚨</span>
+                        <div class="lb-name">Yash Srivastav</div>
+                        <div class="lb-bar-bg"><div class="lb-bar" style="width:66%;background:#ff6b6b;"></div></div>
+                        <div class="lb-score sc-red">34</div>
+                    </div>
+                    <div class="lb-row">
+                        <div class="lb-rank" style="background:#f1c40f;color:#fff;">2</div>
+                        <span style="font-size:1rem;">⚠️</span>
+                        <div class="lb-name">Atharv Arolkar</div>
+                        <div class="lb-bar-bg"><div class="lb-bar" style="width:42%;background:#f1c40f;"></div></div>
+                        <div class="lb-score sc-yellow">58</div>
+                    </div>
+                    <div class="lb-row">
+                        <div class="lb-rank" style="background:#2a2950;color:#888;">3</div>
+                        <span style="font-size:1rem;">✅</span>
+                        <div class="lb-name">Akash Kumar</div>
+                        <div class="lb-bar-bg"><div class="lb-bar" style="width:18%;background:#3498db;"></div></div>
+                        <div class="lb-score sc-blue">82</div>
+                    </div>
+                    <div class="lb-row">
+                        <div class="lb-rank" style="background:#2a2950;color:#888;">4</div>
+                        <span style="font-size:1rem;">🌟</span>
+                        <div class="lb-name">Vipindas Nambiar</div>
+                        <div class="lb-bar-bg"><div class="lb-bar" style="width:12%;background:#2ecc71;"></div></div>
+                        <div class="lb-score sc-green">88</div>
+                    </div>
+                </div>
+
+                <div class="section-title">📈 Sprint Trend</div>
+                <div class="lb-card">
+                    <div style="color:#888;font-size:0.82rem;margin-bottom:12px;">Average team health score over last 5 sprints</div>
+                    <div style="display:flex;align-items:flex-end;gap:12px;height:80px;padding:0 10px;">
+                        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+                            <div style="width:30px;background:#3498db;border-radius:4px 4px 0 0;" id="bar-s20"></div>
+                            <div style="font-size:0.65rem;color:#666;">S20</div>
+                        </div>
+                        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+                            <div style="width:30px;background:#3498db;border-radius:4px 4px 0 0;" id="bar-s21"></div>
+                            <div style="font-size:0.65rem;color:#666;">S21</div>
+                        </div>
+                        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+                            <div style="width:30px;background:#f1c40f;border-radius:4px 4px 0 0;" id="bar-s22"></div>
+                            <div style="font-size:0.65rem;color:#666;">S22</div>
+                        </div>
+                        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+                            <div style="width:30px;background:#f1c40f;border-radius:4px 4px 0 0;" id="bar-s23"></div>
+                            <div style="font-size:0.65rem;color:#666;">S23</div>
+                        </div>
+                        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+                            <div style="width:30px;background:#ff6b6b;border-radius:4px 4px 0 0;" id="bar-s24"></div>
+                            <div style="font-size:0.65rem;color:#666;">S24</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAGE: TEAMS BOT -->
+        <div class="page" id="page-teams-bot">
+            <div style="padding:25px;">
+                <div class="pg-title">🤖 Microsoft Teams Bot Integration</div>
+                <div class="pg-sub">Automatically capture standup transcripts without anyone doing anything manually</div>
+
+                <div class="alert-box info" style="margin-bottom:20px;">
+                    💡 <span>Teams provides meeting transcripts automatically if transcription is enabled. We can pull these via the Microsoft Graph API — no bot joining calls needed.</span>
+                </div>
+
+                <div class="section-title">Option 1 — Microsoft Graph API (Recommended ✅)</div>
+                <div class="teams-card">
+                    <div class="teams-step">
+                        <div class="step-num">1</div>
+                        <div class="step-content">
+                            <div class="step-title">Register an Azure AD App</div>
+                            <div class="step-desc">Go to portal.azure.com → Azure Active Directory → App Registrations → New Registration. Name it "SprintPulse AI". Note the Client ID and Tenant ID.</div>
+                        </div>
+                    </div>
+                    <div class="teams-step">
+                        <div class="step-num">2</div>
+                        <div class="step-content">
+                            <div class="step-title">Grant API Permissions</div>
+                            <div class="step-desc">In your app → API Permissions → Add: <span class="code-inline">OnlineMeetings.Read.All</span> and <span class="code-inline">CallRecords.Read.All</span>. Grant admin consent. These allow reading meeting transcripts.</div>
+                        </div>
+                    </div>
+                    <div class="teams-step">
+                        <div class="step-num">3</div>
+                        <div class="step-content">
+                            <div class="step-title">Create Client Secret</div>
+                            <div class="step-desc">App → Certificates & Secrets → New Client Secret. Copy the value immediately — store in Lambda env vars as <span class="code-inline">TEAMS_CLIENT_SECRET</span>.</div>
+                        </div>
+                    </div>
+                    <div class="teams-step">
+                        <div class="step-num">4</div>
+                        <div class="step-content">
+                            <div class="step-title">Enable Transcription in Teams</div>
+                            <div class="step-desc">Teams Admin Center → Meetings → Meeting Policies → Enable "Transcription". This must be on for transcripts to be available via API.</div>
+                        </div>
+                    </div>
+                    <div class="teams-step">
+                        <div class="step-num">5</div>
+                        <div class="step-content">
+                            <div class="step-title">Fetch Transcript via Graph API</div>
+                            <div class="step-desc">After standup call ends, call: <span class="code-inline">GET /communications/callRecords/{callId}/sessions</span> then <span class="code-inline">GET /communications/callRecords/{callId}/sessions/{sessionId}/segments</span> to get the transcript text per speaker.</div>
+                        </div>
+                    </div>
+                    <div class="teams-step">
+                        <div class="step-num">6</div>
+                        <div class="step-content">
+                            <div class="step-title">Set Up Webhook (Auto-trigger)</div>
+                            <div class="step-desc">Register a subscription: <span class="code-inline">POST /subscriptions</span> with resource <span class="code-inline">communications/callRecords</span>. Teams will POST to your Lambda URL every time a meeting ends — fully automatic, no manual action needed.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-title">Option 2 — Teams Bot (More Control)</div>
+                <div class="teams-card">
+                    <div class="teams-step">
+                        <div class="step-num">1</div>
+                        <div class="step-content">
+                            <div class="step-title">Create Bot in Azure Bot Service</div>
+                            <div class="step-desc">Azure Portal → Create Resource → Azure Bot. Connect to Teams channel. This gives you a bot that can be added to your standup meeting.</div>
+                        </div>
+                    </div>
+                    <div class="teams-step">
+                        <div class="step-num">2</div>
+                        <div class="step-content">
+                            <div class="step-title">Bot Joins Meeting as Participant</div>
+                            <div class="step-desc">Use <span class="code-inline">POST /communications/calls</span> Graph API to have the bot join the standup meeting. The bot listens but doesn't speak.</div>
+                        </div>
+                    </div>
+                    <div class="teams-step">
+                        <div class="step-num">3</div>
+                        <div class="step-content">
+                            <div class="step-title">Receive Real-time Transcript</div>
+                            <div class="step-desc">Subscribe to <span class="code-inline">transcriptUpdated</span> events. Teams sends transcript chunks in real-time as people speak. Bot collects and sends to SprintPulse analysis engine when meeting ends.</div>
+                        </div>
+                    </div>
+                    <div class="teams-step">
+                        <div class="step-num">4</div>
+                        <div class="step-content">
+                            <div class="step-title">Post Summary to Teams Channel</div>
+                            <div class="step-desc">After analysis, bot posts a card to your standup channel showing each person's health score and flags. Team sees results immediately after the call.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-title">Option 3 — Slack Bot (If using Slack)</div>
+                <div class="teams-card">
+                    <div class="teams-step">
+                        <div class="step-num">1</div>
+                        <div class="step-content">
+                            <div class="step-title">Create Slack App at api.slack.com</div>
+                            <div class="step-desc">Create app → Add slash command <span class="code-inline">/standup</span> pointing to your Lambda URL. Team members type <span class="code-inline">/standup</span> and fill a modal form.</div>
+                        </div>
+                    </div>
+                    <div class="teams-step">
+                        <div class="step-num">2</div>
+                        <div class="step-content">
+                            <div class="step-title">Daily Reminder Bot</div>
+                            <div class="step-desc">Use Slack Workflow Builder or a scheduled Lambda (EventBridge) to DM each team member at 9am with a standup form. They fill it in Slack — no separate tool needed.</div>
+                        </div>
+                    </div>
+                    <div class="teams-step">
+                        <div class="step-num">3</div>
+                        <div class="step-content">
+                            <div class="step-title">Post Analysis to Channel</div>
+                            <div class="step-desc">After collecting all standups, bot posts a sprint health summary card to the team channel with scores and flags. Scrum master gets a DM for at-risk members.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-title">Recommended Approach for Hackathon</div>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+                    <div class="teams-card" style="border-top:3px solid #2ecc71;">
+                        <div style="color:#2ecc71;font-weight:700;margin-bottom:8px;">✅ Graph API Webhook</div>
+                        <div style="color:#888;font-size:0.8rem;">Fully automatic. Meeting ends → webhook fires → transcript fetched → analysis runs. Zero manual steps. Best for demo.</div>
+                        <br><span class="chip chip-g">RECOMMENDED</span>
+                    </div>
+                    <div class="teams-card" style="border-top:3px solid #f1c40f;">
+                        <div style="color:#f1c40f;font-weight:700;margin-bottom:8px;">⚠️ Teams Bot</div>
+                        <div style="color:#888;font-size:0.8rem;">More impressive visually but needs Azure Bot Service setup and admin approval. Risky for 36-hour hackathon.</div>
+                        <br><span class="chip chip-y">COMPLEX</span>
+                    </div>
+                    <div class="teams-card" style="border-top:3px solid #3498db;">
+                        <div style="color:#3498db;font-weight:700;margin-bottom:8px;">💬 Slack Bot</div>
+                        <div style="color:#888;font-size:0.8rem;">Easiest to set up. Great if your team uses Slack. Slash command + daily reminder covers most use cases.</div>
+                        <br><span class="chip chip-r" style="background:rgba(52,152,219,0.15);color:#3498db;">IF ON SLACK</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- end main-area -->
+</div><!-- end app-shell -->
+</div><!-- end browser chrome -->
+<div style="height:60px;background:#080812;margin:0 40px;border-radius:0 0 20px 20px;"></div>
+
+<!-- INTEGRATIONS GUIDE -->
+<div class="section-wrap" id="integrations">
+<div class="section">
+    <h2>🔌 Integration <span>Setup Guide</span></h2>
+    <p class="subtitle">Step-by-step — how to connect GitHub, Jira, Microsoft Teams, and OpenAI to SprintPulse AI</p>
+
+    <!-- GITHUB -->
+    <div style="margin-bottom:40px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+            <div style="width:40px;height:40px;background:#24292e;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;">🐙</div>
+            <div>
+                <div style="font-size:1.1rem;font-weight:700;color:#302b63;">GitHub Integration</div>
+                <div style="font-size:0.85rem;color:#888;">Fetch commits per developer per day to detect say-do gap</div>
+            </div>
+            <span class="tag green" style="margin-left:auto;">~15 mins setup</span>
+        </div>
+        <table>
+            <thead><tr><th>Step</th><th>What to do</th><th>Where</th><th>Output</th></tr></thead>
+            <tbody>
+                <tr><td><strong>1</strong></td><td>Go to GitHub → Settings → Developer Settings → Personal Access Tokens → Tokens (classic)</td><td>github.com/settings/tokens</td><td>—</td></tr>
+                <tr><td><strong>2</strong></td><td>Click "Generate new token (classic)" → Give it a name like "sprintpulse"</td><td>GitHub Settings</td><td>—</td></tr>
+                <tr><td><strong>3</strong></td><td>Select scopes: <code>repo</code> (read access to commits) and <code>read:user</code></td><td>GitHub Settings</td><td>—</td></tr>
+                <tr><td><strong>4</strong></td><td>Click Generate → Copy the token immediately (shown only once)</td><td>GitHub Settings</td><td><strong>GITHUB_TOKEN</strong></td></tr>
+                <tr><td><strong>5</strong></td><td>Add to Lambda env vars: <code>GITHUB_TOKEN=ghp_xxxx</code>, <code>GITHUB_REPO=org/repo-name</code></td><td>AWS Lambda Console</td><td>—</td></tr>
+                <tr><td><strong>6</strong></td><td>Test: <code>GET https://api.github.com/repos/{owner}/{repo}/commits?author={email}&since=2025-01-15T00:00:00Z</code> with header <code>Authorization: Bearer GITHUB_TOKEN</code></td><td>Postman</td><td>List of commits</td></tr>
+            </tbody>
+        </table>
+        <div class="info-box blue" style="margin-top:12px;">
+            <p><strong>What we extract:</strong> commit count per person per day, commit timestamps (detect late-night commits), files changed (detect code churn). Cross-reference with standup "today" field to find say-do gap.</p>
+        </div>
+        <div class="card" style="margin-top:12px;">
+            <h3>Lambda Code — Fetch GitHub Commits</h3>
+            <div class="code-block">const fetchGitCommits = async (email, date) => {
+  const since = new Date(date);
+  since.setHours(0,0,0,0);
+  const until = new Date(date);
+  until.setHours(23,59,59,999);
+
+  const response = await axios.get(
+    `https://api.github.com/repos/${process.env.GITHUB_REPO}/commits`,
+    {
+      headers: { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` },
+      params: {
+        author: email,
+        since: since.toISOString(),
+        until: until.toISOString(),
+        per_page: 100
+      }
+    }
+  );
+
+  return {
+    commitCount: response.data.length,
+    lateNightCommits: response.data.filter(c => {
+      const hour = new Date(c.commit.author.date).getHours();
+      return hour >= 22 || hour <= 5;
+    }).length,
+    commits: response.data.map(c => ({
+      message: c.commit.message,
+      time: c.commit.author.date
+    }))
+  };
+};</div>
+        </div>
+    </div>
+
+    <!-- JIRA -->
+    <div style="margin-bottom:40px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+            <div style="width:40px;height:40px;background:#0052cc;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;">📌</div>
+            <div>
+                <div style="font-size:1.1rem;font-weight:700;color:#302b63;">Jira Integration</div>
+                <div style="font-size:0.85rem;color:#888;">Track ticket movement to verify standup claims</div>
+            </div>
+            <span class="tag green" style="margin-left:auto;">~20 mins setup</span>
+        </div>
+        <table>
+            <thead><tr><th>Step</th><th>What to do</th><th>Where</th><th>Output</th></tr></thead>
+            <tbody>
+                <tr><td><strong>1</strong></td><td>Log in to your Atlassian account → Go to Account Settings → Security</td><td>id.atlassian.com/manage-profile/security</td><td>—</td></tr>
+                <tr><td><strong>2</strong></td><td>Click "Create and manage API tokens" → Create API token → Name it "sprintpulse"</td><td>Atlassian Account</td><td><strong>JIRA_API_TOKEN</strong></td></tr>
+                <tr><td><strong>3</strong></td><td>Note your Jira domain: <code>yourcompany.atlassian.net</code> and your email address</td><td>Jira URL bar</td><td><strong>JIRA_DOMAIN, JIRA_EMAIL</strong></td></tr>
+                <tr><td><strong>4</strong></td><td>Note your Jira project key (e.g. <code>PROJ</code> from ticket names like PROJ-123)</td><td>Jira Board</td><td><strong>JIRA_PROJECT</strong></td></tr>
+                <tr><td><strong>5</strong></td><td>Add to Lambda env vars: <code>JIRA_DOMAIN</code>, <code>JIRA_EMAIL</code>, <code>JIRA_API_TOKEN</code>, <code>JIRA_PROJECT</code></td><td>AWS Lambda Console</td><td>—</td></tr>
+                <tr><td><strong>6</strong></td><td>Test: <code>GET https://{domain}/rest/api/3/search?jql=assignee={email} AND sprint in openSprints()</code> with Basic Auth (email:token base64 encoded)</td><td>Postman</td><td>List of tickets</td></tr>
+            </tbody>
+        </table>
+        <div class="info-box blue" style="margin-top:12px;">
+            <p><strong>What we extract:</strong> tickets assigned to each person in current sprint, last status transition date, current status. If ticket hasn't moved in 3+ days but standup says "making progress" → say-do gap flagged.</p>
+        </div>
+        <div class="card" style="margin-top:12px;">
+            <h3>Lambda Code — Fetch Jira Ticket Status</h3>
+            <div class="code-block">const fetchJiraTickets = async (email) => {
+  const auth = Buffer.from(
+    `${process.env.JIRA_EMAIL}:${process.env.JIRA_API_TOKEN}`
+  ).toString('base64');
+
+  // Get tickets assigned to person in current sprint
+  const searchRes = await axios.get(
+    `https://${process.env.JIRA_DOMAIN}/rest/api/3/search`,
+    {
+      headers: { Authorization: `Basic ${auth}` },
+      params: {
+        jql: `assignee="${email}" AND sprint in openSprints() AND project=${process.env.JIRA_PROJECT}`,
+        fields: 'summary,status,updated,assignee'
+      }
+    }
+  );
+
+  const tickets = searchRes.data.issues;
+
+  // For each ticket, check changelog to see last status change
+  const ticketDetails = await Promise.all(tickets.map(async (ticket) => {
+    const changelogRes = await axios.get(
+      `https://${process.env.JIRA_DOMAIN}/rest/api/3/issue/${ticket.key}/changelog`,
+      { headers: { Authorization: `Basic ${auth}` } }
+    );
+
+    const lastStatusChange = changelogRes.data.values
+      .filter(v => v.items.some(i => i.field === 'status'))
+      .sort((a,b) => new Date(b.created) - new Date(a.created))[0];
+
+    const daysSinceMove = lastStatusChange
+      ? Math.floor((Date.now() - new Date(lastStatusChange.created)) / 86400000)
+      : 999;
+
+    return {
+      key: ticket.key,
+      summary: ticket.fields.summary,
+      status: ticket.fields.status.name,
+      daysSinceLastMove: daysSinceMove,
+      stale: daysSinceMove >= 3
+    };
+  }));
+
+  return {
+    tickets: ticketDetails,
+    hasStaleTicket: ticketDetails.some(t => t.stale),
+    staleCount: ticketDetails.filter(t => t.stale).length
+  };
+};</div>
+        </div>
+    </div>
+
+    <!-- OPENAI -->
+    <div style="margin-bottom:40px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+            <div style="width:40px;height:40px;background:#10a37f;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;">🤖</div>
+            <div>
+                <div style="font-size:1.1rem;font-weight:700;color:#302b63;">OpenAI Integration</div>
+                <div style="font-size:0.85rem;color:#888;">Transcript parsing, vagueness scoring, AI recommendations</div>
+            </div>
+            <span class="tag green" style="margin-left:auto;">~10 mins setup</span>
+        </div>
+        <table>
+            <thead><tr><th>Step</th><th>What to do</th><th>Where</th><th>Output</th></tr></thead>
+            <tbody>
+                <tr><td><strong>1</strong></td><td>Go to platform.openai.com → Sign up or log in</td><td>platform.openai.com</td><td>—</td></tr>
+                <tr><td><strong>2</strong></td><td>Go to API Keys → Create new secret key → Name it "sprintpulse"</td><td>platform.openai.com/api-keys</td><td><strong>OPENAI_API_KEY</strong></td></tr>
+                <tr><td><strong>3</strong></td><td>Go to Billing → Add payment method → Add $10 credit (enough for entire hackathon)</td><td>platform.openai.com/billing</td><td>—</td></tr>
+                <tr><td><strong>4</strong></td><td>Add to Lambda env vars: <code>OPENAI_API_KEY=sk-xxxx</code></td><td>AWS Lambda Console</td><td>—</td></tr>
+                <tr><td><strong>5</strong></td><td>Install in Lambda: <code>npm install openai</code> → zip and deploy</td><td>Terminal</td><td>—</td></tr>
+                <tr><td><strong>6</strong></td><td>Test with a sample transcript — confirm structured JSON comes back correctly</td><td>Postman / Lambda Test</td><td>Parsed standup JSON</td></tr>
+            </tbody>
+        </table>
+        <div class="info-box green" style="margin-top:12px;">
+            <p><strong>Cost estimate:</strong> GPT-4o costs ~$0.005 per transcript parse. For a team of 10 doing standups for 10 days = ~500 API calls = <strong>~$2.50 total</strong>. Well within $10 budget.</p>
+        </div>
+    </div>
+
+    <!-- AWS TRANSCRIBE -->
+    <div style="margin-bottom:40px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+            <div style="width:40px;height:40px;background:#ff9900;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;">🎙️</div>
+            <div>
+                <div style="font-size:1.1rem;font-weight:700;color:#302b63;">AWS Transcribe Integration</div>
+                <div style="font-size:0.85rem;color:#888;">Convert standup audio recordings to text with speaker labels</div>
+            </div>
+            <span class="tag green" style="margin-left:auto;">~30 mins setup</span>
+        </div>
+        <table>
+            <thead><tr><th>Step</th><th>What to do</th><th>Where</th><th>Output</th></tr></thead>
+            <tbody>
+                <tr><td><strong>1</strong></td><td>Create S3 bucket named <code>sprintpulse-audio</code> in AWS Console → Block all public access ON</td><td>AWS S3 Console</td><td><strong>S3_BUCKET_NAME</strong></td></tr>
+                <tr><td><strong>2</strong></td><td>Add IAM policy to Lambda role: <code>transcribe:StartTranscriptionJob</code>, <code>transcribe:GetTranscriptionJob</code>, <code>s3:GetObject</code>, <code>s3:PutObject</code></td><td>AWS IAM Console</td><td>—</td></tr>
+                <tr><td><strong>3</strong></td><td>In Lambda: generate S3 presigned URL → return to frontend → frontend uploads audio directly to S3</td><td>Lambda Code</td><td>Upload URL</td></tr>
+                <tr><td><strong>4</strong></td><td>After upload, call <code>StartTranscriptionJob</code> with <code>ShowSpeakerLabels: true</code> and <code>MaxSpeakerLabels: 10</code></td><td>Lambda Code</td><td>Job ID</td></tr>
+                <tr><td><strong>5</strong></td><td>Poll <code>GetTranscriptionJob</code> every 5 seconds until status = COMPLETED → fetch transcript JSON from S3</td><td>Lambda Code</td><td>Raw transcript</td></tr>
+                <tr><td><strong>6</strong></td><td>Pass raw transcript to OpenAI parse prompt → get structured standup per speaker → save to DynamoDB</td><td>Lambda Code</td><td>Structured standups</td></tr>
+            </tbody>
+        </table>
+        <div class="card" style="margin-top:12px;">
+            <h3>Lambda Code — Start Transcribe Job</h3>
+            <div class="code-block">const { TranscribeClient, StartTranscriptionJobCommand,
+        GetTranscriptionJobCommand } = require('@aws-sdk/client-transcribe');
+
+const transcribeClient = new TranscribeClient({ region: 'eu-west-1' });
+
+const startTranscription = async (s3Key, jobName) => {
+  await transcribeClient.send(new StartTranscriptionJobCommand({
+    TranscriptionJobName: jobName,
+    Media: { MediaFileUri: `s3://${process.env.S3_BUCKET_NAME}/${s3Key}` },
+    MediaFormat: 'mp3',
+    LanguageCode: 'en-US',
+    Settings: {
+      ShowSpeakerLabels: true,  // Who said what
+      MaxSpeakerLabels: 10
+    }
+  }));
+};
+
+const pollTranscription = async (jobName) => {
+  while (true) {
+    const res = await transcribeClient.send(
+      new GetTranscriptionJobCommand({ TranscriptionJobName: jobName })
+    );
+    const status = res.TranscriptionJob.TranscriptionJobStatus;
+    if (status === 'COMPLETED') {
+      const transcriptUri = res.TranscriptionJob.Transcript.TranscriptFileUri;
+      const transcriptRes = await axios.get(transcriptUri);
+      return transcriptRes.data; // Raw transcript JSON with speaker labels
+    }
+    if (status === 'FAILED') throw new Error('Transcription failed');
+    await new Promise(r => setTimeout(r, 5000)); // Poll every 5 seconds
+  }
+};</div>
+        </div>
+    </div>
+
+    <!-- MICROSOFT TEAMS -->
+    <div style="margin-bottom:40px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+            <div style="width:40px;height:40px;background:#6264a7;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;">💼</div>
+            <div>
+                <div style="font-size:1.1rem;font-weight:700;color:#302b63;">Microsoft Teams Integration</div>
+                <div style="font-size:0.85rem;color:#888;">Auto-fetch meeting transcripts via Graph API — zero manual steps</div>
+            </div>
+            <span class="tag yellow" style="margin-left:auto;">~45 mins setup</span>
+        </div>
+        <table>
+            <thead><tr><th>Step</th><th>What to do</th><th>Where</th><th>Output</th></tr></thead>
+            <tbody>
+                <tr><td><strong>1</strong></td><td>Go to portal.azure.com → Azure Active Directory → App Registrations → New Registration → Name: "SprintPulse"</td><td>portal.azure.com</td><td>—</td></tr>
+                <tr><td><strong>2</strong></td><td>Copy Application (client) ID and Directory (tenant) ID from the Overview page</td><td>Azure Portal</td><td><strong>TEAMS_CLIENT_ID, TEAMS_TENANT_ID</strong></td></tr>
+                <tr><td><strong>3</strong></td><td>Go to Certificates & Secrets → New client secret → Copy value immediately</td><td>Azure Portal</td><td><strong>TEAMS_CLIENT_SECRET</strong></td></tr>
+                <tr><td><strong>4</strong></td><td>Go to API Permissions → Add permission → Microsoft Graph → Application permissions → Add: <code>OnlineMeetings.Read.All</code>, <code>CallRecords.Read.All</code>, <code>OnlineMeetingTranscript.Read.All</code></td><td>Azure Portal</td><td>—</td></tr>
+                <tr><td><strong>5</strong></td><td>Click "Grant admin consent" → Confirm. This is required for app-level access.</td><td>Azure Portal</td><td>—</td></tr>
+                <tr><td><strong>6</strong></td><td>In Teams Admin Center → Meetings → Meeting Policies → Enable "Transcription" and "Recording" for your team</td><td>admin.teams.microsoft.com</td><td>—</td></tr>
+                <tr><td><strong>7</strong></td><td>Register webhook subscription: <code>POST https://graph.microsoft.com/v1.0/subscriptions</code> with resource <code>communications/callRecords</code> and your Lambda URL as notificationUrl</td><td>Lambda / Postman</td><td>Auto-trigger on meeting end</td></tr>
+                <tr><td><strong>8</strong></td><td>When webhook fires → fetch transcript: <code>GET /communications/callRecords/{id}/microsoftGraphCommunicationsCallRecordsGetDirectRoutingCalls</code> → pass to OpenAI parser</td><td>Lambda Code</td><td>Transcript text</td></tr>
+            </tbody>
+        </table>
+        <div class="info-box yellow" style="margin-top:12px;">
+            <p><strong>Important:</strong> Admin consent (Step 5) requires a Microsoft 365 admin account. For the hackathon, if you don't have admin access, use the "Paste Transcript" mode instead — Teams lets any user copy the transcript after a call from the meeting chat.</p>
+        </div>
+        <div class="card" style="margin-top:12px;">
+            <h3>Lambda Code — Fetch Teams Transcript via Graph API</h3>
+            <div class="code-block">const getTeamsAccessToken = async () => {
+  const res = await axios.post(
+    `https://login.microsoftonline.com/${process.env.TEAMS_TENANT_ID}/oauth2/v2.0/token`,
+    new URLSearchParams({
+      client_id: process.env.TEAMS_CLIENT_ID,
+      client_secret: process.env.TEAMS_CLIENT_SECRET,
+      scope: 'https://graph.microsoft.com/.default',
+      grant_type: 'client_credentials'
+    })
+  );
+  return res.data.access_token;
+};
+
+const fetchTeamsTranscript = async (callRecordId) => {
+  const token = await getTeamsAccessToken();
+  const headers = { Authorization: `Bearer ${token}` };
+
+  // Get sessions from the call record
+  const sessionsRes = await axios.get(
+    `https://graph.microsoft.com/v1.0/communications/callRecords/${callRecordId}/sessions`,
+    { headers }
+  );
+
+  // Get transcript for each session
+  const transcriptRes = await axios.get(
+    `https://graph.microsoft.com/v1.0/communications/callRecords/${callRecordId}/transcripts`,
+    { headers }
+  );
+
+  return transcriptRes.data.value[0]?.content || '';
+};
+
+// Webhook handler — Teams calls this when a meeting ends
+exports.teamsWebhook = async (event) => {
+  const body = JSON.parse(event.body);
+
+  // Teams sends a validation token on first setup
+  if (body.validationToken) {
+    return { statusCode: 200, body: body.validationToken };
+  }
+
+  for (const notification of body.value) {
+    const callRecordId = notification.resourceData.id;
+    const transcript = await fetchTeamsTranscript(callRecordId);
+    // Pass to OpenAI parser → save to DynamoDB
+    await parseAndSaveTranscript(transcript, new Date().toISOString().split('T')[0]);
+  }
+
+  return { statusCode: 202 };
+};</div>
+        </div>
+    </div>
+
+    <!-- FULL DATA FLOW -->
+    <div style="margin-bottom:20px;">
+        <h3 style="color:#302b63;margin-bottom:16px;padding-left:5px;">🔄 Complete Data Flow — End to End</h3>
+        <div class="card">
+            <div class="code-block">STANDUP CALL HAPPENS
+        │
+        ▼
+┌─────────────────────────────────────────────────────────────┐
+│  INPUT (choose one)                                          │
+│  A) Teams webhook fires automatically when call ends         │
+│  B) User uploads .mp3 → S3 → AWS Transcribe → text          │
+│  C) User pastes transcript from Zoom/Teams/Meet              │
+│  D) User fills manual form (Yesterday/Today/Blockers)        │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+                       ▼
+              OpenAI GPT-4o
+         (parse per-person standup)
+                       │
+                       ▼
+              DynamoDB — save standup
+         pk: email | sk: STANDUP#date
+                       │
+                       ▼
+┌─────────────────────────────────────────────────────────────┐
+│  ANALYSIS ENGINE (runs in parallel)                          │
+│                                                              │
+│  ┌─────────────┐  ┌─────────────┐  ┌──────────────────┐    │
+│  │ Text checks │  │ GitHub API  │  │   Jira API       │    │
+│  │ - vagueness │  │ - commits   │  │ - ticket status  │    │
+│  │ - copy-paste│  │ - late night│  │ - last moved date│    │
+│  │ - staleness │  │ - PR count  │  │ - stale tickets  │    │
+│  └──────┬──────┘  └──────┬──────┘  └────────┬─────────┘    │
+│         └────────────────┴──────────────────┘              │
+│                          │                                   │
+│                          ▼                                   │
+│              Say-Do Gap Scoring                              │
+│         (standup claims vs actual output)                    │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+                           ▼
+              OpenAI GPT-4o
+         (generate recommendation)
+                           │
+                           ▼
+              DynamoDB — save analysis
+         pk: email | sk: ANALYSIS#date
+                           │
+                           ▼
+              React Dashboard
+         Sprint Health Score + Flags + Recommendations</div>
+        </div>
+    </div>
+
+    <!-- ENV VARS SUMMARY -->
+    <div>
+        <h3 style="color:#302b63;margin-bottom:16px;padding-left:5px;">🔑 All Environment Variables — Lambda Config</h3>
+        <table>
+            <thead><tr><th>Variable</th><th>Where to get it</th><th>Example value</th><th>Used by</th></tr></thead>
+            <tbody>
+                <tr><td><code>OPENAI_API_KEY</code></td><td>platform.openai.com/api-keys</td><td>sk-proj-xxxx</td><td>Transcript parser, recommendations</td></tr>
+                <tr><td><code>GITHUB_TOKEN</code></td><td>github.com/settings/tokens</td><td>ghp_xxxx</td><td>Commit fetcher</td></tr>
+                <tr><td><code>GITHUB_REPO</code></td><td>Your repo URL</td><td>myorg/myrepo</td><td>Commit fetcher</td></tr>
+                <tr><td><code>JIRA_DOMAIN</code></td><td>Your Jira URL</td><td>mycompany.atlassian.net</td><td>Ticket fetcher</td></tr>
+                <tr><td><code>JIRA_EMAIL</code></td><td>Your Atlassian login email</td><td>admin@company.com</td><td>Ticket fetcher</td></tr>
+                <tr><td><code>JIRA_API_TOKEN</code></td><td>id.atlassian.com/manage-profile/security</td><td>ATATxxxx</td><td>Ticket fetcher</td></tr>
+                <tr><td><code>JIRA_PROJECT</code></td><td>Your Jira project key</td><td>PROJ</td><td>Ticket fetcher</td></tr>
+                <tr><td><code>S3_BUCKET_NAME</code></td><td>AWS S3 Console</td><td>sprintpulse-audio</td><td>Audio upload</td></tr>
+                <tr><td><code>DYNAMODB_TABLE</code></td><td>AWS DynamoDB Console</td><td>sprintpulse-main</td><td>All Lambdas</td></tr>
+                <tr><td><code>TEAMS_CLIENT_ID</code></td><td>Azure Portal → App Registration</td><td>xxxxxxxx-xxxx</td><td>Teams webhook</td></tr>
+                <tr><td><code>TEAMS_CLIENT_SECRET</code></td><td>Azure Portal → Certificates & Secrets</td><td>xxxx~xxxx</td><td>Teams webhook</td></tr>
+                <tr><td><code>TEAMS_TENANT_ID</code></td><td>Azure Portal → App Registration</td><td>xxxxxxxx-xxxx</td><td>Teams webhook</td></tr>
+            </tbody>
+        </table>
+        <div class="info-box red" style="margin-top:12px;">
+            <p><strong>Never put these in code.</strong> Always use Lambda environment variables or AWS Secrets Manager. Never commit to GitHub.</p>
+        </div>
+    </div>
+
+</div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+    <p><strong>SprintPulse AI</strong> — Hackathon Execution Plan</p>
+    <p style="margin-top:8px;">Team: Yash Srivastav · Atharv Arolkar · Vipindas Nambiar · Akash Kumar</p>
+    <p style="margin-top:5px; font-size:0.8rem;">36 hours. 4 people. Ship it. 🚀</p>
+</div>
+
+<script>
+const pages = ['dashboard','submit','member','leaderboard','teams-bot'];
+
+function showPage(name) {
+    pages.forEach(p => {
+        document.getElementById('page-'+p).classList.remove('active');
+        const nav = document.getElementById('nav-'+p);
+        if(nav) nav.classList.remove('active');
+    });
+    document.getElementById('page-'+name).classList.add('active');
+    const nav = document.getElementById('nav-'+name);
+    if(nav) nav.classList.add('active');
+    const titles = {
+        'dashboard':'📊 Dashboard',
+        'submit':'✍️ Submit Standup',
+        'member':'👤 Member Detail',
+        'leaderboard':'🏆 Leaderboard',
+        'teams-bot':'🤖 Teams Bot Setup'
+    };
+    document.getElementById('topbar-title').textContent = titles[name] || name;
+}
+
+function showTab(name, btn) {
+    ['manual','transcript','audio'].forEach(t => {
+        document.getElementById('tab-'+t).style.display = 'none';
+    });
+    document.getElementById('tab-'+name).style.display = 'block';
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+
+function submitManual() {
+    document.getElementById('manual-success').style.display = 'block';
+    setTimeout(() => { document.getElementById('manual-success').style.display = 'none'; }, 3000);
+}
+
+function parseTranscript() {
+    document.getElementById('transcript-processing').style.display = 'block';
+    document.getElementById('transcript-result').style.display = 'none';
+    setTimeout(() => {
+        document.getElementById('transcript-processing').style.display = 'none';
+        document.getElementById('transcript-result').style.display = 'block';
+    }, 2500);
+}
+
+function confirmTranscript() {
+    document.getElementById('transcript-result').style.display = 'none';
+    document.getElementById('transcript-saved').style.display = 'block';
+}
+
+function simulateUpload() {
+    document.getElementById('audio-processing').style.display = 'block';
+    setTimeout(() => {
+        document.getElementById('audio-processing').style.display = 'none';
+        document.getElementById('audio-transcribing').style.display = 'block';
+    }, 1500);
+    setTimeout(() => {
+        document.getElementById('audio-transcribing').style.display = 'none';
+        document.getElementById('audio-parsing').style.display = 'block';
+    }, 3500);
+    setTimeout(() => {
+        document.getElementById('audio-parsing').style.display = 'none';
+        document.getElementById('audio-result').style.display = 'block';
+    }, 5500);
+}
+
+const memberData = {
+    yash: {
+        title: 'Yash Srivastav — Member Detail',
+        sub: 'Backend Developer · HIGH RISK · Score: 34/100',
+        score: '34', commits: '0', jira: 'No', stale: '8',
+        scoreColor: '#ff6b6b',
+        history: [
+            { date:'Jan 15', day:'Wed', yesterday:'Working on API integration', today:'Working on API integration', blockers:'None', chips:[{l:'COPY-PASTE 87%',c:'r'},{l:'STALE DAY 8',c:'r'}], dot:'#ff6b6b' },
+            { date:'Jan 14', day:'Tue', yesterday:'Working on API integration', today:'Working on API integration, making progress', blockers:'None', chips:[{l:'VAGUE',c:'y'},{l:'STALE DAY 7',c:'r'}], dot:'#ff6b6b' },
+            { date:'Jan 13', day:'Mon', yesterday:'Looking into API stuff', today:'Will continue API integration', blockers:'None', chips:[{l:'FRI→MON GAP',c:'y'},{l:'STALE DAY 6',c:'r'}], dot:'#f1c40f' },
+            { date:'Jan 10', day:'Fri', yesterday:'Worked on API integration', today:'Continue next week', blockers:'None', chips:[{l:'STALE DAY 5',c:'y'},{l:'NEVER BLOCKED',c:'y'}], dot:'#f1c40f' },
+            { date:'Jan 9', day:'Thu', yesterday:'Making progress on API', today:'Continue API integration', blockers:'None', chips:[{l:'VAGUE',c:'y'}], dot:'#f1c40f' },
+        ]
+    },
+    atharv: {
+        title: 'Atharv Arolkar — Member Detail',
+        sub: 'Full Stack Developer · MEDIUM RISK · Score: 58/100',
+        score: '58', commits: '3', jira: 'Yes', stale: '2',
+        scoreColor: '#f1c40f',
+        history: [
+            { date:'Jan 15', day:'Wed', yesterday:'Fixed rendering bug in dashboard', today:'Continue frontend performance work', blockers:'None', chips:[{l:'LATE NIGHT COMMIT',c:'y'}], dot:'#f1c40f' },
+            { date:'Jan 14', day:'Tue', yesterday:'Investigated performance issues', today:'Fix rendering bug', blockers:'None', chips:[{l:'VAGUE',c:'y'}], dot:'#f1c40f' },
+            { date:'Jan 13', day:'Mon', yesterday:'Various frontend tasks', today:'Look into performance', blockers:'None', chips:[{l:'VAGUE',c:'y'},{l:'STALE DAY 2',c:'y'}], dot:'#f1c40f' },
+        ]
+    },
+    vipindas: {
+        title: 'Vipindas Nambiar — Member Detail',
+        sub: 'Frontend Developer · LOW RISK · Score: 88/100',
+        score: '88', commits: '7', jira: 'Yes', stale: '0',
+        scoreColor: '#2ecc71',
+        history: [
+            { date:'Jan 15', day:'Wed', yesterday:'Completed mobile responsive layout for dashboard', today:'Start unit tests for new components', blockers:'Waiting for API spec from backend', chips:[{l:'HEALTHY',c:'g'}], dot:'#2ecc71' },
+            { date:'Jan 14', day:'Tue', yesterday:'Built 3 new React components for sprint view', today:'Mobile responsive layout', blockers:'None', chips:[{l:'HEALTHY',c:'g'}], dot:'#2ecc71' },
+        ]
+    },
+    akash: {
+        title: 'Akash Kumar — Member Detail',
+        sub: 'QA Engineer · LOW RISK · Score: 82/100',
+        score: '82', commits: '2', jira: 'Yes', stale: '1',
+        scoreColor: '#3498db',
+        history: [
+            { date:'Jan 15', day:'Wed', yesterday:'Testing various things on the new build', today:'Continue regression testing', blockers:'None', chips:[{l:'VAGUE',c:'y'}], dot:'#f1c40f' },
+            { date:'Jan 14', day:'Tue', yesterday:'Wrote test cases for auth module', today:'Test the new dashboard API', blockers:'None', chips:[{l:'HEALTHY',c:'g'}], dot:'#2ecc71' },
+        ]
+    }
+};
+
+function showMember(key) {
+    const m = memberData[key];
+    document.getElementById('member-title').textContent = m.title;
+    document.getElementById('member-sub').textContent = m.sub;
+    document.getElementById('m-score').textContent = m.score;
+    document.getElementById('m-score').style.color = m.scoreColor;
+    document.getElementById('m-commits').textContent = m.commits;
+    document.getElementById('m-jira').textContent = m.jira;
+    document.getElementById('m-stale').textContent = m.stale;
+
+    const tl = document.getElementById('member-timeline');
+    tl.innerHTML = '';
+    m.history.forEach((h, i) => {
+        const isLast = i === m.history.length - 1;
+        tl.innerHTML += `
+            <div class="tl-row">
+                <div class="tl-date">${h.date}<br><span style="color:#555;font-size:0.65rem">${h.day}</span></div>
+                <div class="tl-dc">
+                    <div class="tl-d" style="background:${h.dot};"></div>
+                    ${!isLast ? '<div class="tl-l"></div>' : ''}
+                </div>
+                <div class="tl-c">
+                    <div class="tl-cl">Yesterday</div><div class="tl-ct">${h.yesterday}</div>
+                    <div class="tl-cl">Today</div><div class="tl-ct">${h.today}</div>
+                    <div class="tl-cl">Blockers</div><div class="tl-ct">${h.blockers}</div>
+                    <div class="tl-chips">${h.chips.map(c=>`<span class="chip chip-${c.c}">${c.l}</span>`).join('')}</div>
+                </div>
+            </div>`;
+    });
+    showPage('member');
+}
+
+// Set sprint trend bar heights
+window.onload = () => {
+    const bars = {s20:78,s21:72,s22:65,s23:68,s24:62};
+    Object.entries(bars).forEach(([id,val]) => {
+        const el = document.getElementById('bar-'+id);
+        if(el) el.style.height = (val * 0.7) + 'px';
+    });
+};
+</script>
+
+</body>
+</html>

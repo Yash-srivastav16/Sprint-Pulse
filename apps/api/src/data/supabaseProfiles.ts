@@ -100,6 +100,9 @@ const initialsFromName = (name: string) =>
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("") || "SP";
 
+const inviteTablesMissing = (message: string) =>
+  message.includes("project_invites") || message.includes("project_members");
+
 const requireSupabaseAdmin = () => {
   if (!supabaseAdmin) {
     throw new Error(supabaseAdminConfigError ?? "Backend Supabase Admin is not configured.");
@@ -186,6 +189,61 @@ export const findSupabaseProfilesByIds = async (profileIds: string[]): Promise<U
   return ((data ?? []) as ProfileRow[]).map(toProfile);
 };
 
+const acceptPendingProjectInvites = async (email: string, profileId: string, warnings: string[]) => {
+  const client = requireSupabaseAdmin();
+  const normalizedEmail = email.trim().toLowerCase();
+  const now = nowIso();
+
+  const invites = await client
+    .from("project_invites")
+    .select("project_id, role")
+    .eq("status", "pending")
+    .ilike("email", normalizedEmail);
+
+  if (invites.error) {
+    if (inviteTablesMissing(invites.error.message)) {
+      warnings.push("Project invite acceptance tables are not installed yet.");
+      return;
+    }
+
+    throw new Error(invites.error.message);
+  }
+
+  const inviteRows = (invites.data ?? []) as Array<{ project_id: string; role: ProjectRole }>;
+  if (!inviteRows.length) {
+    return;
+  }
+
+  const memberRows = inviteRows.map((invite) => ({
+    project_id: invite.project_id,
+    profile_id: profileId,
+    role: invite.role
+  }));
+  const memberWrite = await client.from("project_members").upsert(memberRows);
+
+  if (memberWrite.error) {
+    if (inviteTablesMissing(memberWrite.error.message)) {
+      warnings.push("Project membership tables are not installed yet.");
+      return;
+    }
+
+    throw new Error(memberWrite.error.message);
+  }
+
+  const inviteWrite = await client
+    .from("project_invites")
+    .update({
+      status: "accepted",
+      accepted_at: now
+    })
+    .eq("status", "pending")
+    .ilike("email", normalizedEmail);
+
+  if (inviteWrite.error) {
+    throw new Error(inviteWrite.error.message);
+  }
+};
+
 export const createSupabaseUserProfile = async (
   request: CreateUserProfileRequest
 ): Promise<CreateUserProfileResponse> => {
@@ -218,11 +276,13 @@ export const createSupabaseUserProfile = async (
   }
 
   const profile = toProfile(data as ProfileRow);
+  const warnings: string[] = [];
+  await acceptPendingProjectInvites(email, profile.id, warnings);
 
   return {
     profile,
     persona: toPersonaFromProfile(profile),
     recommendedRoute: "/projects",
-    warnings: []
+    warnings
   };
 };

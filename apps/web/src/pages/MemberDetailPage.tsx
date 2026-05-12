@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, GitCommitHorizontal, Loader2, TicketCheck } from "lucide-react";
+import { ArrowLeft, GitCommitHorizontal, Loader2, MessageSquareText, Sparkles, TicketCheck } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import type { MemberPulse, MemberPulseHistoryResponse } from "@sprintpulse/shared";
 import { api } from "../api";
 import { RiskBadge } from "../components/RiskBadge";
 import { ScoreRing } from "../components/ScoreRing";
 import { useAuth } from "../context/AuthContext";
+import { useProject } from "../context/ProjectContext";
 
 const isHistoryResponse = (
   response: { member: MemberPulse } | MemberPulseHistoryResponse
@@ -14,6 +15,7 @@ const isHistoryResponse = (
 export function MemberDetailPage() {
   const { projectId, memberId } = useParams();
   const { persona } = useAuth();
+  const { selectedSprintId } = useProject();
   const [member, setMember] = useState<MemberPulse | null>(null);
   const [history, setHistory] = useState<MemberPulseHistoryResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -31,7 +33,9 @@ export function MemberDetailPage() {
     setLoading(true);
     setError(null);
 
-    const request = projectId && persona ? api.getProjectMemberHistory(projectId, memberId, persona.id) : api.getMember(memberId);
+    const request = projectId && persona
+      ? api.getProjectMemberHistory(projectId, memberId, persona.id, selectedSprintId ?? undefined)
+      : api.getMember(memberId);
     request
       .then((response) => {
         setMember(response.member);
@@ -39,7 +43,7 @@ export function MemberDetailPage() {
       })
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [memberId, persona, projectId]);
+  }, [memberId, persona, projectId, selectedSprintId]);
 
   if (loading) {
     return (
@@ -53,6 +57,10 @@ export function MemberDetailPage() {
   if (error || !member) {
     return <div className="center-state error-state">{error ?? "Member unavailable"}</div>;
   }
+
+  const activeIssues = history?.issues.length ?? member.tickets.length;
+  const standupCount = history?.standups.length ?? member.standups.length;
+  const recommendationCount = history?.recommendations.length ?? member.flags.length;
 
   return (
     <div className="page-stack">
@@ -71,6 +79,27 @@ export function MemberDetailPage() {
           </div>
         </div>
         <ScoreRing score={member.healthScore} label="health score" />
+      </section>
+
+      <section className="ops-kpi-grid member-kpis">
+        <article className="ops-kpi-card">
+          <TicketCheck size={20} />
+          <span>Tracked issues</span>
+          <strong>{activeIssues}</strong>
+          <small>{member.riskLevel} delivery risk</small>
+        </article>
+        <article className="ops-kpi-card">
+          <GitCommitHorizontal size={20} />
+          <span>Sprint commits</span>
+          <strong>{member.git.commitsThisSprint}</strong>
+          <small>{member.git.pullRequestsOpen} open PRs</small>
+        </article>
+        <article className="ops-kpi-card">
+          <MessageSquareText size={20} />
+          <span>Standup trail</span>
+          <strong>{standupCount}</strong>
+          <small>{recommendationCount} active recommendations</small>
+        </article>
       </section>
 
       <section className="content-grid">
@@ -119,6 +148,7 @@ export function MemberDetailPage() {
               <p className="eyebrow">Risk explanation</p>
               <h2>Flags</h2>
             </div>
+            <Sparkles size={20} />
           </div>
           <div className="flag-list">
             {member.flags.length ? (

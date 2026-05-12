@@ -705,6 +705,7 @@ export const buildSupabaseTeam = async (projectId: string, personaId: string): P
   }
 
   const client = requireSupabaseAdmin();
+  const canEditTeam = context.permissions.includes("project:editTeam");
   const { data, error } = await client
     .from("project_invites")
     .select("*")
@@ -715,13 +716,32 @@ export const buildSupabaseTeam = async (projectId: string, personaId: string): P
     throw new Error(error.message);
   }
 
+  let availableUsers: ReturnType<typeof toProfile>[] = [];
+  if (canEditTeam) {
+    const memberIds = new Set(context.project.members.map((member) => member.personaId));
+    const profiles = await client
+      .from(profilesTable)
+      .select("*")
+      .eq("status", "active")
+      .order("name", { ascending: true });
+
+    if (profiles.error) {
+      throw new Error(profiles.error.message);
+    }
+
+    availableUsers = ((profiles.data ?? []) as ProfileRow[])
+      .map(toProfile)
+      .filter((profile) => !memberIds.has(profile.id));
+  }
+
   return {
     viewer: context.viewer,
     project: context.project,
     permissions: context.permissions,
     members: context.project.members,
+    availableUsers,
     invites: ((data ?? []) as ProjectInviteRow[]).map(toInvite),
-    canEditTeam: context.permissions.includes("project:editTeam")
+    canEditTeam
   };
 };
 

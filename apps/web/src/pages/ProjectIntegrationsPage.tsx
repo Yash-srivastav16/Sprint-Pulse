@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Cloud, GitBranch, Loader2, PlugZap, RefreshCw, Save, ShieldAlert } from "lucide-react";
+import { Cloud, GitBranch, Loader2, PlugZap, RefreshCw, Save, ShieldAlert, TicketCheck, Workflow } from "lucide-react";
 import { useParams } from "react-router-dom";
 import type { IntegrationStatusResponse } from "@sprintpulse/shared";
 import { api } from "../api";
@@ -149,6 +149,9 @@ export function ProjectIntegrationsPage() {
     return <div className="center-state error-state">Integrations unavailable</div>;
   }
 
+  const connectedCount = [data.jira, data.git].filter(Boolean).length;
+  const lastSyncAt = [data.jira?.lastSyncAt, data.git?.lastSyncAt].filter(Boolean).sort().at(-1);
+
   return (
     <div className="page-stack ops-page">
       <section className="page-heading ops-heading">
@@ -157,9 +160,40 @@ export function ProjectIntegrationsPage() {
           <h1>Configure sync</h1>
           <p>Connect Jira and GitHub signals to the selected project. Guided sync keeps issue and commit signals reliable for the presentation.</p>
         </div>
-        <div className="ops-heading-icon">
-          <PlugZap size={28} />
+        <div className="ops-hero-metrics">
+          <div>
+            <strong>{connectedCount}/2</strong>
+            <span>connected</span>
+          </div>
+          <div>
+            <strong>{data.issuePreview.length + data.commitPreview.length}</strong>
+            <span>signals</span>
+          </div>
+          <div className="ops-heading-icon">
+            <PlugZap size={28} />
+          </div>
         </div>
+      </section>
+
+      <section className="ops-kpi-grid">
+        <article className="ops-kpi-card">
+          <Cloud size={20} />
+          <span>Jira status</span>
+          <strong>{data.jira?.status ?? "Not connected"}</strong>
+          <small>{data.jira?.projectKey ?? "Add the sprint project key"}</small>
+        </article>
+        <article className="ops-kpi-card">
+          <GitBranch size={20} />
+          <span>GitHub status</span>
+          <strong>{data.git?.status ?? "Not connected"}</strong>
+          <small>{data.git ? `${data.git.repoOwner}/${data.git.repoName}` : "Add the delivery repository"}</small>
+        </article>
+        <article className="ops-kpi-card">
+          <Workflow size={20} />
+          <span>Last sync</span>
+          <strong>{lastSyncAt ? new Date(lastSyncAt).toLocaleTimeString() : "Pending"}</strong>
+          <small>{lastSyncAt ? new Date(lastSyncAt).toLocaleDateString() : "Run a sync after configuring"}</small>
+        </article>
       </section>
 
       {!canConfigure ? (
@@ -259,6 +293,7 @@ export function ProjectIntegrationsPage() {
               <p className="eyebrow">Jira preview</p>
               <h2>{data.issuePreview.length} synced issues</h2>
             </div>
+            <TicketCheck size={20} />
           </div>
           <div className="ticket-list">
             {data.issuePreview.length ? data.issuePreview.map((issue) => (

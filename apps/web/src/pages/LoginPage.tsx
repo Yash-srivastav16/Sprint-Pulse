@@ -32,7 +32,22 @@ export function LoginPage() {
     setMode(location.pathname === "/signup" ? "create" : "signin");
     setError(null);
     setSuccess(null);
-  }, [location.pathname]);
+
+    const params = new URLSearchParams(location.search);
+    const invitedEmail = params.get("email");
+    const invitedName = params.get("name");
+    const invitedRole = params.get("role") as AppRole | null;
+
+    if (location.pathname === "/signup" && invitedEmail) {
+      setEmail(invitedEmail);
+    }
+    if (location.pathname === "/signup" && invitedName) {
+      setName(invitedName);
+    }
+    if (location.pathname === "/signup" && invitedRole && roleOptions.some((role) => role.value === invitedRole)) {
+      setAppRole(invitedRole);
+    }
+  }, [location.pathname, location.search]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -102,14 +117,19 @@ export function LoginPage() {
             <Activity size={28} />
           </div>
           <p className="eyebrow">Sprint intelligence workspace</p>
-          <h1>Access SprintPulse AI</h1>
+          <h1>{mode === "signin" ? "Access SprintPulse AI" : "Create your SprintPulse account"}</h1>
           <p>
-            Sign in or create an account to connect sprint context and review health
-            signals across standups, Jira movement, and delivery activity.
+            {mode === "signin"
+              ? "Sign in to open your project workspace, sprint dashboard, standups, and delivery signals."
+              : "If you were invited, use the same email from the invite. You choose your own password here."}
           </p>
           <div className="login-proof">
             <ShieldCheck size={18} />
-            <span>Each account is tied to a workspace role so Product Owners, Scrum Masters, and contributors see the right details.</span>
+            <span>
+              {mode === "signin"
+                ? "Your project access is loaded from your SprintPulse profile."
+                : "SprintPulse verifies project access by matching this signed-in email to pending invites."}
+            </span>
           </div>
         </div>
 
@@ -225,7 +245,7 @@ export function LoginPage() {
             type="submit"
             disabled={submitting || isLoading || Boolean(configurationError)}
           >
-            {submitting || isLoading ? <Loader2 className="spin" size={18} /> : <ArrowRight size={18} />}
+            {submitting ? <Loader2 className="spin" size={18} /> : <ArrowRight size={18} />}
             <span>{mode === "signin" ? "Sign in to projects" : "Create account"}</span>
           </button>
 
@@ -233,7 +253,7 @@ export function LoginPage() {
           <p className="auth-form-note">
             {mode === "signin"
               ? "New to SprintPulse? Create an account and choose the role you need for this workspace."
-              : "After signup, your role controls project setup, dashboard visibility, and standup permissions."}
+              : "Once the account exists, a Scrum Master can add it to any project team from Team management."}
           </p>
         </form>
       </section>

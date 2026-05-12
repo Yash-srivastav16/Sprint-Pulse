@@ -1,15 +1,17 @@
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
-import { ClipboardCheck, Loader2, RefreshCw, Send, Sparkles, UploadCloud } from "lucide-react";
+import { CalendarClock, ClipboardCheck, History, Loader2, RefreshCw, Send, Sparkles, UploadCloud } from "lucide-react";
 import { useParams } from "react-router-dom";
 import type { ProjectStandupsResponse } from "@sprintpulse/shared";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
+import { useProject } from "../context/ProjectContext";
 
 type StandupMode = "manual" | "transcript" | "upload";
 
 export function StandupPage() {
   const { projectId } = useParams();
   const { persona } = useAuth();
+  const { selectedSprintId } = useProject();
   const [mode, setMode] = useState<StandupMode>("manual");
   const [yesterday, setYesterday] = useState("");
   const [today, setToday] = useState("");
@@ -39,7 +41,7 @@ export function StandupPage() {
     }
 
     api
-      .getProjectStandups(projectId, persona.id)
+      .getProjectStandups(projectId, persona.id, selectedSprintId ?? undefined)
       .then((response) => {
         setStandupData(response);
         setCanSyncStandups(response.canSync);
@@ -49,7 +51,7 @@ export function StandupPage() {
 
   useEffect(() => {
     loadStandups();
-  }, [persona, projectId]);
+  }, [persona, projectId, selectedSprintId]);
 
   const switchMode = (nextMode: StandupMode) => {
     setMode(nextMode);
@@ -150,6 +152,10 @@ export function StandupPage() {
     }
   };
 
+  const activeSprintLabel = standupData ? `${standupData.project.key} · ${standupData.sprint.name}` : "Workspace standup";
+  const recentStandups = standupData?.standups ?? [];
+  const latestStandup = recentStandups[0];
+
   return (
     <div className="page-stack">
       <section className="page-heading standup-heading">
@@ -170,120 +176,172 @@ export function StandupPage() {
         ) : null}
       </section>
 
-      <div className="segmented-control standup-mode-control" role="tablist" aria-label="Standup input mode">
-        <button className={mode === "manual" ? "active" : ""} type="button" onClick={() => switchMode("manual")}>
-          <ClipboardCheck size={17} />
-          <span>Manual</span>
-        </button>
-        <button className={mode === "transcript" ? "active" : ""} type="button" onClick={() => switchMode("transcript")}>
-          <Sparkles size={17} />
-          <span>Transcript</span>
-        </button>
-        <button className={mode === "upload" ? "active" : ""} type="button" onClick={() => switchMode("upload")}>
-          <UploadCloud size={17} />
-          <span>Upload</span>
-        </button>
-      </div>
+      <section className="ops-kpi-grid standup-kpis">
+        <article className="ops-kpi-card">
+          <CalendarClock size={20} />
+          <span>Active context</span>
+          <strong>{activeSprintLabel}</strong>
+          <small>Every update attaches here</small>
+        </article>
+        <article className="ops-kpi-card">
+          <History size={20} />
+          <span>Sprint updates</span>
+          <strong>{recentStandups.length}</strong>
+          <small>{latestStandup ? `Latest from ${latestStandup.memberName}` : "No updates yet"}</small>
+        </article>
+        <article className="ops-kpi-card">
+          <Sparkles size={20} />
+          <span>Capture mode</span>
+          <strong>{mode}</strong>
+          <small>Manual, transcript, or uploaded text</small>
+        </article>
+      </section>
 
-      {mode === "manual" ? (
-        <form className="panel form-panel" onSubmit={submitManual}>
-          <label>
-            <span>Yesterday</span>
-            <textarea
-              value={yesterday}
-              onChange={(event) => setYesterday(event.target.value)}
-              placeholder="Finished API contracts and routed dashboard data."
-              required
-            />
-          </label>
-          <label>
-            <span>Today</span>
-            <textarea
-              value={today}
-              onChange={(event) => setToday(event.target.value)}
-              placeholder="Connecting standup submission to the sprint pulse."
-              required
-            />
-          </label>
-          <label>
-            <span>Blockers</span>
-            <textarea
-              value={blockers}
-              onChange={(event) => setBlockers(event.target.value)}
-              placeholder="No blocker."
-            />
-          </label>
-          <button className="primary-button" type="submit" disabled={loading}>
-            {loading ? <Loader2 className="spin" size={18} /> : <Send size={18} />}
-            <span>Submit update</span>
-          </button>
-        </form>
-      ) : mode === "transcript" ? (
-        <form className="panel form-panel" onSubmit={parseTranscript}>
-          <label>
-            <span>Paste standup transcript</span>
-            <textarea
-              className="large-textarea"
-              value={transcript}
-              onChange={(event) => setTranscript(event.target.value)}
-              placeholder="Atharv: Yesterday I worked on dashboard cards. Today I am connecting the API. No blockers."
-              required
-            />
-          </label>
-          <button className="primary-button" type="submit" disabled={loading}>
-            {loading ? <Loader2 className="spin" size={18} /> : <Sparkles size={18} />}
-            <span>Parse transcript</span>
-          </button>
-        </form>
-      ) : (
-        <form className="panel form-panel" onSubmit={parseTranscript}>
-          <label className="upload-dropzone">
-            <UploadCloud size={24} />
-            <span>{uploadFileName ?? "Upload standup export"}</span>
-            <small>TXT, MD, or CSV</small>
-            <input type="file" accept=".txt,.md,.csv,text/plain,text/markdown,text/csv" onChange={loadUpload} />
-          </label>
-          <label>
-            <span>Imported text</span>
-            <textarea
-              className="large-textarea"
-              value={transcript}
-              onChange={(event) => setTranscript(event.target.value)}
-              placeholder="Uploaded standup text will appear here before parsing."
-              required
-            />
-          </label>
-          <button className="primary-button" type="submit" disabled={loading || !transcript.trim()}>
-            {loading ? <Loader2 className="spin" size={18} /> : <Sparkles size={18} />}
-            <span>Parse upload</span>
-          </button>
-        </form>
-      )}
+      <section className="standup-workbench">
+        <div className="standup-compose">
+          <div className="segmented-control standup-mode-control" role="tablist" aria-label="Standup input mode">
+            <button className={mode === "manual" ? "active" : ""} type="button" onClick={() => switchMode("manual")}>
+              <ClipboardCheck size={17} />
+              <span>Manual</span>
+            </button>
+            <button className={mode === "transcript" ? "active" : ""} type="button" onClick={() => switchMode("transcript")}>
+              <Sparkles size={17} />
+              <span>Transcript</span>
+            </button>
+            <button className={mode === "upload" ? "active" : ""} type="button" onClick={() => switchMode("upload")}>
+              <UploadCloud size={17} />
+              <span>Upload</span>
+            </button>
+          </div>
 
-      {error ? <p className="form-error">{error}</p> : null}
-      {result ? <p className="form-success">{result}</p> : null}
-      {syncResult ? <p className="form-success">{syncResult}</p> : null}
+          {mode === "manual" ? (
+            <form className="panel form-panel" onSubmit={submitManual}>
+              <label>
+                <span>Yesterday</span>
+                <textarea
+                  value={yesterday}
+                  onChange={(event) => setYesterday(event.target.value)}
+                  placeholder="Finished API contracts and routed dashboard data."
+                  required
+                />
+              </label>
+              <label>
+                <span>Today</span>
+                <textarea
+                  value={today}
+                  onChange={(event) => setToday(event.target.value)}
+                  placeholder="Connecting standup submission to the sprint pulse."
+                  required
+                />
+              </label>
+              <label>
+                <span>Blockers</span>
+                <textarea
+                  value={blockers}
+                  onChange={(event) => setBlockers(event.target.value)}
+                  placeholder="No blocker."
+                />
+              </label>
+              <button className="primary-button" type="submit" disabled={loading}>
+                {loading ? <Loader2 className="spin" size={18} /> : <Send size={18} />}
+                <span>Submit update</span>
+              </button>
+            </form>
+          ) : mode === "transcript" ? (
+            <form className="panel form-panel" onSubmit={parseTranscript}>
+              <label>
+                <span>Paste standup transcript</span>
+                <textarea
+                  className="large-textarea"
+                  value={transcript}
+                  onChange={(event) => setTranscript(event.target.value)}
+                  placeholder="Atharv: Yesterday I worked on dashboard cards. Today I am connecting the API. No blockers."
+                  required
+                />
+              </label>
+              <button className="primary-button" type="submit" disabled={loading}>
+                {loading ? <Loader2 className="spin" size={18} /> : <Sparkles size={18} />}
+                <span>Parse transcript</span>
+              </button>
+            </form>
+          ) : (
+            <form className="panel form-panel" onSubmit={parseTranscript}>
+              <label className="upload-dropzone">
+                <UploadCloud size={24} />
+                <span>{uploadFileName ?? "Upload standup export"}</span>
+                <small>TXT, MD, or CSV</small>
+                <input type="file" accept=".txt,.md,.csv,text/plain,text/markdown,text/csv" onChange={loadUpload} />
+              </label>
+              <label>
+                <span>Imported text</span>
+                <textarea
+                  className="large-textarea"
+                  value={transcript}
+                  onChange={(event) => setTranscript(event.target.value)}
+                  placeholder="Uploaded standup text will appear here before parsing."
+                  required
+                />
+              </label>
+              <button className="primary-button" type="submit" disabled={loading || !transcript.trim()}>
+                {loading ? <Loader2 className="spin" size={18} /> : <Sparkles size={18} />}
+                <span>Parse upload</span>
+              </button>
+            </form>
+          )}
 
-      {parserResult ? (
-        <section className="panel">
+          {error ? <p className="form-error">{error}</p> : null}
+          {result ? <p className="form-success">{result}</p> : null}
+          {syncResult ? <p className="form-success">{syncResult}</p> : null}
+
+          {parserResult ? (
+            <section className="panel">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Parsed updates</p>
+                  <h2>Detected speaker updates</h2>
+                </div>
+              </div>
+              <div className="parsed-grid">
+                {parserResult.map((entry) => (
+                  <div className="parsed-item" key={entry.memberId}>
+                    <strong>{entry.name}</strong>
+                    <span>{Math.round(entry.confidence * 100)}% confidence</span>
+                    <p>{entry.today}</p>
+                    <small>{entry.blockers}</small>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+        </div>
+
+        <aside className="panel standup-context-panel">
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">Parsed updates</p>
-              <h2>Detected speaker updates</h2>
+              <p className="eyebrow">Capture guardrails</p>
+              <h2>What gets attached</h2>
             </div>
           </div>
-          <div className="parsed-grid">
-            {parserResult.map((entry) => (
-              <div className="parsed-item" key={entry.memberId}>
-                <strong>{entry.name}</strong>
-                <span>{Math.round(entry.confidence * 100)}% confidence</span>
-                <p>{entry.today}</p>
-                <small>{entry.blockers}</small>
-              </div>
-            ))}
+          <div className="standup-context-list">
+            <span>
+              <strong>Project</strong>
+              {standupData?.project.key ?? "Selected workspace"}
+            </span>
+            <span>
+              <strong>Sprint</strong>
+              {standupData?.sprint.name ?? "Active sprint"}
+            </span>
+            <span>
+              <strong>Identity</strong>
+              {persona?.name ?? "Signed-in user"}
+            </span>
+            <span>
+              <strong>Latest source</strong>
+              {latestStandup?.source ?? "Waiting for first update"}
+            </span>
           </div>
-        </section>
-      ) : null}
+        </aside>
+      </section>
 
       {standupData ? (
         <section className="panel">

@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
-import { Shell } from "./components/Shell";
+import { EnhancedShell } from "./components/layout/EnhancedShell";
 import { AddProjectPage } from "./pages/AddProjectPage";
 import { ConnectProjectPage } from "./pages/ConnectProjectPage";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -29,7 +29,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />;
   }
 
-  return <Shell>{children}</Shell>;
+  return <EnhancedShell>{children}</EnhancedShell>;
 }
 
 export default function App() {

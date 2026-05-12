@@ -790,6 +790,7 @@ export const getProjectSprintsFromSupabase = async (
 export const getProjectTeamFromSupabase = async (projectId: string, personaId: string): Promise<TeamResponse> => {
   const context = await loadProjectContext(projectId, personaId);
   const client = requireSupabase();
+  const canEditTeam = context.permissions.includes("project:editTeam");
   const { data, error } = await client
     .from("project_invites")
     .select("*")
@@ -800,13 +801,32 @@ export const getProjectTeamFromSupabase = async (projectId: string, personaId: s
     throw new Error(error.message);
   }
 
+  let availableUsers: UserProfile[] = [];
+  if (canEditTeam) {
+    const memberIds = new Set(context.project.members.map((member) => member.personaId));
+    const profiles = await client
+      .from("profiles")
+      .select("*")
+      .eq("status", "active")
+      .order("name", { ascending: true });
+
+    if (profiles.error) {
+      throw new Error(profiles.error.message);
+    }
+
+    availableUsers = ((profiles.data ?? []) as ProfileRow[])
+      .map(profileToUserProfile)
+      .filter((profile) => !memberIds.has(profile.id));
+  }
+
   return {
     viewer: context.viewer,
     project: context.project,
     permissions: context.permissions,
     members: context.project.members,
+    availableUsers,
     invites: ((data ?? []) as ProjectInviteRow[]).map(toInvite),
-    canEditTeam: context.permissions.includes("project:editTeam")
+    canEditTeam
   };
 };
 

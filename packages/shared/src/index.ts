@@ -346,6 +346,7 @@ export interface TeamResponse {
   project: SprintProject;
   permissions: Permission[];
   members: ProjectMember[];
+  availableUsers: UserProfile[];
   invites: ProjectInvite[];
   canEditTeam: boolean;
 }

@@ -298,44 +298,47 @@ export const api = {
   },
   getDashboard: (personaId: string) =>
     request<DashboardResponse>(`/dashboard?personaId=${encodeURIComponent(personaId)}`),
-  getProjectDashboard: async (projectId: string, personaId: string) => {
+  getProjectDashboard: async (projectId: string, personaId: string, sprintId?: string) => {
     if (DIRECT_SUPABASE_PROJECTS) {
-      return getProjectDashboardFromSupabase(projectId, personaId);
+      return getProjectDashboardFromSupabase(projectId, personaId, sprintId);
     }
 
     try {
+      const sprintQuery = sprintId ? `&sprintId=${encodeURIComponent(sprintId)}` : "";
       return await projectRequest<ProjectDashboardResponse>(
-        `/projects/${projectId}/dashboard?personaId=${encodeURIComponent(personaId)}`
+        `/projects/${projectId}/dashboard?personaId=${encodeURIComponent(personaId)}${sprintQuery}`
       );
     } catch {
-      return getProjectDashboardFromSupabase(projectId, personaId);
+      return getProjectDashboardFromSupabase(projectId, personaId, sprintId);
     }
   },
   getMember: (memberId: string) => request<{ member: MemberPulse }>(`/members/${memberId}`),
-  getProjectMember: async (projectId: string, memberId: string, personaId: string) => {
+  getProjectMember: async (projectId: string, memberId: string, personaId: string, sprintId?: string) => {
     if (DIRECT_SUPABASE_PROJECTS) {
-      return getProjectMemberPulseFromSupabase(projectId, memberId, personaId);
+      return getProjectMemberPulseFromSupabase(projectId, memberId, personaId, sprintId);
     }
 
     try {
+      const sprintQuery = sprintId ? `&sprintId=${encodeURIComponent(sprintId)}` : "";
       return await projectRequest<{ member: MemberPulse; project: SprintProject }>(
-        `/projects/${projectId}/members/${memberId}?personaId=${encodeURIComponent(personaId)}`
+        `/projects/${projectId}/members/${memberId}?personaId=${encodeURIComponent(personaId)}${sprintQuery}`
       );
     } catch {
-      return getProjectMemberPulseFromSupabase(projectId, memberId, personaId);
+      return getProjectMemberPulseFromSupabase(projectId, memberId, personaId, sprintId);
     }
   },
-  getProjectMemberHistory: async (projectId: string, memberId: string, personaId: string) => {
+  getProjectMemberHistory: async (projectId: string, memberId: string, personaId: string, sprintId?: string) => {
     if (DIRECT_SUPABASE_PROJECTS) {
-      return getProjectMemberHistoryFromSupabase(projectId, memberId, personaId);
+      return getProjectMemberHistoryFromSupabase(projectId, memberId, personaId, sprintId);
     }
 
     try {
+      const sprintQuery = sprintId ? `&sprintId=${encodeURIComponent(sprintId)}` : "";
       return await projectRequest<MemberPulseHistoryResponse>(
-        `/projects/${projectId}/members/${memberId}/history?personaId=${encodeURIComponent(personaId)}`
+        `/projects/${projectId}/members/${memberId}/history?personaId=${encodeURIComponent(personaId)}${sprintQuery}`
       );
     } catch {
-      return getProjectMemberHistoryFromSupabase(projectId, memberId, personaId);
+      return getProjectMemberHistoryFromSupabase(projectId, memberId, personaId, sprintId);
     }
   },
   submitStandup: (input: {
@@ -348,15 +351,18 @@ export const api = {
       method: "POST",
       body: JSON.stringify(input)
     }),
-  getProjectStandups: async (projectId: string, personaId: string) => {
+  getProjectStandups: async (projectId: string, personaId: string, sprintId?: string) => {
     if (DIRECT_SUPABASE_PROJECTS) {
-      return getProjectStandupsFromSupabase(projectId, personaId);
+      return getProjectStandupsFromSupabase(projectId, personaId, sprintId);
     }
 
     try {
-      return await projectRequest<ProjectStandupsResponse>(`/projects/${projectId}/standups?personaId=${encodeURIComponent(personaId)}`);
+      const sprintQuery = sprintId ? `&sprintId=${encodeURIComponent(sprintId)}` : "";
+      return await projectRequest<ProjectStandupsResponse>(
+        `/projects/${projectId}/standups?personaId=${encodeURIComponent(personaId)}${sprintQuery}`
+      );
     } catch {
-      return getProjectStandupsFromSupabase(projectId, personaId);
+      return getProjectStandupsFromSupabase(projectId, personaId, sprintId);
     }
   },
   submitProjectStandup: async (

@@ -149,6 +149,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setPersonaState(nextPersona);
   };
 
+  const acceptOwnProjectInvites = async () => {
+    if (!supabase) {
+      return;
+    }
+
+    const { error } = await supabase.rpc("accept_sprintpulse_project_invites");
+    if (error) {
+      return;
+    }
+  };
+
   const getPersonaFromSupabaseProfile = async (email: string) => {
     if (!supabase) {
       throw new Error("Supabase is not configured.");
@@ -228,6 +239,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSession(nextSession);
     setUser(nextSession.user);
     persistPersona(nextPersona);
+    await acceptOwnProjectInvites();
   };
 
   useEffect(() => {
