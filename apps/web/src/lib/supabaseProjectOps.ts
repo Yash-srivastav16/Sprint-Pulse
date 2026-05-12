@@ -409,8 +409,21 @@ const fetchSprints = async (projectId: string) => {
   return (data ?? []) as SprintRow[];
 };
 
+const localDateKey = () => {
+  const now = new Date();
+  const month = `${now.getMonth() + 1}`.padStart(2, "0");
+  const day = `${now.getDate()}`.padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
+};
+
 const currentSprintFrom = (project: SprintProject, sprints: SprintRow[]) =>
-  sprints.find((sprint) => sprint.status === "active") ?? sprints[0] ?? {
+  sprints.find((sprint) => {
+    const today = localDateKey();
+    return sprint.start_date <= today && sprint.end_date >= today;
+  }) ??
+  sprints.find((sprint) => sprint.status === "active") ??
+  sprints[0] ??
+  {
     id: project.sprint.id,
     project_id: project.id,
     name: project.sprint.name,
@@ -419,6 +432,26 @@ const currentSprintFrom = (project: SprintProject, sprints: SprintRow[]) =>
     end_date: project.sprint.endDate,
     status: project.sprint.status
   };
+
+const roleLabel = (role: ProjectRole) => {
+  if (role === "qa") {
+    return "QA";
+  }
+
+  return role
+    .split("-")
+    .map((part) => part[0].toUpperCase() + part.slice(1))
+    .join(" ");
+};
+
+const signalExpectationsForRole = (role: ProjectRole) => ({
+  standup: true,
+  jira: ["developer", "qa", "architect", "engineering-manager"].includes(role),
+  git: role === "developer"
+});
+
+const selectedSprintLabel = (sprint: SprintInfo) =>
+  sprint.status === "active" ? "active sprint" : sprint.status === "planned" ? "selected planned sprint" : "selected sprint";
 
 const fetchSignals = async (project: SprintProject, sprintId?: string): Promise<ProjectSignals> => {
   const client = requireSupabase();
@@ -545,16 +578,18 @@ const buildMemberPulse = (
   const hasOpenBlocker = standups.some((standup) => blockerIsOpen(standup.blockers));
   const noStandup = standups.length === 0;
   const idleIssueCount = openIssues.filter((issue) => issue.daysIdle >= 3).length;
+  const expectations = signalExpectationsForRole(member.role);
+  const sprintLabel = selectedSprintLabel(signals.sprint);
   const flags: RiskFlag[] = [];
   let score = 90;
 
-  if (noStandup) {
+  if (expectations.standup && noStandup) {
     score -= 16;
     flags.push({
       id: `${member.personaId}-missing-standup`,
       type: "STALE_WORK",
       severity: "medium",
-      title: "No standup in active sprint",
+      title: `No standup in ${sprintLabel}`,
       message: `${member.name} has not submitted an update for ${signals.sprint.name}.`
     });
   }
@@ -565,10 +600,10 @@ const buildMemberPulse = (
       type: "BLOCKER_ANOMALY",
       severity: "high",
       title: "Blocker needs attention",
-      message: `${member.name} reported a blocker in the current sprint.`
+      message: `${member.name} reported a blocker in the ${sprintLabel}.`
     });
   }
-  if (blockedIssues.length) {
+  if (expectations.jira && blockedIssues.length) {
     score -= 12;
     flags.push({
       id: `${member.personaId}-blocked-issue`,
@@ -578,7 +613,7 @@ const buildMemberPulse = (
       message: `${blockedIssues[0].issueKey} is blocked and assigned to ${member.name}.`
     });
   }
-  if (idleIssueCount) {
+  if (expectations.jira && idleIssueCount) {
     score -= Math.min(18, idleIssueCount * 7);
     flags.push({
       id: `${member.personaId}-idle-issue`,
@@ -588,7 +623,7 @@ const buildMemberPulse = (
       message: `${idleIssueCount} assigned issue${idleIssueCount > 1 ? "s" : ""} have not moved recently.`
     });
   }
-  if (!commits.length && openIssues.length) {
+  if (expectations.git && !commits.length && openIssues.length) {
     score -= 8;
     flags.push({
       id: `${member.personaId}-no-commits`,
@@ -616,10 +651,7 @@ const buildMemberPulse = (
     personaId: member.personaId,
     name: member.name,
     initials: member.initials,
-    title: member.role
-      .split("-")
-      .map((part) => part[0].toUpperCase() + part.slice(1))
-      .join(" "),
+    title: roleLabel(member.role),
     hackathonRole: memberHackathonRole(member.role),
     productPersona: member.role === "qa" ? "qa-lead" : member.role === "developer" ? "developer" : "scrum-master",
     healthScore: score,
@@ -635,7 +667,7 @@ const buildMemberPulse = (
     git: {
       commitsThisSprint: commits.length,
       pullRequestsOpen: Math.max(0, Math.min(3, Math.floor(openIssues.length / 2))),
-      lastCommitAt: commits[0]?.committedAt ?? new Date(0).toISOString(),
+      lastCommitAt: commits[0]?.committedAt ?? "",
       codeChurn:
         commits.reduce((total, commit) => total + commit.additions + commit.deletions, 0) > 220
           ? "high"
@@ -1214,7 +1246,7 @@ export const syncGitInSupabase = async (
     throw new Error("Configure Git before running sync.");
   }
 
-  const todayKey = new Date().toISOString().slice(0, 10).replaceAll("-", "");
+  const todayKey = localDateKey().replaceAll("-", "");
   const rows = context.project.members.flatMap((member, memberIndex) => {
     const commitCount = memberIndex % 3 === 0 ? 0 : 2 + (memberIndex % 2);
     return Array.from({ length: commitCount }, (_, index) => ({
@@ -1291,7 +1323,7 @@ export const submitProjectStandupToSupabase = async (
       project_id: projectId,
       sprint_id: signals.sprint.id,
       profile_id: input.personaId,
-      date: new Date().toISOString().slice(0, 10),
+      date: localDateKey(),
       yesterday: input.yesterday.trim(),
       today: input.today.trim(),
       blockers: input.blockers.trim() || "No blocker.",
@@ -1369,7 +1401,7 @@ export const parseProjectTranscriptForPersonaInSupabase = async (
         project_id: projectId,
         sprint_id: signals.sprint.id,
         profile_id: entry.memberId,
-        date: new Date().toISOString().slice(0, 10),
+        date: localDateKey(),
         yesterday: entry.yesterday,
         today: entry.today,
         blockers: entry.blockers || "No blocker.",
@@ -1386,7 +1418,7 @@ export const parseProjectTranscriptForPersonaInSupabase = async (
 
   return {
     mode: "transcript-parser",
-    note: "Transcript entries were saved to the active sprint.",
+    note: "Transcript entries were saved to the selected sprint.",
     project: context.project,
     parsed
   };
@@ -1400,7 +1432,7 @@ export const syncProjectStandupsInSupabase = async (projectId: string, personaId
 
   const client = requireSupabase();
   const signals = await fetchSignals(context.project);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateKey();
   const existingToday = new Set(signals.standups.filter((standup) => standup.date === today).map((standup) => standup.profile_id));
   const rows = context.project.members
     .filter((member) => !existingToday.has(member.personaId))
@@ -1410,7 +1442,7 @@ export const syncProjectStandupsInSupabase = async (projectId: string, personaId
       profile_id: member.personaId,
       date: today,
       yesterday: `Synced delivery activity for ${member.name}.`,
-      today: `Continue active ${context.project.key} sprint work.`,
+      today: `Continue selected ${context.project.key} sprint work.`,
       blockers: member.role === "developer" ? "No blocker." : "Review team dependencies.",
       source: "transcript" as const,
       source_ref: "demo-sync",
@@ -1432,7 +1464,7 @@ export const syncProjectStandupsInSupabase = async (projectId: string, personaId
     project: context.project,
     syncedAt: run.finishedAt ?? run.startedAt,
     importedStandups: rows.length,
-    warnings: ["Guided standup sync filled missing active-sprint updates."]
+    warnings: ["Guided standup sync filled missing selected-sprint updates."]
   };
 };
 

@@ -288,9 +288,9 @@ a {
 
 .page-content {
   width: 100%;
-  max-width: 1600px;
+  max-width: var(--sp-shell-max-width, 1840px);
   margin: 0 auto;
-  padding: 28px clamp(20px, 2.1vw, 36px) 56px;
+  padding: var(--sp-page-pad-y, 24px) var(--sp-page-pad-x, clamp(16px, 1.55vw, 30px)) var(--sp-page-pad-bottom, 52px);
 }
 
 .page-stack {
@@ -2125,8 +2125,8 @@ html.dark .table-icon-button {
 @media (min-width: 981px) {
   .page-content {
     width: 100%;
-    max-width: 1600px;
-    padding: 32px clamp(24px, 2.2vw, 40px) 72px;
+    max-width: var(--sp-shell-max-width, 1840px);
+    padding: 26px var(--sp-page-pad-x, clamp(16px, 1.55vw, 30px)) 64px;
   }
 
   .page-stack {
@@ -2151,8 +2151,8 @@ html.dark .table-icon-button {
   .page-heading {
     position: relative;
     overflow: hidden;
-    min-height: 214px;
-    padding: 34px;
+    min-height: 190px;
+    padding: 28px;
     background:
       linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(236, 245, 244, 0.92)),
       #ffffff;
@@ -2178,13 +2178,13 @@ html.dark .table-icon-button {
 
   .page-heading h1 {
     max-width: 840px;
-    font-size: clamp(2.4rem, 3vw, 3.45rem);
+    font-size: clamp(2.1rem, 2.55vw, 3.05rem);
     line-height: 0.98;
   }
 
   .page-heading p:not(.eyebrow) {
     max-width: 790px;
-    font-size: 1rem;
+    font-size: 0.95rem;
     line-height: 1.7;
   }
 

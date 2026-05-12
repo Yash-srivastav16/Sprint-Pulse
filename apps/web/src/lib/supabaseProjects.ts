@@ -575,6 +575,11 @@ export const getProjectWorkspaceFromSupabase = async (
 
 export const createProjectInSupabase = async (input: CreateProjectRequest): Promise<CreateProjectResponse> => {
   const client = requireSupabase();
+  try {
+    await client.rpc("claim_sprintpulse_profile");
+  } catch {
+    // Older demo databases may not have the claim RPC yet.
+  }
   const viewerProfile = await findProfile(input.personaId);
 
   if (!viewerProfile) {
@@ -588,41 +593,72 @@ export const createProjectInSupabase = async (input: CreateProjectRequest): Prom
 
   const key = input.projectKey.trim().toUpperCase();
   const now = new Date().toISOString();
-  const { data: project, error: projectError } = await client
-    .from("projects")
-    .insert({
-      key,
-      name: input.projectName.trim(),
-      source: "manual",
-      created_by: viewer.id,
-      created_at: now,
-      updated_at: now
-    })
-    .select()
-    .single();
 
-  if (projectError) {
-    throw new Error(projectError.message);
+  const { data: existingProject, error: existingProjectError } = await client
+    .from("projects")
+    .select("*")
+    .eq("key", key)
+    .maybeSingle();
+
+  if (existingProjectError) {
+    throw new Error(existingProjectError.message);
   }
 
-  const projectRow = project as ProjectRow;
-  const { data: sprint, error: sprintError } = await client
-    .from("sprints")
-    .insert({
-      project_id: projectRow.id,
-      name: input.sprintName.trim(),
-      goal: input.sprintGoal.trim(),
-      start_date: input.startDate,
-      end_date: input.endDate,
-      status: "active",
-      created_at: now,
-      updated_at: now
-    })
-    .select()
-    .single();
+  let projectRow = existingProject as ProjectRow | null;
+  if (!projectRow) {
+    const { data: project, error: projectError } = await client
+      .from("projects")
+      .insert({
+        key,
+        name: input.projectName.trim(),
+        source: "manual",
+        created_by: viewer.id,
+        created_at: now,
+        updated_at: now
+      })
+      .select()
+      .single();
 
-  if (sprintError) {
-    throw new Error(sprintError.message);
+    if (projectError) {
+      throw new Error(projectError.message);
+    }
+
+    projectRow = project as ProjectRow;
+  }
+
+  const { data: existingSprint, error: existingSprintError } = await client
+    .from("sprints")
+    .select("*")
+    .eq("project_id", projectRow.id)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (existingSprintError) {
+    throw new Error(existingSprintError.message);
+  }
+
+  let sprintRow = existingSprint as SprintRow | null;
+  if (!sprintRow) {
+    const { data: sprint, error: sprintError } = await client
+      .from("sprints")
+      .insert({
+        project_id: projectRow.id,
+        name: input.sprintName.trim(),
+        goal: input.sprintGoal.trim(),
+        start_date: input.startDate,
+        end_date: input.endDate,
+        status: "active",
+        created_at: now,
+        updated_at: now
+      })
+      .select()
+      .single();
+
+    if (sprintError) {
+      throw new Error(sprintError.message);
+    }
+
+    sprintRow = sprint as SprintRow;
   }
 
   const requestMembers = input.members?.length
@@ -641,7 +677,7 @@ export const createProjectInSupabase = async (input: CreateProjectRequest): Prom
     jira_account_id: member.jiraAccountId ?? null,
     github_username: member.githubUsername ?? null
   }));
-  const { error: memberError } = await client.from("project_members").insert(memberRows);
+  const { error: memberError } = await client.from("project_members").upsert(memberRows);
 
   if (memberError) {
     throw new Error(memberError.message);
@@ -650,7 +686,7 @@ export const createProjectInSupabase = async (input: CreateProjectRequest): Prom
   const profileRows = await fetchProfiles(memberRows.map((member) => member.profile_id));
 
   return {
-    project: toProject(projectRow, sprint as SprintRow, memberRows, profileRows),
+    project: toProject(projectRow, sprintRow, memberRows, profileRows),
     warnings: []
   };
 };

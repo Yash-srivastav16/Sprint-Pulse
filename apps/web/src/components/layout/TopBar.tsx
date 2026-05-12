@@ -14,6 +14,8 @@ const routeNames: Record<string, string> = {
 };
 
 const segmentNames: Record<string, string> = {
+  new: 'Create project',
+  connect: 'Connect project',
   dashboard: 'Dashboard',
   standups: 'Standups',
   team: 'Team',
@@ -29,6 +31,8 @@ interface TopBarProps {
 export function TopBar({ onOpenCommand }: TopBarProps) {
   const location = useLocation();
   const { project, selectedProjectId } = useProject();
+  const projectRouteSegment = location.pathname.split('/').filter(Boolean)[1];
+  const isProjectScopedRoute = Boolean(projectRouteSegment && !['new', 'connect'].includes(projectRouteSegment));
   
   const getBreadcrumbs = () => {
     const paths = location.pathname.split('/').filter(Boolean);
@@ -37,16 +41,13 @@ export function TopBar({ onOpenCommand }: TopBarProps) {
     let currentPath = '';
     paths.forEach((path, index) => {
       currentPath += `/${path}`;
-      const isProjectId = paths[index - 1] === 'projects';
+      const isProjectId = paths[index - 1] === 'projects' && !['new', 'connect'].includes(path);
       const isMemberId = paths[index - 1] === 'members';
+      const projectName = isProjectScopedRoute ? project?.projectKey ?? 'Project' : segmentNames[path] ?? 'Project';
       breadcrumbs.push({
         name:
           routeNames[currentPath] ||
-          (isProjectId
-            ? project?.projectKey ?? 'Project'
-            : isMemberId
-              ? 'Pulse'
-              : segmentNames[path] || path.charAt(0).toUpperCase() + path.slice(1)),
+          (isProjectId ? projectName : isMemberId ? 'Pulse' : segmentNames[path] || path.charAt(0).toUpperCase() + path.slice(1)),
         path: currentPath,
       });
     });
@@ -55,6 +56,7 @@ export function TopBar({ onOpenCommand }: TopBarProps) {
   };
 
   const breadcrumbs = getBreadcrumbs();
+  const visibleBreadcrumbs = breadcrumbs.length > 3 ? [breadcrumbs[0], ...breadcrumbs.slice(-2)] : breadcrumbs;
 
   return (
     <motion.header
@@ -63,18 +65,18 @@ export function TopBar({ onOpenCommand }: TopBarProps) {
       transition={{ duration: 0.3 }}
       className="sticky top-0 z-40 h-16 border-b border-white/70 bg-white/76 shadow-[0_10px_35px_rgba(15,23,42,0.06)] backdrop-blur-2xl dark:border-white/10 dark:bg-dark-surface/82 dark:shadow-[0_12px_40px_rgba(0,0,0,0.24)]"
     >
-      <div className="mx-auto flex h-full w-full max-w-[1600px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-full w-full max-w-[1840px] items-center justify-between gap-4 px-4 sm:px-5 lg:px-7">
         {/* Breadcrumbs */}
         <div className="flex min-w-0 items-center gap-4">
           <div className="hidden h-9 items-center gap-2 rounded-full border border-primary-500/20 bg-primary-500/10 px-3 text-xs font-black uppercase text-primary-700 shadow-sm dark:text-primary-200 xl:inline-flex">
             <Radio className="h-3.5 w-3.5" />
-              {project ? `${project.projectKey} selected` : selectedProjectId ? 'Project selected' : 'Workspace'}
+              {isProjectScopedRoute && project ? `${project.projectKey} selected` : isProjectScopedRoute && selectedProjectId ? 'Project selected' : 'Workspace'}
           </div>
           <div className="flex min-w-0 items-center gap-2 overflow-hidden text-sm">
-            {breadcrumbs.map((crumb, index) => (
+            {visibleBreadcrumbs.map((crumb, index) => (
               <div key={crumb.path} className="flex min-w-0 items-center gap-2">
                 {index > 0 && <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" />}
-                {index === breadcrumbs.length - 1 ? (
+                {index === visibleBreadcrumbs.length - 1 ? (
                   <span className="truncate font-semibold text-foreground">{crumb.name}</span>
                 ) : (
                   <Link

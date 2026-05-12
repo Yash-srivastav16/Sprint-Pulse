@@ -61,6 +61,13 @@ export function AddProjectPage() {
       return;
     }
 
+    const start = new Date(`${startDate}T00:00:00`).getTime();
+    const end = new Date(`${endDate}T00:00:00`).getTime();
+    if (!projectName.trim() || !projectKey.trim() || !sprintName.trim() || !sprintGoal.trim() || Number.isNaN(start) || Number.isNaN(end) || end < start) {
+      setError("Complete the project details and use a valid sprint date range.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -93,6 +100,8 @@ export function AddProjectPage() {
   const sprintGoalReady = sprintGoal.trim().length > 0;
   const identityReady = projectName.trim().length > 0 && projectKey.trim().length > 0;
   const sprintReady = sprintName.trim().length > 0 && startDate.trim().length > 0 && endDate.trim().length > 0;
+  const dateReady = !Number.isNaN(new Date(`${startDate}T00:00:00`).getTime()) && !Number.isNaN(new Date(`${endDate}T00:00:00`).getTime()) && new Date(`${endDate}T00:00:00`).getTime() >= new Date(`${startDate}T00:00:00`).getTime();
+  const formReady = identityReady && sprintReady && sprintGoalReady && dateReady;
 
   return (
     <motion.div
@@ -312,7 +321,7 @@ export function AddProjectPage() {
           <button
             className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-primary-500 to-info-500 px-6 text-sm font-black text-white shadow-[0_16px_40px_rgba(16,169,154,0.24)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_50px_rgba(16,169,154,0.32)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 disabled:pointer-events-none disabled:opacity-60"
             type="submit"
-            disabled={loading}
+            disabled={loading || !formReady}
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
             Create project workspace

@@ -160,6 +160,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const claimSupabaseProfile = async () => {
+    if (!supabase) {
+      return;
+    }
+
+    await supabase.rpc("claim_sprintpulse_profile");
+  };
+
   const getPersonaFromSupabaseProfile = async (email: string) => {
     if (!supabase) {
       throw new Error("Supabase is not configured.");
@@ -230,6 +238,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     let nextPersona: Persona;
+    try {
+      await claimSupabaseProfile();
+    } catch {
+      // Older local databases may not have the claim RPC yet. Profile lookup still
+      // falls back to the API so existing demo sessions can continue.
+    }
+
     try {
       nextPersona = await api.getPersonaByEmail(email);
     } catch {

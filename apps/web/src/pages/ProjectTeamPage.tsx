@@ -24,7 +24,11 @@ type TeamEntryMode = "existing" | "invite";
 type TeamMember = TeamResponse["members"][number];
 
 const roleLabel = (role: string) =>
-  role
+  role === "qa"
+    ? "QA"
+    : role === "qa-lead"
+      ? "QA Lead"
+      : role
     .split("-")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
@@ -43,6 +47,19 @@ const appRoleForProjectRole = (role: ProjectRole): AppRole => {
     return "qa-lead";
   }
   return "developer";
+};
+
+const signalProfileForRole = (role: ProjectRole) => {
+  const profiles: Record<ProjectRole, string> = {
+    "product-owner": "Tracks signoff, blockers, and product risks",
+    "scrum-master": "Tracks standups, blockers, and facilitation",
+    "engineering-manager": "Tracks Jira ownership and delivery review",
+    architect: "Tracks design decisions and architecture risks",
+    developer: "Tracks standups, Jira tickets, commits, and PRs",
+    qa: "Tracks validation, defects, and test-risk signals"
+  };
+
+  return profiles[role];
 };
 
 const signupLinkForInvite = (invite: ProjectInvite, name?: string) => {
@@ -305,7 +322,7 @@ export function ProjectTeamPage() {
       detail: "Signup links waiting for users",
       icon: MailPlus,
       tone: pendingInvites.length ? ("warning" as const) : ("success" as const),
-      progress: team.members.length ? Math.max(8, Math.min(100, (pendingInvites.length / team.members.length) * 100)) : 0
+      progress: team.members.length ? (pendingInvites.length / team.members.length) * 100 : 0
     }
   ];
 
@@ -354,7 +371,7 @@ export function ProjectTeamPage() {
                           ? "from-info-500 to-primary-400"
                           : "from-primary-500 to-emerald-400"
                   )}
-                  style={{ width: `${Math.max(8, Math.min(100, stat.progress))}%` }}
+                  style={{ width: stat.progress > 0 ? `${Math.max(8, Math.min(100, stat.progress))}%` : "0%" }}
                 />
               </span>
             </SectionPanel>
@@ -495,7 +512,10 @@ export function ProjectTeamPage() {
                       ))}
                     </SelectField>
                   ) : (
-                    <strong className="text-sm text-slate-950 dark:text-white">{roleLabel(member.role)}</strong>
+                    <span className="grid gap-1">
+                      <strong className="text-sm text-slate-950 dark:text-white">{roleLabel(member.role)}</strong>
+                      <small className="text-xs leading-5 text-slate-500 dark:text-slate-400">{signalProfileForRole(member.role)}</small>
+                    </span>
                   )}
                 </div>
                 <div className="grid gap-1">

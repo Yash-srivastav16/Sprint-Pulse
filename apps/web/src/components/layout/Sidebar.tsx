@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Activity,
@@ -32,12 +32,17 @@ const toWorkspaceProject = (item: ProjectSummary): ProjectWorkspace => ({
 
 export function Sidebar() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { persona, user, logout } = useAuth();
   const { project, selectedProjectId, selectedSprintId, selectProject, selectSprint, clearProject } = useProject();
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [sprints, setSprints] = useState<SprintSummary[]>([]);
   const [switcherError, setSwitcherError] = useState<string | null>(null);
-  const projectBase = selectedProjectId ? `/projects/${selectedProjectId}` : '';
+  const pathSegments = location.pathname.split('/').filter(Boolean);
+  const projectRouteSegment = pathSegments[1];
+  const isProjectScopedRoute = Boolean(projectRouteSegment && !['new', 'connect'].includes(projectRouteSegment));
+  const visibleProjectId = isProjectScopedRoute ? projectRouteSegment ?? selectedProjectId : null;
+  const projectBase = visibleProjectId ? `/projects/${visibleProjectId}` : '';
 
   useEffect(() => {
     if (!persona) {
@@ -75,14 +80,14 @@ export function Sidebar() {
   }, [clearProject, navigate, persona, selectedProjectId]);
 
   useEffect(() => {
-    if (!persona || !selectedProjectId) {
+    if (!persona || !visibleProjectId) {
       setSprints([]);
       return;
     }
 
     let isCurrent = true;
     api
-      .getProjectSprints(selectedProjectId, persona.id)
+      .getProjectSprints(visibleProjectId, persona.id)
       .then((response) => {
         if (!isCurrent) {
           return;
@@ -101,25 +106,25 @@ export function Sidebar() {
     return () => {
       isCurrent = false;
     };
-  }, [persona, selectedProjectId, selectedSprintId, selectSprint]);
+  }, [persona, selectedSprintId, selectSprint, visibleProjectId]);
 
   useEffect(() => {
-    if (!selectedProjectId || !projects.length) {
+    if (!visibleProjectId || !projects.length) {
       return;
     }
 
-    const selected = projects.find((item) => item.id === selectedProjectId);
+    const selected = projects.find((item) => item.id === visibleProjectId);
     if (selected && (!project || project.projectKey !== selected.key)) {
       if (project && project.projectKey !== selected.key) {
         selectSprint(null);
       }
       selectProject(selected.id, toWorkspaceProject(selected));
     }
-  }, [project, projects, selectProject, selectSprint, selectedProjectId]);
+  }, [project, projects, selectProject, selectSprint, visibleProjectId]);
 
   const selectedProject = useMemo(
-    () => projects.find((item) => item.id === selectedProjectId) ?? null,
-    [projects, selectedProjectId]
+    () => projects.find((item) => item.id === visibleProjectId) ?? null,
+    [projects, visibleProjectId]
   );
   const activeSprint = useMemo(
     () => sprints.find((sprint) => sprint.id === selectedSprintId) ?? sprints.find((sprint) => sprint.status === 'active') ?? null,
@@ -128,7 +133,7 @@ export function Sidebar() {
 
   const navigation = [
     { name: 'Projects', href: '/projects', icon: FolderKanban, end: true },
-    ...(selectedProjectId && projectBase
+    ...(visibleProjectId && projectBase
       ? [
           { name: 'Workspace', href: projectBase, icon: Activity, end: true },
           { name: 'Dashboard', href: `${projectBase}/dashboard`, icon: Gauge },
@@ -185,7 +190,7 @@ export function Sidebar() {
       <div className="pointer-events-none absolute inset-0 opacity-[0.12] [background-image:linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.10)_1px,transparent_1px)] [background-size:34px_34px]" />
       {/* Logo Section */}
       <div className="relative border-b border-white/10 p-5">
-        <Link to={selectedProjectId ? projectBase : '/projects'} className="flex items-center gap-3 group">
+        <Link to={visibleProjectId ? projectBase : '/projects'} className="flex items-center gap-3 group">
           <motion.div
             whileHover={{ scale: 1.05 }}
             className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-300 via-primary-500 to-info-500 shadow-glow-sm ring-1 ring-white/25"
@@ -207,7 +212,7 @@ export function Sidebar() {
           <div className="relative">
             <select
               id="project-switcher"
-              value={selectedProjectId ?? ''}
+              value={visibleProjectId ?? ''}
               onChange={(event) => handleProjectChange(event.target.value)}
               className="h-11 w-full appearance-none rounded-2xl border border-white/10 bg-white/[0.07] px-3 pr-9 text-sm font-bold text-white outline-none transition focus:border-primary-300/70 focus:bg-white/[0.1] [&>option]:bg-slate-900 [&>option]:text-white"
             >
@@ -222,7 +227,7 @@ export function Sidebar() {
           </div>
         </div>
 
-        {selectedProjectId ? (
+        {visibleProjectId ? (
           <div className="space-y-1">
             <label className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500" htmlFor="sprint-switcher">
               Sprint
@@ -253,10 +258,10 @@ export function Sidebar() {
             Current context
           </div>
           <p className="mt-2 truncate text-sm font-bold text-white">
-            {project?.projectName ?? selectedProject?.name ?? (selectedProjectId ? 'Project selected' : 'Choose a project')}
+            {visibleProjectId ? project?.projectName ?? selectedProject?.name ?? 'Project selected' : 'Choose or create a project'}
           </p>
           <p className="mt-1 truncate text-xs text-slate-400">
-            {activeSprint?.name ?? project?.sprintName ?? 'Select a project to unlock sprint signals'}
+            {visibleProjectId ? activeSprint?.name ?? project?.sprintName ?? 'Select a sprint to unlock signals' : 'Project pages unlock after opening a workspace'}
           </p>
         </div>
         {switcherError ? <p className="text-xs font-semibold text-amber-200">{switcherError}</p> : null}
@@ -303,7 +308,7 @@ export function Sidebar() {
             </NavLink>
           );
         })}
-        {!selectedProjectId ? (
+        {!visibleProjectId ? (
           <div className="mt-4 rounded-2xl border border-dashed border-white/12 bg-white/[0.04] p-4 text-sm leading-6 text-slate-400">
             <strong className="mb-1 block text-xs uppercase tracking-[0.16em] text-slate-300">Project pages</strong>
             Choose a project to open Workspace, Dashboard, Standups, Team, Sprints, and Integrations.

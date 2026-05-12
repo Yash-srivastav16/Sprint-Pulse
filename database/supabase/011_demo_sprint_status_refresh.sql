@@ -1,0 +1,57 @@
+begin;
+
+update public.sprints
+set status = 'closed', updated_at = now()
+where id in (
+  '11111111-1111-4111-8111-000000000102',
+  '22222222-2222-4222-8222-000000000202'
+);
+
+update public.sprints
+set status = 'active', updated_at = now()
+where id in (
+  '11111111-1111-4111-8111-000000000103',
+  '22222222-2222-4222-8222-000000000203'
+);
+
+update public.jira_issues
+set sprint_id = '11111111-1111-4111-8111-000000000103'
+where project_id = '11111111-1111-4111-8111-111111111111'
+  and sprint_id = '11111111-1111-4111-8111-000000000102';
+
+update public.standups
+set sprint_id = '11111111-1111-4111-8111-000000000103'
+where project_id = '11111111-1111-4111-8111-111111111111'
+  and sprint_id = '11111111-1111-4111-8111-000000000102';
+
+update public.git_commits
+set sprint_id = '11111111-1111-4111-8111-000000000103'
+where project_id = '11111111-1111-4111-8111-111111111111'
+  and sprint_id = '11111111-1111-4111-8111-000000000102';
+
+update public.recommendations
+set sprint_id = '11111111-1111-4111-8111-000000000103'
+where project_id = '11111111-1111-4111-8111-111111111111'
+  and sprint_id = '11111111-1111-4111-8111-000000000102';
+
+update public.jira_issues
+set sprint_id = '22222222-2222-4222-8222-000000000203'
+where project_id = '22222222-2222-4222-8222-222222222222'
+  and sprint_id = '22222222-2222-4222-8222-000000000202';
+
+update public.standups
+set sprint_id = '22222222-2222-4222-8222-000000000203'
+where project_id = '22222222-2222-4222-8222-222222222222'
+  and sprint_id = '22222222-2222-4222-8222-000000000202';
+
+update public.git_commits
+set sprint_id = '22222222-2222-4222-8222-000000000203'
+where project_id = '22222222-2222-4222-8222-222222222222'
+  and sprint_id = '22222222-2222-4222-8222-000000000202';
+
+update public.recommendations
+set sprint_id = '22222222-2222-4222-8222-000000000203'
+where project_id = '22222222-2222-4222-8222-222222222222'
+  and sprint_id = '22222222-2222-4222-8222-000000000202';
+
+commit;

@@ -23,8 +23,8 @@ import { cn } from "../lib/utils";
 type StandupMode = "manual" | "transcript" | "upload";
 
 const modeCopy: Record<StandupMode, string> = {
-  manual: "Write your update directly into the active sprint.",
-  transcript: "Paste a meeting transcript and let SprintPulse detect speaker updates.",
+  manual: "Write your update directly into the selected sprint.",
+  transcript: "Paste a meeting transcript and SprintPulse will create speaker-mapped updates for the selected sprint.",
   upload: "Load a text, markdown, or CSV export before parsing."
 };
 
@@ -261,7 +261,7 @@ export function StandupPage() {
         pills={
           <>
             <StatusPill icon={CalendarClock} tone="neutral">
-              {standupData?.sprint.name ?? "Active sprint"}
+              {standupData?.sprint.name ?? "Selected sprint"}
             </StatusPill>
             <StatusPill icon={Sparkles} tone="neutral">
               {mode}
@@ -347,7 +347,7 @@ export function StandupPage() {
           <div className="grid gap-3">
             {[
               ["Project", standupData?.project.key ?? "Selected workspace"],
-              ["Sprint", standupData?.sprint.name ?? "Active sprint"],
+              ["Sprint", standupData?.sprint.name ?? "Selected sprint"],
               ["Identity", persona?.name ?? "Signed-in user"],
               ["Latest source", latestStandup?.source ?? "Waiting for first update"]
             ].map(([label, value]) => (
@@ -383,7 +383,7 @@ export function StandupPage() {
 
       {standupData ? (
         <SectionPanel>
-          <PanelHeader eyebrow="Active sprint history" title={`${standupData.standups.length} captured updates`} description="Newest updates appear first for quick Scrum Master review." icon={History} />
+          <PanelHeader eyebrow="Sprint history" title={`${standupData.standups.length} captured updates`} description="Newest updates appear first for quick Scrum Master review." icon={History} />
           <div className="grid gap-3">
             {standupData.standups.length ? (
               standupData.standups.map((entry) => (

@@ -47,7 +47,7 @@ as $$
     select 1
     from public.profiles profile
     where profile.id = creator_profile_id
-      and profile.auth_user_id = auth.uid()
+      and profile.id = public.current_sprintpulse_profile_id()
       and profile.product_persona in ('scrum-master', 'engineering-manager')
   )
 $$;
@@ -91,7 +91,7 @@ as $$
     from public.projects project
     join public.profiles profile on profile.id = project.created_by
     where project.id = target_project_id
-      and profile.auth_user_id = auth.uid()
+      and profile.id = public.current_sprintpulse_profile_id()
       and profile.product_persona in ('scrum-master', 'engineering-manager')
   )
 $$;

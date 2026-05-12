@@ -38,6 +38,11 @@ export function ConnectProjectPage() {
       return;
     }
 
+    if (!normalizeJiraSite(jiraSite) || !projectKey.trim()) {
+      setError("Enter a Jira site and project key before connecting.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -66,6 +71,7 @@ export function ConnectProjectPage() {
   const normalizedSite = normalizeJiraSite(jiraSite);
   const siteReady = normalizedSite.length > 0;
   const keyReady = projectKey.trim().length > 0;
+  const formReady = siteReady && keyReady;
   const previewUrl = normalizedSite || "company.atlassian.net";
 
   return (
@@ -256,7 +262,7 @@ export function ConnectProjectPage() {
           <button
             className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-info-500 to-primary-500 px-6 text-sm font-black text-white shadow-[0_16px_40px_rgba(68,123,219,0.24)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_50px_rgba(68,123,219,0.32)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info-400 disabled:pointer-events-none disabled:opacity-60"
             type="submit"
-            disabled={loading}
+            disabled={loading || !formReady}
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
             Connect project

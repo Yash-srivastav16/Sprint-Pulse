@@ -499,41 +499,72 @@ export const createSupabaseProject = async (request: CreateProjectRequest): Prom
   const client = requireSupabaseAdmin();
   const key = request.projectKey.trim().toUpperCase();
   const now = new Date().toISOString();
-  const { data: project, error: projectError } = await client
-    .from("projects")
-    .insert({
-      key,
-      name: request.projectName.trim(),
-      source: "manual",
-      created_by: viewer.id,
-      created_at: now,
-      updated_at: now
-    })
-    .select()
-    .single();
 
-  if (projectError) {
-    throw new Error(projectError.message);
+  const { data: existingProject, error: existingProjectError } = await client
+    .from("projects")
+    .select("*")
+    .eq("key", key)
+    .maybeSingle();
+
+  if (existingProjectError) {
+    throw new Error(existingProjectError.message);
   }
 
-  const projectRow = project as ProjectRow;
-  const { data: sprint, error: sprintError } = await client
-    .from("sprints")
-    .insert({
-      project_id: projectRow.id,
-      name: request.sprintName.trim(),
-      goal: request.sprintGoal.trim(),
-      start_date: request.startDate,
-      end_date: request.endDate,
-      status: "active",
-      created_at: now,
-      updated_at: now
-    })
-    .select()
-    .single();
+  let projectRow = existingProject as ProjectRow | null;
+  if (!projectRow) {
+    const { data: project, error: projectError } = await client
+      .from("projects")
+      .insert({
+        key,
+        name: request.projectName.trim(),
+        source: "manual",
+        created_by: viewer.id,
+        created_at: now,
+        updated_at: now
+      })
+      .select()
+      .single();
 
-  if (sprintError) {
-    throw new Error(sprintError.message);
+    if (projectError) {
+      throw new Error(projectError.message);
+    }
+
+    projectRow = project as ProjectRow;
+  }
+
+  const { data: existingSprint, error: existingSprintError } = await client
+    .from("sprints")
+    .select("*")
+    .eq("project_id", projectRow.id)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (existingSprintError) {
+    throw new Error(existingSprintError.message);
+  }
+
+  let sprintRow = existingSprint as SprintRow | null;
+  if (!sprintRow) {
+    const { data: sprint, error: sprintError } = await client
+      .from("sprints")
+      .insert({
+        project_id: projectRow.id,
+        name: request.sprintName.trim(),
+        goal: request.sprintGoal.trim(),
+        start_date: request.startDate,
+        end_date: request.endDate,
+        status: "active",
+        created_at: now,
+        updated_at: now
+      })
+      .select()
+      .single();
+
+    if (sprintError) {
+      throw new Error(sprintError.message);
+    }
+
+    sprintRow = sprint as SprintRow;
   }
 
   const requestMembers = request.members?.length
@@ -578,7 +609,7 @@ export const createSupabaseProject = async (request: CreateProjectRequest): Prom
   const profileRows = await findSupabaseProfilesByIds(memberRows.map((member) => member.profile_id));
   const sprintProject = toProject(
     projectRow,
-    sprint as SprintRow,
+    sprintRow,
     memberRows,
     profileRows.map((profile) => ({
       id: profile.id,

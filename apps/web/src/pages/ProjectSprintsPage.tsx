@@ -111,7 +111,7 @@ export function ProjectSprintsPage() {
           </>
         }
         title="Sprints"
-        description="Review the active sprint and older sprint signals without mixing project context."
+        description="Review the selected sprint and compare it with previous sprint signals without mixing project context."
         score={data.sprints.length}
         scoreLabel="Sprint records"
         scoreTone="primary"
@@ -176,13 +176,13 @@ export function ProjectSprintsPage() {
         </SectionPanel>
       </section>
 
-      {data.currentSprint ? (
+      {data.currentSprint && selectedSprint?.id !== data.currentSprint.id ? (
         <SectionPanel>
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_220px] lg:items-center">
             <div>
               <div className="mb-3 flex flex-wrap gap-2">
                 <StatusPill icon={CheckCircle2} tone="success">
-                  Active sprint
+                  Currently active
                 </StatusPill>
                 <StatusPill tone="neutral">
                   {formatDate(data.currentSprint.startDate)} - {formatDate(data.currentSprint.endDate)}
@@ -193,7 +193,7 @@ export function ProjectSprintsPage() {
             </div>
             <div className="rounded-2xl border border-primary-500/20 bg-primary-500/10 p-5 text-center text-primary-700 dark:text-primary-100">
               <strong className="block text-5xl font-black leading-none">{data.currentSprint.healthScore}</strong>
-              <span className="mt-2 block text-xs font-black uppercase">health</span>
+              <span className="mt-2 block text-xs font-black uppercase">active health</span>
             </div>
           </div>
         </SectionPanel>

@@ -824,7 +824,7 @@ const syncProjectStandups = async (req: Request, res: Response) => {
     project,
     syncedAt: project.lastSyncAt,
     importedStandups: 6,
-    warnings: ["Connected delivery updates were refreshed for the active sprint."]
+    warnings: ["Connected delivery updates were refreshed for the selected sprint."]
   });
 };
 

@@ -129,6 +129,10 @@
     --accent-amber: #e7a52e;
     --accent-blue: #447bdb;
     --accent-violet: #8462e8;
+    --sp-shell-max-width: 1840px;
+    --sp-page-pad-x: clamp(16px, 1.55vw, 30px);
+    --sp-page-pad-y: 24px;
+    --sp-page-pad-bottom: 52px;
   }
 
   .dark {
@@ -162,7 +166,7 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
-    font-size: 15px;
+    font-size: 0.94rem;
     line-height: 1.55;
     font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
     font-optical-sizing: auto;
@@ -185,6 +189,24 @@
   samp,
   pre {
     font-family: var(--font-mono);
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1799px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+@media (min-width: 1800px) and (max-width: 2199px) {
+  html {
+    font-size: 15px;
+  }
+}
+
+@media (min-width: 2200px) {
+  html {
+    font-size: 16px;
   }
 }
 

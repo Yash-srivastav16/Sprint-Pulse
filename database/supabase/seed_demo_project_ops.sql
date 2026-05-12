@@ -86,7 +86,7 @@ insert into public.profiles (
     null
   )
 on conflict (id) do update set
-  auth_user_id = excluded.auth_user_id,
+  auth_user_id = coalesce(public.profiles.auth_user_id, excluded.auth_user_id),
   email = excluded.email,
   name = excluded.name,
   initials = excluded.initials,
@@ -172,7 +172,7 @@ insert into public.sprints (
     'Make the project dashboard actionable for blockers, say-do gaps, and quality risk.',
     '2026-04-28',
     '2026-05-09',
-    'active',
+    'closed',
     '2026-04-24 12:00:00+00',
     '2026-05-12 07:35:00+00'
   ),
@@ -183,7 +183,7 @@ insert into public.sprints (
     'Package weekly delivery health summaries for product and engineering leadership.',
     '2026-05-12',
     '2026-05-23',
-    'planned',
+    'active',
     '2026-05-08 12:00:00+00',
     '2026-05-08 12:00:00+00'
   ),
@@ -205,7 +205,7 @@ insert into public.sprints (
     'Harden release monitoring and finish the incident timeline workspace.',
     '2026-04-28',
     '2026-05-09',
-    'active',
+    'closed',
     '2026-04-24 12:00:00+00',
     '2026-05-12 07:10:00+00'
   ),
@@ -216,7 +216,7 @@ insert into public.sprints (
     'Automate handoff checklists for deploy, rollback, and post-incident review.',
     '2026-05-12',
     '2026-05-23',
-    'planned',
+    'active',
     '2026-05-08 12:00:00+00',
     '2026-05-08 12:00:00+00'
   )
@@ -911,5 +911,45 @@ on conflict (id) do update set
   finished_at = excluded.finished_at,
   stats = excluded.stats,
   error_message = excluded.error_message;
+
+update public.jira_issues
+set sprint_id = '11111111-1111-4111-8111-000000000103'
+where project_id = '11111111-1111-4111-8111-111111111111'
+  and sprint_id = '11111111-1111-4111-8111-000000000102';
+
+update public.standups
+set sprint_id = '11111111-1111-4111-8111-000000000103'
+where project_id = '11111111-1111-4111-8111-111111111111'
+  and sprint_id = '11111111-1111-4111-8111-000000000102';
+
+update public.git_commits
+set sprint_id = '11111111-1111-4111-8111-000000000103'
+where project_id = '11111111-1111-4111-8111-111111111111'
+  and sprint_id = '11111111-1111-4111-8111-000000000102';
+
+update public.recommendations
+set sprint_id = '11111111-1111-4111-8111-000000000103'
+where project_id = '11111111-1111-4111-8111-111111111111'
+  and sprint_id = '11111111-1111-4111-8111-000000000102';
+
+update public.jira_issues
+set sprint_id = '22222222-2222-4222-8222-000000000203'
+where project_id = '22222222-2222-4222-8222-222222222222'
+  and sprint_id = '22222222-2222-4222-8222-000000000202';
+
+update public.standups
+set sprint_id = '22222222-2222-4222-8222-000000000203'
+where project_id = '22222222-2222-4222-8222-222222222222'
+  and sprint_id = '22222222-2222-4222-8222-000000000202';
+
+update public.git_commits
+set sprint_id = '22222222-2222-4222-8222-000000000203'
+where project_id = '22222222-2222-4222-8222-222222222222'
+  and sprint_id = '22222222-2222-4222-8222-000000000202';
+
+update public.recommendations
+set sprint_id = '22222222-2222-4222-8222-000000000203'
+where project_id = '22222222-2222-4222-8222-222222222222'
+  and sprint_id = '22222222-2222-4222-8222-000000000202';
 
 commit;

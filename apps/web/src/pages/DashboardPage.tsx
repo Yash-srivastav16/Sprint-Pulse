@@ -279,7 +279,16 @@ export function DashboardPage() {
     (sum, pulse) => sum + pulse.tickets.filter((ticket) => ticket.daysIdle >= 3 && ticket.status !== "Done").length,
     0
   );
-  const sortedMembers = [...dashboard.memberPulses].sort((a, b) => a.healthScore - b.healthScore);
+  const priorityScoreFor = (pulse: MemberPulse) => {
+    const blockerCount = pulse.standups.filter(
+      (standup) => standup.blockers && !standup.blockers.toLowerCase().includes("no blocker")
+    ).length;
+    const idleTicketCount = pulse.tickets.filter((ticket) => ticket.daysIdle >= 3 && ticket.status !== "Done").length;
+    return pulse.flags.length * 20 + blockerCount * 8 + idleTicketCount * 6 + pulse.git.pullRequestsOpen * 3 + pulse.git.commitsThisSprint + pulse.standups.length;
+  };
+  const sortedMembers = [...dashboard.memberPulses].sort(
+    (a, b) => a.healthScore - b.healthScore || priorityScoreFor(b) - priorityScoreFor(a) || a.name.localeCompare(b.name)
+  );
   const attentionQueue = sortedMembers.map((member, index) => {
     const riskPressure = Math.max(0, 100 - member.healthScore);
     const topReason = member.flags[0]?.title ?? member.recommendation ?? "No active risk signal";
@@ -296,12 +305,12 @@ export function DashboardPage() {
       href: project ? `/projects/${project.id}/members/${member.id}` : `/members/${member.id}`
     };
   });
-  const topRisk = attentionQueue[0];
+  const topRisk = attentionQueue.find((member) => member.flags.length > 0 || member.blockerCount > 0 || member.healthScore < 80);
   const scoreState = summary.teamHealthScore >= 80 ? "Healthy" : summary.teamHealthScore >= 60 ? "Watch" : "At risk";
   const primaryRecommendation =
     dashboard.recommendations[0] ??
     viewerPulse.recommendation ??
-    "Review the active sprint signals and clear the highest-risk blocker first.";
+    "Review the selected sprint signals and clear the highest-risk blocker first.";
 
   const detectionCards = detectionBlueprint.map((detection) => {
     const matchingFlags = activeFlags.filter(({ flag }) => detection.types.includes(flag.type));
@@ -504,9 +513,9 @@ export function DashboardPage() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[0.72rem] font-bold uppercase tracking-[0.14em] text-slate-400">Needs attention first</p>
-                <h2 className="mt-2 text-[1.35rem] font-extrabold">{topRisk?.name ?? "No member yet"}</h2>
+                <h2 className="mt-2 text-[1.35rem] font-extrabold">{topRisk?.name ?? "No urgent owner"}</h2>
               </div>
-              <AlertTriangle className="h-7 w-7 text-warning-300" />
+              {topRisk ? <AlertTriangle className="h-7 w-7 text-warning-300" /> : <CheckCircle2 className="h-7 w-7 text-primary-200" />}
             </div>
             {topRisk ? (
               <div className="rounded-2xl border border-danger-400/20 bg-danger-400/10 p-4">
@@ -528,7 +537,7 @@ export function DashboardPage() {
                 </Link>
               </div>
             ) : (
-              <EmptyPanel icon={UsersRound} title="No members yet" description="Add project members to build the attention queue." />
+              <EmptyPanel icon={CheckCircle2} title="No urgent risk" description="Open the attention queue or profile timelines for the full evidence trail." />
             )}
           </div>
         </div>

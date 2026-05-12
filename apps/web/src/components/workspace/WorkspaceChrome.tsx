@@ -30,16 +30,26 @@ const gradientClasses: Record<Tone, string> = {
 };
 
 export const workspacePageClass =
-  "workspace-page relative isolate mx-auto grid w-full max-w-[1600px] gap-5 pb-4 before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:-z-10 before:h-72 before:rounded-full before:bg-[radial-gradient(circle_at_22%_0%,rgba(16,169,154,0.16),transparent_48%)] before:blur-3xl before:content-[''] after:pointer-events-none after:absolute after:right-0 after:top-20 after:-z-10 after:h-80 after:w-1/2 after:rounded-full after:bg-[radial-gradient(circle,rgba(132,98,232,0.13),transparent_58%)] after:blur-3xl after:content-[''] sm:gap-6 dark:before:bg-[radial-gradient(circle_at_22%_0%,rgba(16,169,154,0.22),transparent_48%)] dark:after:bg-[radial-gradient(circle,rgba(132,98,232,0.18),transparent_58%)]";
+  "workspace-page relative isolate mx-auto grid w-full max-w-[var(--sp-shell-max-width)] gap-5 pb-4 before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:-z-10 before:h-72 before:rounded-full before:bg-[radial-gradient(circle_at_22%_0%,rgba(16,169,154,0.16),transparent_48%)] before:blur-3xl before:content-[''] after:pointer-events-none after:absolute after:right-0 after:top-20 after:-z-10 after:h-80 after:w-1/2 after:rounded-full after:bg-[radial-gradient(circle,rgba(132,98,232,0.13),transparent_58%)] after:blur-3xl after:content-[''] sm:gap-6 dark:before:bg-[radial-gradient(circle_at_22%_0%,rgba(16,169,154,0.22),transparent_48%)] dark:after:bg-[radial-gradient(circle,rgba(132,98,232,0.18),transparent_58%)]";
 export const workspacePanelClass =
   "premium-surface h-full min-w-0 rounded-2xl transition duration-300 hover:-translate-y-0.5 hover:border-primary-500/30 dark:hover:border-primary-300/22";
 
 export function WorkspaceLoading({ label }: { label: string }) {
   return (
-    <div className="grid min-h-[360px] place-items-center">
-      <div className="inline-flex items-center gap-3 rounded-full border border-slate-200/80 bg-white/85 px-5 py-3 text-sm font-semibold text-slate-600 shadow-lg shadow-slate-900/5 dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-200">
-        <Loader2 className="h-4 w-4 animate-spin text-primary-500" />
-        {label}
+    <div className={cn(workspacePageClass, "min-h-[360px] content-start")}>
+      <div className="premium-surface grid gap-5 rounded-2xl p-6">
+        <div className="flex items-center gap-3 text-sm font-semibold text-slate-600 dark:text-slate-200">
+          <span className="grid h-10 w-10 place-items-center rounded-2xl border border-primary-500/20 bg-primary-500/10 text-primary-700 dark:text-primary-100">
+            <Loader2 className="h-4 w-4 animate-spin" />
+          </span>
+          {label}
+        </div>
+        <div className="grid gap-3 md:grid-cols-4">
+          {[0, 1, 2, 3].map((item) => (
+            <span className="h-24 animate-pulse rounded-2xl bg-slate-200/70 dark:bg-white/[0.06]" key={item} />
+          ))}
+        </div>
+        <span className="h-56 animate-pulse rounded-2xl bg-slate-200/70 dark:bg-white/[0.055]" />
       </div>
     </div>
   );

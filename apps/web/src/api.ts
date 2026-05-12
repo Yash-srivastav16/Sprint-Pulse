@@ -60,6 +60,10 @@ import {
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:4000/api";
 const configuredProjectTimeout = Number(import.meta.env.VITE_PROJECT_API_TIMEOUT_MS ?? 1200);
 const PROJECT_API_TIMEOUT_MS = Number.isFinite(configuredProjectTimeout) ? configuredProjectTimeout : 1200;
+const configuredProjectMutationTimeout = Number(import.meta.env.VITE_PROJECT_MUTATION_TIMEOUT_MS ?? 10000);
+const PROJECT_MUTATION_TIMEOUT_MS = Number.isFinite(configuredProjectMutationTimeout)
+  ? Math.max(configuredProjectMutationTimeout, PROJECT_API_TIMEOUT_MS)
+  : 10000;
 const DIRECT_SUPABASE_PROJECTS = import.meta.env.VITE_DIRECT_SUPABASE_PROJECTS !== "false";
 
 async function request<T>(path: string, init?: RequestInit, options?: { timeoutMs?: number }): Promise<T> {
@@ -98,6 +102,32 @@ async function request<T>(path: string, init?: RequestInit, options?: { timeoutM
 
 const projectRequest = <T>(path: string, init?: RequestInit) =>
   request<T>(path, init, { timeoutMs: PROJECT_API_TIMEOUT_MS });
+const projectMutationRequest = <T>(path: string, init?: RequestInit) =>
+  request<T>(path, init, { timeoutMs: PROJECT_MUTATION_TIMEOUT_MS });
+
+const recoverCreatedProject = async (input: CreateProjectRequest): Promise<CreateProjectResponse | null> => {
+  const key = input.projectKey.trim().toUpperCase();
+  if (!key) {
+    return null;
+  }
+
+  try {
+    const projects = await getProjectsFromSupabase(input.personaId);
+    const createdProject = projects.projects.find((project) => project.key.toUpperCase() === key);
+
+    if (!createdProject) {
+      return null;
+    }
+
+    const detail = await getProjectFromSupabase(createdProject.id, input.personaId);
+    return {
+      project: detail.project,
+      warnings: ["The project was created before the response finished, so SprintPulse opened the saved workspace."]
+    };
+  } catch {
+    return null;
+  }
+};
 
 export const api = {
   getPersonas: () => request<{ personas: Persona[] }>("/personas"),
@@ -141,15 +171,45 @@ export const api = {
   },
   createProject: async (input: CreateProjectRequest) => {
     if (DIRECT_SUPABASE_PROJECTS) {
-      return createProjectInSupabase(input);
+      try {
+        return await createProjectInSupabase(input);
+      } catch (err) {
+        const recovered = await recoverCreatedProject(input);
+        if (recovered) {
+          return recovered;
+        }
+
+        const message = err instanceof Error ? err.message.toLowerCase() : "";
+        if (!message.includes("row-level security")) {
+          throw err;
+        }
+
+        try {
+          return await projectMutationRequest<CreateProjectResponse>("/projects", {
+            method: "POST",
+            body: JSON.stringify(input)
+          });
+        } catch (fallbackErr) {
+          const fallbackRecovered = await recoverCreatedProject(input);
+          if (fallbackRecovered) {
+            return fallbackRecovered;
+          }
+          throw fallbackErr;
+        }
+      }
     }
 
     try {
-      return await projectRequest<CreateProjectResponse>("/projects", {
+      return await projectMutationRequest<CreateProjectResponse>("/projects", {
         method: "POST",
         body: JSON.stringify(input)
       });
-    } catch {
+    } catch (err) {
+      const recovered = await recoverCreatedProject(input);
+      if (recovered) {
+        return recovered;
+      }
+
       return createProjectInSupabase(input);
     }
   },

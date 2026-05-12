@@ -197,6 +197,10 @@ export function ProjectIntegrationsPage() {
   const staleIssues = data.issuePreview.filter((issue) => issue.daysIdle >= 3).length;
   const successfulRuns = data.recentRuns.filter((run) => run.status === "succeeded").length;
   const failedRuns = data.recentRuns.filter((run) => run.status === "failed").length;
+  const latestFailedRun = data.recentRuns.find((run) => run.status === "failed");
+  const failedRunDetail = latestFailedRun
+    ? `${formatStatus(latestFailedRun.source)}: ${latestFailedRun.errorMessage ?? "Review the last sync run."}`
+    : "Recent runs healthy or waiting";
   const integrationStats = [
     {
       label: "Jira issues",
@@ -215,7 +219,7 @@ export function ProjectIntegrationsPage() {
     {
       label: "Sync health",
       value: data.recentRuns.length ? `${successfulRuns}/${data.recentRuns.length}` : "0",
-      detail: failedRuns ? `${failedRuns} failed recent run${failedRuns === 1 ? "" : "s"}` : "Recent runs healthy or waiting",
+      detail: failedRuns ? failedRunDetail : "Recent runs healthy or waiting",
       icon: RefreshCw,
       tone: failedRuns ? ("danger" as const) : ("success" as const)
     }
@@ -280,6 +284,17 @@ export function ProjectIntegrationsPage() {
 
       {error ? <div className="rounded-xl border border-danger-500/20 bg-danger-500/10 px-4 py-3 text-sm font-semibold text-danger-700 dark:text-danger-100">{error}</div> : null}
       {success ? <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-700 dark:text-emerald-100">{success}</div> : null}
+      {latestFailedRun ? (
+        <SectionPanel className="border-warning-500/20 bg-warning-500/10 p-4">
+          <div className="flex items-start gap-3 text-warning-700 dark:text-warning-100">
+            <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0" />
+            <span className="text-sm leading-6">
+              <strong className="font-black">{formatStatus(latestFailedRun.source)} sync needs review.</strong>{" "}
+              {latestFailedRun.errorMessage ?? "Open the run details before the demo."}
+            </span>
+          </div>
+        </SectionPanel>
+      ) : null}
 
       <section className="grid items-stretch gap-5 xl:grid-cols-2">
         <SectionPanel>
