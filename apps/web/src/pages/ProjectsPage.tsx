@@ -115,7 +115,7 @@ function priorityCopy(project: ProjectSummary) {
   if (project.healthScore <= 0) {
     return {
       label: "Signal setup needed",
-      detail: "Sync standups, Jira, and GitHub before SprintPulse can explain delivery risk."
+      detail: "Sync standups, Jira, and Git before SprintPulse can explain delivery risk."
     };
   }
 

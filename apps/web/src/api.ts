@@ -49,7 +49,6 @@ import {
   getProjectWorkspaceFromSupabase
 } from "./lib/supabaseProjects";
 import {
-  configureGitInSupabase,
   configureJiraInSupabase,
   getProjectDashboardFromSupabase,
   getProjectIntegrationsFromSupabase,
@@ -87,7 +86,7 @@ export const withAppRoute = (url: string): string => {
 };
 
 const configuredProjectTimeout = Number(import.meta.env.VITE_PROJECT_API_TIMEOUT_MS ?? 8000);
-const PROJECT_API_TIMEOUT_MS = Number.isFinite(configuredProjectTimeout) ? configuredProjectTimeout : 1200;
+const PROJECT_API_TIMEOUT_MS = Number.isFinite(configuredProjectTimeout) ? Math.max(configuredProjectTimeout, 8000) : 8000;
 const configuredProjectMutationTimeout = Number(import.meta.env.VITE_PROJECT_MUTATION_TIMEOUT_MS ?? 10000);
 const PROJECT_MUTATION_TIMEOUT_MS = Number.isFinite(configuredProjectMutationTimeout)
   ? Math.max(configuredProjectMutationTimeout, PROJECT_API_TIMEOUT_MS)
@@ -302,7 +301,7 @@ export const api = {
       return createProjectSprintInSupabase(projectId, input);
     }
 
-    return projectRequest<CreateProjectSprintResponse>(`/projects/${projectId}/sprints`, {
+    return projectMutationRequest<CreateProjectSprintResponse>(`/projects/${projectId}/sprints`, {
       method: "POST",
       body: JSON.stringify(input)
     });
@@ -367,17 +366,15 @@ export const api = {
     });
   },
   configureProjectGit: async (projectId: string, input: ConfigureGitRequest) => {
-    if (DIRECT_SUPABASE_PROJECTS) {
-      return configureGitInSupabase(projectId, input);
-    }
-
+    // Git tokens are server-side secrets. Always route configuration through
+    // apps/api so per-project tokens are encrypted before being stored.
     return integrationRequest<ConfigureGitResponse>(`/projects/${projectId}/git/configure`, {
       method: "POST",
       body: JSON.stringify(input)
     });
   },
   syncProjectGit: async (projectId: string, personaId: string) => {
-    // GitHub sync needs the server-side GITHUB_TOKEN and GitHub API adapter.
+    // Git sync needs server-side provider adapters and per-project tokens.
     // Even when reads use direct Supabase, route this action through apps/api.
     return integrationRequest<ConfigureGitResponse>(`/projects/${projectId}/git/sync`, {
       method: "POST",

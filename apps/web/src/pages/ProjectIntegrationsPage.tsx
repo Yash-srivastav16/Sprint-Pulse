@@ -76,6 +76,13 @@ const compactToneClasses: Record<string, string> = {
   success: "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:border-emerald-300/25 dark:text-emerald-100"
 };
 
+type GitProviderOption = "github" | "gitlab";
+
+const gitProviderName = (provider?: GitProviderOption) => (provider === "gitlab" ? "GitLab" : "GitHub");
+const gitReviewUnit = (provider?: GitProviderOption) => (provider === "gitlab" ? "MR" : "PR");
+const defaultGitBaseUrl = (provider: GitProviderOption) =>
+  provider === "gitlab" ? "https://gitlab.com/api/v4" : "https://api.github.com";
+
 export function ProjectIntegrationsPage() {
   const { projectId } = useParams();
   const location = useLocation();
@@ -86,6 +93,9 @@ export function ProjectIntegrationsPage() {
   const [repoOwner, setRepoOwner] = useState("");
   const [repoName, setRepoName] = useState("");
   const [defaultBranch, setDefaultBranch] = useState("main");
+  const [gitProvider, setGitProvider] = useState<GitProviderOption>("github");
+  const [gitBaseUrl, setGitBaseUrl] = useState(defaultGitBaseUrl("github"));
+  const [gitToken, setGitToken] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -144,8 +154,7 @@ export function ProjectIntegrationsPage() {
     { name: "get_member_health", purpose: "Per-member pulse, flags, evidence, recent standups", mode: "Read", tone: "info" },
     { name: "submit_standup", purpose: "Create a structured standup entry for a member", mode: "Write", tone: "success" },
     { name: "parse_transcript", purpose: "VTT or plain text → speaker-mapped standups + risk update", mode: "Ingest", tone: "warning" },
-    { name: "run_member_pr_review", purpose: "AI review of a member's recent commits/PRs", mode: "Analyze", tone: "ai" },
-    { name: "run_qa_activity_review", purpose: "AI review of QA activity: test case creation + test execution", mode: "Analyze", tone: "ai" },
+    { name: "run_member_pr_review", purpose: "AI review of a member's recent commits and PR/MR activity", mode: "Analyze", tone: "ai" },
     { name: "send_app_notification", purpose: "Create in-app follow-ups for project members", mode: "Write", tone: "success" }
   ];
 
@@ -259,9 +268,12 @@ export function ProjectIntegrationsPage() {
     const cacheKey = projectCacheKey("integrations", [projectId, persona.id]);
     const cached = readProjectCache<IntegrationStatusResponse>(cacheKey);
     if (cached) {
+      const cachedGitProvider = cached.git?.provider ?? "github";
       setData(cached);
       setJiraSite(cached.jira?.siteUrl ?? "");
       setJiraKey(cached.jira?.projectKey ?? cached.project.key);
+      setGitProvider(cachedGitProvider);
+      setGitBaseUrl(cached.git?.baseUrl ?? defaultGitBaseUrl(cachedGitProvider));
       setRepoOwner(cached.git?.repoOwner ?? "");
       setRepoName(cached.git?.repoName ?? "");
       setDefaultBranch(cached.git?.defaultBranch ?? "main");
@@ -272,10 +284,14 @@ export function ProjectIntegrationsPage() {
     api
       .getProjectIntegrations(projectId, persona.id)
       .then((response) => {
+        const responseGitProvider = response.git?.provider ?? "github";
         writeProjectCache(cacheKey, response);
         setData(response);
         setJiraSite(response.jira?.siteUrl ?? "");
         setJiraKey(response.jira?.projectKey ?? response.project.key);
+        setGitProvider(responseGitProvider);
+        setGitBaseUrl(response.git?.baseUrl ?? defaultGitBaseUrl(responseGitProvider));
+        setGitToken("");
         setRepoOwner(response.git?.repoOwner ?? "");
         setRepoName(response.git?.repoName ?? "");
         setDefaultBranch(response.git?.defaultBranch ?? "main");
@@ -398,20 +414,30 @@ export function ProjectIntegrationsPage() {
     setError(null);
     setSuccess(null);
     try {
-      await api.configureProjectGit(projectId, {
+      const response = await api.configureProjectGit(projectId, {
         personaId: persona.id,
-        provider: "github",
+        provider: gitProvider,
+        baseUrl: gitBaseUrl,
         repoOwner,
         repoName,
-        defaultBranch
+        defaultBranch,
+        accessToken: gitToken.trim() || undefined,
+        verify: true
       });
-      setSuccess("GitHub repository saved.");
-      toast.success("GitHub saved", { description: `${repoOwner}/${repoName}` });
+      const responseLabel = gitProviderName(response.connection.provider);
+      const verifyWarning = response.warnings.find((warning) => /verification failed/i.test(warning));
+      setGitToken("");
+      setSuccess(verifyWarning ? `${responseLabel} repository saved, but verification needs attention.` : `${responseLabel} repository saved and verified.`);
+      if (verifyWarning) {
+        toast.warning(`${responseLabel} saved`, { description: verifyWarning });
+      } else {
+        toast.success(`${responseLabel} saved`, { description: `${repoOwner}/${repoName}` });
+      }
       loadIntegrations();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Git configuration failed";
       setError(message);
-      toast.error("GitHub save failed", { description: message });
+      toast.error(`${gitProviderName(gitProvider)} save failed`, { description: message });
     } finally {
       setSaving(null);
     }
@@ -427,13 +453,15 @@ export function ProjectIntegrationsPage() {
     setSuccess(null);
     try {
       const response = await api.syncProjectGit(projectId, persona.id);
+      const responseLabel = gitProviderName(response.connection.provider);
+      const responseReviewUnit = gitReviewUnit(response.connection.provider);
       const linkedSuccess = response.linkedSyncs?.filter((sync) => sync.status === "succeeded").map((sync) => sync.source).join(" + ");
       const linkedCopy = linkedSuccess ? ` Also refreshed ${linkedSuccess}.` : "";
       const openPullRequests = Number(response.run?.stats?.openPullRequests ?? 0);
       const reviewIssueCount = Number(response.run?.stats?.reviewIssues ?? 0);
-      setSuccess(`Git synced ${response.importedCommits} commits, ${openPullRequests} PRs, and ${reviewIssueCount} review issues.${linkedCopy}`);
-      toast.success("GitHub synced", {
-        description: `${response.importedCommits} commit${response.importedCommits === 1 ? "" : "s"}, ${openPullRequests} PR${openPullRequests === 1 ? "" : "s"}, ${reviewIssueCount} review issue${reviewIssueCount === 1 ? "" : "s"}.${linkedCopy}`
+      setSuccess(`Git synced ${response.importedCommits} commits, ${openPullRequests} ${responseReviewUnit}s, and ${reviewIssueCount} review issues.${linkedCopy}`);
+      toast.success(`${responseLabel} synced`, {
+        description: `${response.importedCommits} commit${response.importedCommits === 1 ? "" : "s"}, ${openPullRequests} ${responseReviewUnit}${openPullRequests === 1 ? "" : "s"}, ${reviewIssueCount} review issue${reviewIssueCount === 1 ? "" : "s"}.${linkedCopy}`
       });
       loadIntegrations();
       publishSignalRefresh(projectId);
@@ -459,16 +487,26 @@ export function ProjectIntegrationsPage() {
   }
 
   const connectedCount = [data.jira, data.git].filter(Boolean).length;
+  const savedGitProvider = data.git?.provider ?? gitProvider;
+  const savedGitLabel = gitProviderName(savedGitProvider);
+  const selectedGitLabel = gitProviderName(gitProvider);
+  const savedReviewUnit = gitReviewUnit(savedGitProvider);
   const lastSyncAt = [data.jira?.lastSyncAt, data.git?.lastSyncAt].filter(Boolean).sort().at(-1);
   const totalAdditions = data.commitPreview.reduce((sum, commit) => sum + commit.additions, 0);
   const totalDeletions = data.commitPreview.reduce((sum, commit) => sum + commit.deletions, 0);
   const blockedIssues = data.issuePreview.filter((issue) => issue.status === "Blocked").length;
   const staleIssues = data.issuePreview.filter((issue) => issue.daysIdle >= 3).length;
-  const successfulRuns = data.recentRuns.filter((run) => run.status === "succeeded").length;
-  const failedRuns = data.recentRuns.filter((run) => run.status === "failed").length;
-  const latestFailedRun = data.recentRuns.find((run) => run.status === "failed");
+  const latestRunsBySource = data.recentRuns.reduce((runs, run) => {
+    if (!runs.has(run.source)) {
+      runs.set(run.source, run);
+    }
+    return runs;
+  }, new Map<string, (typeof data.recentRuns)[number]>());
+  const currentSourceRuns = Array.from(latestRunsBySource.values());
+  const successfulRuns = currentSourceRuns.filter((run) => run.status === "succeeded").length;
+  const failedRuns = currentSourceRuns.filter((run) => run.status === "failed").length;
+  const latestFailedRun = currentSourceRuns.find((run) => run.status === "failed");
   const latestGitRun = data.recentRuns.find((run) => run.source === "git");
-  const gitRunSucceeded = latestGitRun?.status === "succeeded";
   const importedGitCommits = Number(latestGitRun?.stats?.importedCommits ?? data.commitPreview.length);
   const foundPullRequests = Number(latestGitRun?.stats?.openPullRequests ?? 0);
   const reviewIssues = Number(latestGitRun?.stats?.reviewIssues ?? 0);
@@ -492,7 +530,7 @@ export function ProjectIntegrationsPage() {
     },
     {
       label: "Sync health",
-      value: data.recentRuns.length ? `${successfulRuns}/${data.recentRuns.length}` : "0",
+      value: currentSourceRuns.length ? `${successfulRuns}/${currentSourceRuns.length}` : "0",
       detail: failedRuns ? failedRunDetail : "Recent runs healthy or waiting",
       icon: RefreshCw,
       tone: failedRuns ? ("danger" as const) : ("success" as const)
@@ -500,30 +538,43 @@ export function ProjectIntegrationsPage() {
   ];
   const integrationHealth = [
     {
-      label: gitRunSucceeded ? "GitHub token OK" : latestGitRun ? "GitHub token check failed" : "GitHub token unchecked",
-      detail: latestGitRun?.errorMessage ?? (gitRunSucceeded ? "Last Git sync authenticated successfully." : "Run Git sync to verify access."),
-      tone: gitRunSucceeded ? ("success" as const) : latestGitRun ? ("danger" as const) : ("neutral" as const),
+      label:
+        data.git?.tokenStatus === "valid"
+          ? `${savedGitLabel} token OK`
+          : data.git?.tokenStatus === "invalid" || data.git?.tokenStatus === "revoked"
+            ? `${savedGitLabel} token check failed`
+            : `${savedGitLabel} token unchecked`,
+      detail:
+        data.git?.lastError ??
+        (data.git?.lastVerifiedAt ? `Verified ${new Date(data.git.lastVerifiedAt).toLocaleString()}` : "Save with a token or run Git sync to verify access."),
+      tone:
+        data.git?.tokenStatus === "valid"
+          ? ("success" as const)
+          : data.git?.tokenStatus === "invalid" || data.git?.tokenStatus === "revoked" || latestGitRun?.status === "failed"
+            ? ("danger" as const)
+            : ("neutral" as const),
       icon: KeyRound
     },
     {
       label: data.git && data.git.status !== "failed" ? "Repo reachable" : "Repo not verified",
-      detail: data.git ? `${data.git.repoOwner}/${data.git.repoName}` : "Configure GitHub repository first.",
+      detail: data.git ? `${data.git.repoOwner}/${data.git.repoName}` : `Configure ${savedGitLabel} repository first.`,
       tone: data.git && data.git.status !== "failed" ? ("success" as const) : ("warning" as const),
       icon: GitBranch
     },
     {
       label: `${importedGitCommits} commits imported`,
-      detail: "Mapped to members by GitHub username, commit email, or member email.",
+      detail: "Mapped to members by Git identity, commit email, or member email.",
       tone: importedGitCommits ? ("success" as const) : ("warning" as const),
       icon: RefreshCw
     },
     {
-      label: `${foundPullRequests} PR${foundPullRequests === 1 ? "" : "s"} found`,
-      detail: reviewIssues ? `${reviewIssues} review issue${reviewIssues === 1 ? "" : "s"} reported.` : "PR review pressure is clean or waiting.",
+      label: `${foundPullRequests} ${savedReviewUnit}${foundPullRequests === 1 ? "" : "s"} found`,
+      detail: reviewIssues ? `${reviewIssues} review issue${reviewIssues === 1 ? "" : "s"} reported.` : `${savedReviewUnit} review pressure is clean or waiting.`,
       tone: reviewIssues ? ("warning" as const) : foundPullRequests ? ("success" as const) : ("neutral" as const),
       icon: ShieldAlert
     }
   ];
+
   return (
     <div className={workspacePageClass}>
       <WorkspaceHero
@@ -538,18 +589,18 @@ export function ProjectIntegrationsPage() {
           </>
         }
         title="Configure sync"
-        description="Connect Jira and GitHub signals to the selected project. Guided sync keeps issue and commit signals reliable for the demo."
+        description={`Connect Jira and ${savedGitLabel} signals to the selected project. Guided sync keeps issue and commit signals reliable for the demo.`}
         score={`${connectedCount}/2`}
         scoreLabel="Connected"
         scoreTone={connectedCount === 2 ? "success" : "info"}
-        scoreDetail={lastSyncAt ? `Last sync ${new Date(lastSyncAt).toLocaleString()}` : "Run a sync after configuring Jira or GitHub."}
+        scoreDetail={lastSyncAt ? `Last sync ${new Date(lastSyncAt).toLocaleString()}` : `Run a sync after configuring Jira or ${savedGitLabel}.`}
         pills={
           <>
             <StatusPill icon={Cloud} tone={statusTone(data.jira?.status)}>
               Jira {formatStatus(data.jira?.status)}
             </StatusPill>
             <StatusPill icon={GitBranch} tone={statusTone(data.git?.status)}>
-              GitHub {formatStatus(data.git?.status)}
+              {savedGitLabel} {formatStatus(data.git?.status)}
             </StatusPill>
             <a
               href="#teams-webhook"
@@ -625,12 +676,12 @@ export function ProjectIntegrationsPage() {
       <SectionPanel className="p-4">
         <PanelHeader
           eyebrow="Integration health"
-          title="GitHub trust checks"
+          title={`${savedGitLabel} trust checks`}
           icon={ShieldAlert}
-          tone={gitRunSucceeded ? "success" : "warning"}
+          tone={data.git?.status === "synced" || data.git?.tokenStatus === "valid" ? "success" : "warning"}
         />
         <p className="-mt-3 mb-4 max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-300">
-          Quick verification for judges: token access, repository reachability, imported commits, and PR review signals.
+          Quick verification for judges: token access, repository reachability, imported commits, and {savedReviewUnit} review signals.
         </p>
         <div className="grid gap-3 md:grid-cols-4">
           {integrationHealth.map((item) => {
@@ -705,30 +756,69 @@ export function ProjectIntegrationsPage() {
 
         <SectionPanel className="relative overflow-hidden border-l-[3px] border-l-ai-500/80 dark:border-l-ai-400/70">
           <form className="grid gap-5" onSubmit={configureGit}>
-            <PanelHeader eyebrow="GitHub" title={data.git ? "Configured repository" : "Connect repository"} icon={GitBranch} tone="ai" />
+            <PanelHeader eyebrow={selectedGitLabel} title={data.git ? "Configured repository" : "Connect repository"} icon={GitBranch} tone="ai" />
             <p className="-mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
               Repository details map commits and review pressure back to the sprint.
             </p>
             <div className="grid gap-4">
               <label className="grid gap-2">
-                <span className="text-sm font-black text-slate-700 dark:text-slate-200">Repo owner</span>
+                <span className="text-sm font-black text-slate-700 dark:text-slate-200">Provider</span>
+                <select
+                  className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 shadow-sm outline-none transition focus:border-primary-400 focus:ring-4 focus:ring-primary-500/15 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-slate-950 dark:text-white"
+                  value={gitProvider}
+                  onChange={(event) => {
+                    const nextProvider = event.target.value as GitProviderOption;
+                    setGitProvider(nextProvider);
+                    setGitBaseUrl(defaultGitBaseUrl(nextProvider));
+                  }}
+                  disabled={!canConfigure}
+                >
+                  <option className="bg-white text-slate-900 dark:bg-slate-950 dark:text-white" value="github">GitHub</option>
+                  <option className="bg-white text-slate-900 dark:bg-slate-950 dark:text-white" value="gitlab">GitLab</option>
+                </select>
+              </label>
+              {gitProvider === "gitlab" ? (
+                <label className="grid gap-2">
+                  <span className="text-sm font-black text-slate-700 dark:text-slate-200">GitLab URL</span>
+                  <Input value={gitBaseUrl} onChange={(event) => setGitBaseUrl(event.target.value)} placeholder="gitlab.demopersistent.com" disabled={!canConfigure} required />
+                </label>
+              ) : null}
+              <label className="grid gap-2">
+                <span className="text-sm font-black text-slate-700 dark:text-slate-200">Owner / namespace</span>
                 <Input value={repoOwner} onChange={(event) => setRepoOwner(event.target.value)} placeholder="semicolon-team" disabled={!canConfigure} required />
               </label>
               <label className="grid gap-2">
                 <span className="text-sm font-black text-slate-700 dark:text-slate-200">Repo name</span>
                 <Input value={repoName} onChange={(event) => setRepoName(event.target.value)} placeholder="sprintpulse-ai" disabled={!canConfigure} required />
               </label>
+              <label className="grid gap-2">
+                <span className="text-sm font-black text-slate-700 dark:text-slate-200">{selectedGitLabel} token</span>
+                <Input
+                  autoComplete="off"
+                  type="password"
+                  value={gitToken}
+                  onChange={(event) => setGitToken(event.target.value)}
+                  placeholder={data.git?.tokenStatus === "valid" ? "Saved token active; leave blank to keep" : "Paste access token"}
+                  disabled={!canConfigure}
+                />
+              </label>
             </div>
             <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-white/[0.045]">
               <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Status</span>
               <strong className="mt-1 block text-sm font-black text-slate-950 dark:text-white">{formatStatus(data.git?.status)}</strong>
-              <small className="text-xs text-slate-500 dark:text-slate-400">{data.git?.lastSyncAt ? new Date(data.git.lastSyncAt).toLocaleString() : "No sync yet"}</small>
+              <small className="text-xs text-slate-500 dark:text-slate-400">
+                {data.git?.lastSyncAt
+                  ? new Date(data.git.lastSyncAt).toLocaleString()
+                  : data.git?.lastVerifiedAt
+                    ? `Verified ${new Date(data.git.lastVerifiedAt).toLocaleString()}`
+                    : "No sync yet"}
+              </small>
             </div>
             {canConfigure ? (
               <div className="flex flex-wrap gap-3">
                 <button className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-primary-500 to-info-500 px-5 text-sm font-black text-white shadow-[0_14px_34px_rgba(16,169,154,0.22)] disabled:pointer-events-none disabled:opacity-60" type="submit" disabled={Boolean(saving)}>
                   {saving === "git" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  Save GitHub
+                  Save {selectedGitLabel}
                 </button>
                 <button className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-ai-500/30 bg-ai-500/10 px-5 text-sm font-black text-ai-700 transition hover:bg-ai-500/15 disabled:pointer-events-none disabled:opacity-60 dark:text-ai-100" type="button" onClick={syncGit} disabled={Boolean(saving) || !data.git}>
                   {saving === "git-sync" ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
@@ -813,7 +903,7 @@ export function ProjectIntegrationsPage() {
                 </div>
               ))
             ) : (
-              <EmptyPanel icon={GitBranch} title="No GitHub proof yet" description="Add GitHub usernames on the Team page, then sync GitHub to preview commits, PRs, and review pressure." />
+              <EmptyPanel icon={GitBranch} title={`No ${savedGitLabel} proof yet`} description={`Add Git identities on the Team page, then sync ${savedGitLabel} to preview commits, ${savedReviewUnit}s, and review pressure.`} />
             )}
           </div>
         </SectionPanel>

@@ -129,12 +129,16 @@ type JiraConnectionRow = {
 type GitConnectionRow = {
   id: string;
   project_id: string;
-  provider: "github";
+  provider: "github" | "gitlab";
+  base_url?: string | null;
   repo_owner: string;
   repo_name: string;
   default_branch: string;
   status: GitConnection["status"];
+  token_status?: GitConnection["tokenStatus"] | null;
   last_sync_at?: string | null;
+  last_verified_at?: string | null;
+  last_error?: string | null;
 };
 
 type JiraIssueRow = {
@@ -361,11 +365,15 @@ const toGitConnection = (row: GitConnectionRow): GitConnection => ({
   id: row.id,
   projectId: row.project_id,
   provider: row.provider,
+  baseUrl: row.base_url ?? undefined,
   repoOwner: row.repo_owner,
   repoName: row.repo_name,
   defaultBranch: row.default_branch,
   status: row.status,
-  lastSyncAt: row.last_sync_at ?? undefined
+  tokenStatus: row.token_status ?? undefined,
+  lastSyncAt: row.last_sync_at ?? undefined,
+  lastVerifiedAt: row.last_verified_at ?? undefined,
+  lastError: row.last_error ?? undefined
 });
 
 const daysIdle = (updatedAt?: string) => {
@@ -535,12 +543,7 @@ const fetchSignals = async (project: SprintProject, sprintId?: string): Promise<
       .eq("project_id", project.id)
       .eq("sprint_id", selectedSprint.id)
       .order("date", { ascending: false }),
-    client
-      .from("jira_issues")
-      .select("*")
-      .eq("project_id", project.id)
-      .eq("sprint_id", selectedSprint.id)
-      .order("updated_at_source", { ascending: false, nullsFirst: false }),
+    client.from("jira_issues").select("*").eq("project_id", project.id).eq("sprint_id", selectedSprint.id),
     client
       .from("git_commits")
       .select("*")
@@ -1089,7 +1092,7 @@ const buildMemberPulse = (
       type: "SAY_DO_GAP",
       severity: "high",
       title: "No repo evidence for active work",
-      message: `${member.name} has active sprint work, but GitHub has no mapped commits for the sprint window.`
+      message: `${member.name} has active sprint work, but Git has no mapped commits for the sprint window.`
     });
   }
   if (lateNightCommits > 0) {
@@ -1148,7 +1151,7 @@ const buildMemberPulse = (
       type: "VAGUE_UPDATE",
       severity: "medium",
       title: "Silent contributor",
-      message: `${member.name} has GitHub activity but no standup update, so communication confidence is lower.`
+      message: `${member.name} has Git activity but no standup update, so communication confidence is lower.`
     });
   }
   if (!issues.length && commits.length >= 3) {
@@ -1881,8 +1884,8 @@ export const getProjectIntegrationsFromSupabase = async (
     jira: signals.jira,
     git: signals.git,
     recentRuns: signals.runs,
-    issuePreview: signals.issues,
-    commitPreview: signals.commits
+    issuePreview: signals.issues.slice(0, 8),
+    commitPreview: signals.commits.slice(0, 8)
   };
 };
 
@@ -2036,6 +2039,7 @@ export const configureGitInSupabase = async (
       {
         project_id: projectId,
         provider: input.provider,
+        base_url: input.baseUrl?.trim() || null,
         repo_owner: input.repoOwner.trim(),
         repo_name: input.repoName.trim(),
         default_branch: input.defaultBranch?.trim() || "main",
@@ -2055,7 +2059,7 @@ export const configureGitInSupabase = async (
   return {
     connection: toGitConnection(data as GitConnectionRow),
     importedCommits: 0,
-    warnings: ["GitHub is configured. Run sync to import commit activity."]
+    warnings: [`${input.provider === "gitlab" ? "GitLab" : "GitHub"} is configured. Run sync to import commit activity.`]
   };
 };
 
@@ -2073,7 +2077,7 @@ export const syncGitInSupabase = async (
     throw new Error("Configure Git before running sync.");
   }
 
-  throw new Error("GitHub sync requires the API server because the GitHub token is server-only.");
+  throw new Error("Git sync requires the API server because provider tokens are server-only.");
 };
 
 export const getProjectStandupsFromSupabase = async (

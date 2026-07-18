@@ -234,7 +234,7 @@ export function ProjectWorkspacePage() {
     },
     {
       id: "git",
-      label: "GitHub",
+      label: integrations.git?.provider === "gitlab" ? "GitLab" : integrations.git?.provider === "github" ? "GitHub" : "Git",
       status: integrations.git?.status ?? "not-configured",
       detail: integrations.git ? `${integrations.git.repoOwner}/${integrations.git.repoName}` : "Not configured",
       Icon: GitBranch
@@ -317,14 +317,14 @@ export function ProjectWorkspacePage() {
           to={canSyncStandups ? `/projects/${project.id}/integrations` : `/projects/${project.id}/members/${workspace.viewer.id}`}
           icon={canSyncStandups ? RefreshCw : UserRound}
           title={canSyncStandups ? "Refresh signals" : "Your pulse"}
-          description={canConfigure ? "Configure Jira and GitHub, then sync sprint evidence." : "Open delivery signals, flags, and recent history."}
+          description={canConfigure ? "Configure Jira and Git, then sync sprint evidence." : "Open delivery signals, flags, and recent history."}
           tone="warning"
         />
         <ActionTile
           to={`/projects/${project.id}/team`}
           icon={Users}
           title="Team"
-          description="Roles, invite access, Jira IDs, GitHub handles, and ownership."
+          description="Roles, invite access, Jira IDs, Git identities, and ownership."
           tone="ai"
         />
         <ActionTile
@@ -346,7 +346,7 @@ export function ProjectWorkspacePage() {
           <div className="grid gap-3">
             {[
               { id: "ST", label: "Capture standups", description: "Manual, transcript, upload, and guided sync all write to this sprint.", route: `/projects/${project.id}/standups` },
-              { id: "IN", label: integrations.jira || integrations.git ? "Refresh integrations" : "Configure integrations", description: "Connect Jira and GitHub signals for issues, commits, and say-do gap scoring.", route: `/projects/${project.id}/integrations` },
+              { id: "IN", label: integrations.jira || integrations.git ? "Refresh integrations" : "Configure integrations", description: "Connect Jira and Git signals for issues, commits, and say-do gap scoring.", route: `/projects/${project.id}/integrations` },
               { id: "DB", label: "Review health", description: "Open team risk, member pulse, blockers, and recommendations.", route: `/projects/${project.id}/dashboard` }
             ].map((action) => (
               <Link
