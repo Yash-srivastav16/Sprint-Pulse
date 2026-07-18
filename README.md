@@ -393,7 +393,7 @@ Code quality is covered by automated tests plus validation scripts that exercise
 
 | Command | What it checks |
 |---|---|
-| `npm test` | Builds shared/API/MCP packages and runs Node tests for risk scoring, API auth gates, and MCP tool catalog contracts |
+| `npm test` | Builds shared/API/MCP packages and runs 25 Node tests across risk scoring, additional risk-type coverage, API auth gates, MCP tool catalog contracts, and TOON encoder behavior |
 | `npm run typecheck` | TypeScript across all 4 workspaces — primary correctness gate. Catches contract drift between `apps/web`, `apps/api`, and `packages/shared` |
 | `npm run check:role-demo` | Verifies the 5 seeded judge personas can sign in, switch roles, and load at least one project end-to-end |
 | `npm run benchmark:toon` | Confirms the TOON differentiator with measured numbers — emits both char and token reductions for the bundled sprint payload |
