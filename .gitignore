@@ -11,11 +11,6 @@ coverage/
 .env.*
 !.env.example
 !*.env.example
-# .env.production is committed because the SemicoLabs deploy platform builds
-# from the pushed git repo (no runtime env-var injection we can use).
-# WARNING: rotate any secrets stored here after the deploy is torn down.
-!.env.production
-!*.env.production
 
 # Logs
 npm-debug.log*
