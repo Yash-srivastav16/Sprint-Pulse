@@ -429,6 +429,10 @@ Scoring and notifications are role-filtered — a Scrum Master is never flagged 
 
 ### UX Evidence: Personas, Journey, and Flow
 
+The five personas below are **role archetypes** — Scrum Master, Engineering Manager, Product Owner, Developer, and QA Lead — each grounded in pain points we have observed firsthand working in those roles across delivery engagements at Persistent. The named identities (Maya, Devon, Priya, Leo, Aisha) are demo seed users so reviewers can log in and walk the dashboard from each role's perspective; the per-row "Pain point" column is the research-backed claim, not the names.
+
+We did not run formal user interviews for this hackathon scope, but each pain point reflects a recurring pattern we have seen in real sprint retrospectives: standups that mask the say-do gap, blockers escalated too late, and validation risk surfacing only near release. The journey table below maps each step to a verifiable surface in the demo seed (`database/supabase/seed_demo_project_ops.sql`).
+
 | Persona | Goal | Pain point | SprintPulse value |
 |---|---|---|---|
 | Maya Chen, Scrum Master | Spot blockers before standup ends | Updates are vague and blockers surface late | Ranked risks, blocker owners, and next actions |
