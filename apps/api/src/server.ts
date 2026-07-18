@@ -19,11 +19,12 @@ const defaultOrigins = [
 ];
 const allowedOrigins = new Set(configuredOrigins?.length ? configuredOrigins : defaultOrigins);
 const localOriginPattern = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/;
+const railwayOriginPattern = /^https:\/\/[\w-]+\.up\.railway\.app$/;
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || origin === "null" || allowedOrigins.has(origin) || localOriginPattern.test(origin)) {
+      if (!origin || origin === "null" || allowedOrigins.has(origin) || localOriginPattern.test(origin) || railwayOriginPattern.test(origin)) {
         callback(null, true);
         return;
       }
