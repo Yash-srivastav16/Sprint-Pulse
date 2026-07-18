@@ -80,38 +80,12 @@ Current implemented:
 - Member detail.
 - Standup submission and transcript parsing.
 - One master SprintPulse agent brief.
-- Phase 1 product freeze in `docs/PRODUCT_FREEZE.md`.
-- Phase 2 architecture freeze in `docs/ARCHITECTURE_FREEZE.md`.
-- Phase 3 UX direction in `docs/UX_DIRECTION.md`.
-- Phase 4 first implementation slice:
-  - Shared project, sprint, permission, and project-dashboard contracts.
-  - Seeded Product Owner persona and two project workspaces.
-  - Role-aware projects API, manual project create, Jira connect, workspace summary, project dashboard, project member detail, project standup submit/parse/sync.
-  - Public homepage, project list, add project, connect Jira, project workspace, project-aware dashboard/member/standup pages.
-  - Standup page now supports manual entry, transcript paste, upload text file parsing, and sync controls.
-  - `npm run typecheck` and `npm run build` pass.
-- Phase 5 browser QA and hardening:
-  - Started local API/web on `http://localhost:4000` and `http://localhost:5173`.
-  - Browser-tested desktop homepage, login, projects, workspace, standup, dashboard, and member detail.
-  - Browser-tested mobile homepage, projects, and dashboard at 390px width.
-  - Fixed login redirect so authenticated users land on `/projects`, not legacy `/setup`.
-  - Fixed developer sync visibility: sync controls now appear only for personas with `standup:sync`.
-  - Replaced the developer workspace's dead sync tile with a useful `Your pulse` tile.
-  - Tightened individual dashboard visibility so developer metrics and team list reflect only visible personal pulse data.
-  - Added accessible labels for icon-only mobile actions.
-  - `npm run typecheck` and `npm run build` pass after the QA fixes.
-- Phase 6 presenter story and stakeholder polish:
-  - Added a protected presenter guide with persona-aware headline, five-click walkthrough, proof points, and resilience notes.
-  - Added presenter navigation and workspace mode signaling.
-  - Redirected legacy `/setup` to `/projects`.
-  - Polished Projects page copy using `productPersona` instead of title matching.
-  - Browser-smoked the presenter path on desktop and 390px mobile width.
-  - `npm run typecheck` and `npm run build` pass.
-- Product-flow cleanup after Phase 6:
-  - Replaced persona-card sign-in with Supabase email/password auth.
-  - Removed hackathon scaffolding language from the active product screens and seeded user-facing copy.
-  - Removed presenter/plan pages from active navigation; legacy paths redirect into the project flow.
-  - Updated Jira and standup sync routes to product-facing paths.
+- Shared contracts for project, sprint, permission, and dashboard responses live in `packages/shared/src/index.ts`.
+- Role-aware projects API: manual project create, Jira OAuth connect, workspace summary, project dashboard, member detail, standup submit/parse/sync.
+- Standup page supports manual entry, transcript paste, file upload parsing, and sync controls.
+- Supabase email/password auth replaces the earlier persona-card sign-in.
+- Browser-smoked across desktop and mobile (390px) for homepage, login, projects, workspace, standup, dashboard, and member detail.
+- Validation gates pass: `npm run typecheck`, `npm test`, `npm run benchmark:toon`; `npm run check:role-demo` verifies seeded personas when the API is running.
 
 ## Open Decisions
 

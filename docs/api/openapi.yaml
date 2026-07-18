@@ -11,8 +11,6 @@ info:
     `Authorization: Bearer <supabase-jwt>` for browser/user calls. Route payloads still carry `personaId`
     to scope role-aware dashboard views and MCP actions.
 
-    Some legacy routes are available only when `ENABLE_MOCK_FLOW=true`; in Supabase data mode those routes
-    return `501` until their adapters are implemented.
 servers:
   - url: http://localhost:4000/api
     description: Local SprintPulse API
@@ -33,8 +31,6 @@ tags:
     description: AI-enhanced scoring, assistant, and role-aware notifications.
   - name: Standups
     description: Manual standups, transcript parsing, and standup sync.
-  - name: Legacy Mock
-    description: Mock-flow routes retained for the original seeded demo.
 security:
   - SprintPulseApiKey: []
   - SupabaseBearer: []
@@ -1266,138 +1262,6 @@ paths:
                     error: You do not have permission to sync standups for this project
         "500":
           $ref: "#/components/responses/InternalServerError"
-  /dashboard:
-    get:
-      tags: [Legacy Mock]
-      operationId: getLegacyDashboard
-      summary: Get the legacy seeded dashboard.
-      description: Mock-flow route. In Supabase data mode this returns `501`.
-      parameters:
-        - $ref: "#/components/parameters/PersonaIdQuery"
-      responses:
-        "200":
-          description: Seeded dashboard response.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/DashboardResponse"
-        "404":
-          description: Dashboard is not found for the persona.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-              examples:
-                notFound:
-                  value:
-                    error: Dashboard not found for persona
-        "501":
-          $ref: "#/components/responses/NotImplemented"
-  /members:
-    get:
-      tags: [Legacy Mock]
-      operationId: listLegacyMembers
-      summary: List legacy seeded member pulses.
-      description: Mock-flow route. In Supabase data mode this returns `501`.
-      responses:
-        "200":
-          description: Seeded member pulses.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/MembersResponse"
-        "501":
-          $ref: "#/components/responses/NotImplemented"
-  /members/{memberId}:
-    get:
-      tags: [Legacy Mock]
-      operationId: getLegacyMember
-      summary: Get a legacy seeded member pulse.
-      description: Mock-flow route. In Supabase data mode this returns `501`.
-      parameters:
-        - $ref: "#/components/parameters/MemberIdPath"
-      responses:
-        "200":
-          description: Seeded member pulse.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/MemberResponse"
-        "404":
-          description: Member was not found.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-              examples:
-                notFound:
-                  value:
-                    error: Member not found
-        "501":
-          $ref: "#/components/responses/NotImplemented"
-  /standups:
-    post:
-      tags: [Legacy Mock]
-      operationId: submitLegacyStandup
-      summary: Submit a legacy seeded standup.
-      description: Mock-flow route. In Supabase data mode this returns `501`.
-      requestBody:
-        $ref: "#/components/requestBodies/StandupSubmitBody"
-      responses:
-        "201":
-          description: Standup accepted in seeded data.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/StandupSubmitResponse"
-        "400":
-          $ref: "#/components/responses/StandupValidation"
-        "404":
-          $ref: "#/components/responses/PersonaNotFound"
-        "501":
-          $ref: "#/components/responses/NotImplemented"
-  /transcripts/parse:
-    post:
-      tags: [Legacy Mock]
-      operationId: parseLegacyTranscript
-      summary: Parse transcript text into seeded standup drafts.
-      description: Mock-flow route. In Supabase data mode this returns `501`.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/TranscriptParseRequest"
-            examples:
-              transcript:
-                value:
-                  transcript: "Priya: Yesterday finalized sprint goals. Today reviewing delivery risk. Blockers none."
-      responses:
-        "200":
-          description: Parsed seeded transcript entries.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/TranscriptParseResponse"
-        "400":
-          $ref: "#/components/responses/TranscriptValidation"
-        "501":
-          $ref: "#/components/responses/NotImplemented"
-  /plan:
-    get:
-      tags: [Legacy Mock]
-      operationId: getLegacyPlan
-      summary: Get the seeded hackathon implementation plan.
-      description: Mock-flow route. In Supabase data mode this returns `501`.
-      responses:
-        "200":
-          description: Seeded stack, assignment, and milestone plan.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PlanResponse"
-        "501":
-          $ref: "#/components/responses/NotImplemented"
 components:
   securitySchemes:
     SprintPulseApiKey:

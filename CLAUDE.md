@@ -85,7 +85,11 @@ Core Supabase tables: `profiles`, `projects`, `sprints`, `project_members`, `sta
 
 RLS is enforced at the DB level — users only see projects they created or belong to. The service role key (API-side) bypasses RLS; the anon key (web-side) respects it.
 
-**Risk flags** (`RiskFlag` enum in shared): `VAGUE_UPDATE`, `SAY_DO_GAP`, `BURNOUT_SIGNAL`, `BLOCKER_UNRESOLVED`, `SCOPE_CREEP`, `NO_UPDATE` — these drive AI notifications.
+**Risk flags** (`FlagType` enum in `packages/shared/src/index.ts`) — 5 headline + 3 contextual:
+- Headline: `VAGUE_UPDATE`, `STALE_WORK`, `COPY_PASTE`, `SAY_DO_GAP`, `BLOCKER_ANOMALY`
+- Contextual: `BURNOUT_SIGNAL`, `TEST_RISK`, `SPRINT_END_RISK`
+
+These drive role-aware AI notifications and the dashboard's attention queue.
 
 **Personas** (`ProductPersona` enum): `scrum-master`, `product-owner`, `engineering-manager`, `developer`, `qa-lead` — notifications and permissions are role-filtered.
 
