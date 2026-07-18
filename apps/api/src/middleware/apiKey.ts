@@ -30,7 +30,6 @@ import { getAuthUserFromToken } from "../lib/supabaseAdmin.js";
 
 const HEALTH_PATH = "/health"; // mounted at /api/health by apiRouter
 const JIRA_OAUTH_CALLBACK_PATH = "/jira/oauth/callback"; // Atlassian redirect, validated by OAuth state
-const shortLogValue = (value?: string | null) => (value ? `${value.slice(0, 8)}...` : undefined);
 
 export function apiAuthMiddleware(): RequestHandler {
   const expectedKey = process.env.SPRINTPULSE_API_KEY;
@@ -47,13 +46,6 @@ export function apiAuthMiddleware(): RequestHandler {
       req.path === "/health/" ||
       (req.method === "GET" && (req.path === JIRA_OAUTH_CALLBACK_PATH || req.path === `${JIRA_OAUTH_CALLBACK_PATH}/`))
     ) {
-      if (req.path === JIRA_OAUTH_CALLBACK_PATH || req.path === `${JIRA_OAUTH_CALLBACK_PATH}/`) {
-        console.info("[jira-oauth] callback bypassed API auth middleware", {
-          method: req.method,
-          path: req.path,
-          state: shortLogValue(String(req.query.state ?? ""))
-        });
-      }
       next();
       return;
     }

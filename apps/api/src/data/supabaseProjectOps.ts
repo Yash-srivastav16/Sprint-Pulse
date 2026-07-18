@@ -2944,16 +2944,6 @@ export const configureSupabaseGit = async (
   const provider = normalizeGitProvider(input.provider);
   const baseUrl = normalizeGitBaseUrl(provider, input.baseUrl);
   const token = input.accessToken?.trim();
-  console.info("[git-sync] configure started", {
-    projectId,
-    personaId: input.personaId,
-    provider,
-    baseUrl,
-    repo: `${input.repoOwner.trim()}/${input.repoName.trim()}`,
-    defaultBranch: input.defaultBranch?.trim() || "main",
-    hasNewToken: Boolean(token),
-    verify: Boolean(input.verify)
-  });
 
   const { data: existingConnection, error: existingError } = await client
     .from("git_connections")
@@ -3020,7 +3010,6 @@ export const configureSupabaseGit = async (
     const now = new Date().toISOString();
     try {
       const runtimeConnection = toGitRuntimeConnection(connectionRow);
-      console.info("[git-sync] configure verification started", gitConnectionLogContext(connectionRow));
       await fetchGitPullRequests(provider, runtimeConnection);
       const { data: verifiedRow, error: verifyUpdateError } = await client
         .from("git_connections")
@@ -3040,7 +3029,6 @@ export const configureSupabaseGit = async (
       }
       connectionRow = verifiedRow as GitConnectionRow;
       warnings.push(`${providerLabel} repository access verified.`);
-      console.info("[git-sync] configure verification succeeded", gitConnectionLogContext(connectionRow));
     } catch (err) {
       const message = err instanceof Error ? err.message : `${providerLabel} verification failed.`;
       console.error("[git-sync] configure verification failed", {
@@ -3335,13 +3323,6 @@ export const syncSupabaseGit = async (projectId: string, personaId: string): Pro
   const provider = normalizeGitProvider(gitConnection.provider);
   const providerLabel = gitProviderLabel(provider);
   const reviewName = gitReviewName(provider);
-  console.info("[git-sync] sync started", {
-    projectId,
-    personaId,
-    sprintId: signals.sprint.id,
-    sprintName: signals.sprint.name,
-    ...gitRuntimeLogContext(gitConnection)
-  });
 
   let gitCommitList: GitProviderCommit[];
   let gitPullRequests: GitProviderPullRequest[];
@@ -3354,24 +3335,11 @@ export const syncSupabaseGit = async (projectId: string, personaId: string): Pro
       fetchGitCommits(provider, gitConnection, signals.sprint),
       fetchGitPullRequests(provider, gitConnection)
     ]);
-    console.info("[git-sync] initial fetch completed", {
-      projectId,
-      ...gitRuntimeLogContext(gitConnection),
-      branchCommitCandidates: gitCommitList.length,
-      openPullRequests: gitPullRequests.length
-    });
     branchCommits = await fetchGitCommitDetails(provider, gitConnection, gitCommitList);
     [pullRequestCommits, pullRequestReviewResult] = await Promise.all([
       fetchGitPullRequestCommits(provider, gitConnection, gitPullRequests),
       fetchGitPullRequestReviewSignals(provider, gitConnection, gitPullRequests)
     ]);
-    console.info("[git-sync] detail fetch completed", {
-      projectId,
-      ...gitRuntimeLogContext(gitConnection),
-      branchCommits: branchCommits.length,
-      pullRequestCommitGroups: pullRequestCommits.size,
-      reviewWarnings: pullRequestReviewResult.warnings.length
-    });
   } catch (err) {
     const message = err instanceof Error ? err.message : `${providerLabel} sync failed.`;
     const now = new Date().toISOString();
@@ -3415,14 +3383,6 @@ export const syncSupabaseGit = async (projectId: string, personaId: string): Pro
       repo: `${gitConnection.repoOwner}/${gitConnection.repoName}`
     }
   }));
-  console.info("[git-sync] commit mapping completed", {
-    projectId,
-    ...gitRuntimeLogContext(gitConnection),
-    fetchedCommits: gitCommits.length,
-    mappedCommits: rows.length,
-    projectMembers: context.project.members.length
-  });
-
   const { error: demoDeleteError } = await client
     .from("git_commits")
     .delete()
@@ -3512,14 +3472,6 @@ export const syncSupabaseGit = async (projectId: string, personaId: string): Pro
     autoLinkedCommitEmails: gitEmailLinks.linkedCommitEmails,
     autoLinkedMembers: gitEmailLinks.linkedMembers
   });
-  console.info("[git-sync] sync completed", {
-    projectId,
-    personaId,
-    ...gitRuntimeLogContext(gitConnection),
-    importedCommits: rows.length,
-    openPullRequests
-  });
-
   const hasProviderToken = Boolean(
     gitConnection.accessToken ||
       (provider === "gitlab" ? process.env.GITLAB_TOKEN || process.env.GIT_TOKEN : process.env.GITHUB_TOKEN || process.env.GITHUB_PAT)

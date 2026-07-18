@@ -79,23 +79,9 @@ export function registerIntegrationRoutes(router: Router): void {
     if (!mockFlowEnabled) {
       const projectId = String(req.params.projectId ?? "");
       const body = req.body as JiraOAuthStartRequest;
-      console.info("[jira-oauth] start request received", {
-        projectId,
-        personaId: body?.personaId,
-        jiraSite: body?.jiraSite,
-        projectKey: body?.projectKey,
-        mockFlowEnabled
-      });
 
       try {
         const response = await startSupabaseJiraOAuth(projectId, body);
-        console.info("[jira-oauth] start request completed", {
-          projectId,
-          personaId: body?.personaId,
-          state: shortLogValue(response.state),
-          expiresAt: response.expiresAt,
-          warnings: response.warnings
-        });
         res.json(response);
       } catch (err) {
         console.error("[jira-oauth] start request failed", {
@@ -113,11 +99,6 @@ export function registerIntegrationRoutes(router: Router): void {
   router.get("/jira/oauth/callback", async (req, res) => {
     const code = String(req.query.code ?? "");
     const state = String(req.query.state ?? "");
-    console.info("[jira-oauth] callback request received", {
-      hasCode: Boolean(code),
-      state: shortLogValue(state),
-      queryKeys: Object.keys(req.query)
-    });
 
     try {
       if (!code || !state) {
@@ -129,13 +110,6 @@ export function registerIntegrationRoutes(router: Router): void {
         return;
       }
       const result = await completeSupabaseJiraOAuth(code, state);
-      console.info("[jira-oauth] callback redirecting to frontend", {
-        state: shortLogValue(state),
-        projectId: result.projectId,
-        connectionId: result.connection.id,
-        redirectTo: result.redirectTo,
-        warnings: result.warnings
-      });
       res.redirect(result.redirectTo);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Jira OAuth callback failed";
@@ -168,27 +142,9 @@ export function registerIntegrationRoutes(router: Router): void {
     if (!mockFlowEnabled) {
       const projectId = String(req.params.projectId ?? "");
       const body = req.body as ConfigureGitRequest;
-      console.info("[git-sync] configure request received", {
-        projectId,
-        personaId: body?.personaId,
-        provider: body?.provider,
-        baseUrl: body?.baseUrl,
-        repo: body?.repoOwner && body?.repoName ? `${body.repoOwner}/${body.repoName}` : undefined,
-        defaultBranch: body?.defaultBranch,
-        hasAccessToken: Boolean(body?.accessToken),
-        verify: Boolean(body?.verify)
-      });
 
       try {
         const response = await configureSupabaseGit(projectId, body);
-        console.info("[git-sync] configure request completed", {
-          projectId,
-          provider: response.connection.provider,
-          repo: `${response.connection.repoOwner}/${response.connection.repoName}`,
-          status: response.connection.status,
-          tokenStatus: response.connection.tokenStatus,
-          warnings: response.warnings
-        });
         res.json(response);
       } catch (err) {
         console.error("[git-sync] configure request failed", {
@@ -209,20 +165,9 @@ export function registerIntegrationRoutes(router: Router): void {
     if (!mockFlowEnabled) {
       const projectId = String(req.params.projectId ?? "");
       const personaId = String(req.body?.personaId ?? "");
-      console.info("[git-sync] sync request received", {
-        projectId,
-        personaId
-      });
 
       try {
         const response = await syncSupabaseProjectSignals(projectId, personaId, "git");
-        console.info("[git-sync] sync request completed", {
-          projectId,
-          provider: response.connection.provider,
-          repo: `${response.connection.repoOwner}/${response.connection.repoName}`,
-          importedCommits: response.importedCommits,
-          warnings: response.warnings
-        });
         res.json(response);
       } catch (err) {
         console.error("[git-sync] sync request failed", {
