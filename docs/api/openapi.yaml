@@ -7,8 +7,12 @@ info:
   description: |
     OpenAPI contract for the Express routes mounted at `/api` in SprintPulse.
 
-    The API currently uses a `personaId` query or body field to resolve the acting user. Some routes are available only
-    when `ENABLE_MOCK_FLOW=true`; in Supabase data mode those routes return `501` until their adapters are implemented.
+    Production routes accept either `X-SprintPulse-API-Key` for trusted server-to-server callers or
+    `Authorization: Bearer <supabase-jwt>` for browser/user calls. Route payloads still carry `personaId`
+    to scope role-aware dashboard views and MCP actions.
+
+    Some legacy routes are available only when `ENABLE_MOCK_FLOW=true`; in Supabase data mode those routes
+    return `501` until their adapters are implemented.
 servers:
   - url: http://localhost:4000/api
     description: Local SprintPulse API
@@ -31,13 +35,16 @@ tags:
     description: Manual standups, transcript parsing, and standup sync.
   - name: Legacy Mock
     description: Mock-flow routes retained for the original seeded demo.
-security: []
+security:
+  - SprintPulseApiKey: []
+  - SupabaseBearer: []
 paths:
   /health:
     get:
       tags: [System]
       operationId: getHealth
       summary: Check API health and runtime mode.
+      security: []
       responses:
         "200":
           description: Runtime health and configuration status.
@@ -1392,6 +1399,17 @@ paths:
         "501":
           $ref: "#/components/responses/NotImplemented"
 components:
+  securitySchemes:
+    SprintPulseApiKey:
+      type: apiKey
+      in: header
+      name: X-SprintPulse-API-Key
+      description: Shared server-to-server key used by MCP and trusted backend callers.
+    SupabaseBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Supabase user JWT sent by the browser client.
   parameters:
     PersonaIdQuery:
       name: personaId

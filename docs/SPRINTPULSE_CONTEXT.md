@@ -68,8 +68,8 @@ Current implemented:
 ## Integration Status
 
 - Login is now Supabase email/password and maps signed-in email addresses to SprintPulse roles.
-- Jira project fetch and transcript parsing use connector-shaped API contracts ready for real adapters.
-- GitHub/Jira/OpenAI production credentials and storage tables are still deferred.
+- Jira, GitHub/GitLab, transcript parsing, AI refresh, recommendations, webhook tokens, and Supabase persistence are implemented for the hackathon deployment.
+- Production credentials are event-scoped in `apps/*/.env.production` because the SemicoLabs deploy builds from the submitted repository; rotate them after judging.
 
 ## Completed Work
 

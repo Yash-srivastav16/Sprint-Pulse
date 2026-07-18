@@ -39,4 +39,4 @@ Before importing, parse the YAML locally:
 ruby -e 'require "yaml"; YAML.load_file("docs/api/openapi.yaml"); puts "openapi.yaml parsed"'
 ```
 
-The API currently identifies callers with `personaId` in query strings or request bodies. Several legacy mock-flow routes return `501` in Supabase data mode; keep those documented until the API source removes or replaces them.
+In the hackathon deployment, `/api/*` routes accept either `X-SprintPulse-API-Key` for server-to-server callers such as MCP or `Authorization: Bearer <supabase-jwt>` for browser/user calls. Route payloads still include `personaId` so the API can scope dashboard views and role-aware responses. Several legacy mock-flow routes return `501` in Supabase data mode; keep those documented until the API source removes or replaces them.

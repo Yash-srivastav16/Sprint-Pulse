@@ -31,6 +31,7 @@ SprintPulse continuously compares standup updates against Jira ticket movement a
 | **Agent wow** | MCP exposes six tools for Claude Code, Cursor, Codex, or any MCP host to read risk, parse standups, run PR review, and create in-app follow-ups. |
 | **Validation** | `npm test`, `npm run typecheck`, `npm run benchmark:toon`, `npm run check:role-demo`. |
 | **Live demo** | [solution1.demopersistent.com](https://solution1.demopersistent.com/?app=f65ea48f-bc1d-48ff-a3ed-a204ffe48bee) — `maya.chen@sprintpulse.dev` / `12345678`. |
+| **Pitch artifacts** | `presentation.pptx`, `demo_video.mp4`, architecture/dashboard screenshots in `docs/assets/`. |
 
 ---
 
@@ -392,7 +393,7 @@ Code quality is covered by automated tests plus validation scripts that exercise
 
 | Command | What it checks |
 |---|---|
-| `npm test` | Builds `packages/shared` and runs Node test cases for blocker/dependency detection, status mismatch, sprint-end QA/review risk, and commit-proof confidence |
+| `npm test` | Builds shared/API/MCP packages and runs Node tests for risk scoring, API auth gates, and MCP tool catalog contracts |
 | `npm run typecheck` | TypeScript across all 4 workspaces — primary correctness gate. Catches contract drift between `apps/web`, `apps/api`, and `packages/shared` |
 | `npm run check:role-demo` | Verifies the 5 seeded judge personas can sign in, switch roles, and load at least one project end-to-end |
 | `npm run benchmark:toon` | Confirms the TOON differentiator with measured numbers — emits both char and token reductions for the bundled sprint payload |
@@ -408,6 +409,7 @@ Code quality is covered by automated tests plus validation scripts that exercise
 - **Dual-credential API auth** (`apps/api/src/middleware/apiKey.ts`): every `/api/*` call requires either `X-SprintPulse-API-Key` (server-to-server, used by MCP) or `Authorization: Bearer <supabase-jwt>` (per-user from the browser). `/api/health` stays public for container probes
 - **Per-project webhook tokens** minted from the Integrations page (migration `014_project_webhook_tokens.sql`). Tokens are project-scoped, revocable, and never logged
 - **At-rest encryption** for per-member Git provider tokens via `GIT_TOKEN_ENCRYPTION_KEY` (migration `015_git_connection_provider_tokens.sql`). Tokens are never returned to the client after creation
+- **Hackathon trust boundary:** MCP is treated as a trusted server-to-server caller for the 24-hour demo. Per-user agent PATs are on the roadmap; until then, run the MCP server only in trusted judge/demo contexts.
 
 **Repo structure:**
 
@@ -540,7 +542,10 @@ Run in order before setting `ENABLE_MOCK_FLOW=false`:
 010_profile_claim_and_project_create.sql
 011_demo_sprint_status_refresh.sql
 012_standup_rls_manager_fix.sql
-013_sync_runs_stats_column.sql
+013_auto_link_identity_emails.sql
+014_project_webhook_tokens.sql
+015_git_connection_provider_tokens.sql
+seed_demo_project_ops.sql
 ```
 
 RLS is enforced at the DB level. The service role key (API-side) bypasses RLS. The anon key (web-side) respects it.
@@ -558,10 +563,8 @@ A single Docker container serves both the API and the compiled React SPA.
 - **Port:** `8000` — Express serves **both** the React SPA (`/`) and the API (`/api/*`) from the same port in a single container. No separate web server needed.
 - **Build:** Multi-stage Dockerfile — builder compiles `shared → web → api`, runtime stage installs prod-only deps and copies dist outputs.
 - **VITE_ vars** are baked at build time via Dockerfile `ARG` (Supabase URL/anon key are safe public defaults).
-- **Runtime secrets** — inject as environment variables on the platform (ECS / App Runner). Never bake into the image:
-  - `OPENAI_BASE_URL`, `OPENAI_API_KEY`, `OPENAI_MODEL`
-  - `SUPABASE_SERVICE_ROLE_KEY`
-  - `GITHUB_TOKEN`, Jira OAuth credentials
+- **SemicoLabs hackathon deploy:** the platform builds directly from the submitted repo and permits committed `apps/*/.env.production` for this event. Those values are event-scoped deployment config and should be rotated after judging.
+- **Standard enterprise deploy:** inject `OPENAI_BASE_URL`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `SUPABASE_SERVICE_ROLE_KEY`, Git tokens, and Jira OAuth credentials as platform environment variables instead of committing them.
 
 ```bash
 # Build

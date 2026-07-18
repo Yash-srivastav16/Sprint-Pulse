@@ -23,7 +23,7 @@ envFiles.push(".env");
 for (const envFile of envFiles) {
   const envPath = resolve(apiRoot, envFile);
   if (existsSync(envPath)) {
-    config({ path: envPath, override: false });
+    config({ path: envPath, override: false, quiet: true });
   }
 }
 
