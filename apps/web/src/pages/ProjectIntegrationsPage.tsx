@@ -1,5 +1,29 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Bot, Cloud, Copy, ExternalLink, GitBranch, GitCommitHorizontal, KeyRound, Loader2, Mic, Plus, PlugZap, RefreshCw, Save, ShieldAlert, Sparkles, TicketCheck, Trash2 } from "lucide-react";
+import {
+  Bot,
+  Cloud,
+  Code2,
+  Copy,
+  ExternalLink,
+  FileJson2,
+  GitBranch,
+  GitCommitHorizontal,
+  KeyRound,
+  Loader2,
+  LockKeyhole,
+  Mic,
+  Plus,
+  PlugZap,
+  RefreshCw,
+  Save,
+  ServerCog,
+  ShieldAlert,
+  Sparkles,
+  Terminal,
+  TicketCheck,
+  Trash2,
+  Workflow
+} from "lucide-react";
 import { useLocation, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import type { IntegrationStatus, IntegrationStatusResponse, WebhookToken } from "@sprintpulse/shared";
@@ -43,6 +67,14 @@ function publishSignalRefresh(projectId?: string) {
   clearProjectCache(projectId);
   window.dispatchEvent(new CustomEvent("sprintpulse:signals-updated", { detail: { projectId } }));
 }
+
+const compactToneClasses: Record<string, string> = {
+  primary: "border-primary-500/25 bg-primary-500/10 text-primary-700 dark:border-primary-300/25 dark:text-primary-100",
+  info: "border-info-500/25 bg-info-500/10 text-info-700 dark:border-info-300/25 dark:text-info-100",
+  warning: "border-warning-500/30 bg-warning-500/10 text-warning-700 dark:border-warning-300/30 dark:text-warning-100",
+  ai: "border-ai-500/25 bg-ai-500/10 text-ai-700 dark:border-ai-300/25 dark:text-ai-100",
+  success: "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:border-emerald-300/25 dark:text-emerald-100"
+};
 
 export function ProjectIntegrationsPage() {
   const { projectId } = useParams();
@@ -108,11 +140,31 @@ export function ProjectIntegrationsPage() {
   };
 
   const mcpTools = [
-    { name: "get_project_risk", purpose: "Team health + top risks + P1 + recommended actions" },
-    { name: "get_member_health", purpose: "Per-member pulse, flags, evidence, recent standups" },
-    { name: "submit_standup", purpose: "Create a structured standup entry for a member" },
-    { name: "parse_transcript", purpose: "VTT or plain text → speaker-mapped standups + risk update" },
-    { name: "run_member_pr_review", purpose: "AI review of a member's recent commits/PRs" }
+    { name: "get_project_risk", purpose: "Team health + top risks + P1 + recommended actions", mode: "Read", tone: "info" },
+    { name: "get_member_health", purpose: "Per-member pulse, flags, evidence, recent standups", mode: "Read", tone: "info" },
+    { name: "submit_standup", purpose: "Create a structured standup entry for a member", mode: "Write", tone: "success" },
+    { name: "parse_transcript", purpose: "VTT or plain text → speaker-mapped standups + risk update", mode: "Ingest", tone: "warning" },
+    { name: "run_member_pr_review", purpose: "AI review of a member's recent commits/PRs", mode: "Analyze", tone: "ai" },
+    { name: "run_qa_activity_review", purpose: "AI review of QA activity: test case creation + test execution", mode: "Analyze", tone: "ai" }
+  ];
+
+  const webhookWorksWith = [
+    {
+      label: "Manual VTT/TXT/MD/CSV upload",
+      detail: "on the Standup page (works today)"
+    },
+    {
+      label: "Microsoft Power Automate flow",
+      detail: "where tenant Graph subscriptions are enabled"
+    },
+    {
+      label: "Otter.ai / Fireflies.ai bots",
+      detail: "user-level auth, no admin needed"
+    },
+    {
+      label: "Custom Microsoft Graph poller",
+      detail: "using delegated read permissions"
+    }
   ];
 
   // Webhook token state — list of active tokens, the just-minted plaintext
@@ -471,7 +523,6 @@ export function ProjectIntegrationsPage() {
       icon: ShieldAlert
     }
   ];
-
   return (
     <div className={workspacePageClass}>
       <WorkspaceHero
@@ -774,175 +825,130 @@ export function ProjectIntegrationsPage() {
         <span className="h-px flex-1 bg-gradient-to-r from-slate-300/70 via-slate-200/30 to-transparent dark:from-white/15 dark:via-white/[0.04]" />
       </div>
 
-      <section id="teams-webhook" className="grid scroll-mt-24 items-stretch gap-5 xl:grid-cols-2">
-        <SectionPanel className="flex h-full flex-col border-l-[3px] border-l-warning-500/70 dark:border-l-warning-400/70">
-          <div className="mb-4 flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="mb-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-warning-700 dark:text-warning-200">Endpoint &middot; Inbound</div>
-              <h2 className="m-0 text-xl font-extrabold leading-tight text-slate-950 dark:text-white">Teams transcript auto-sync</h2>
+      <section id="teams-webhook" className="grid scroll-mt-24 gap-4">
+        <SectionPanel className="border-l-[3px] border-l-warning-500/70 dark:border-l-warning-400/70">
+          <div className="grid gap-2">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="mb-2 text-[0.72rem] font-bold uppercase tracking-[0.14em] text-warning-700 dark:text-warning-200">
+                  Endpoint &middot; Inbound
+                </div>
+                <h2 className="m-0 text-[1.35rem] font-extrabold leading-tight tracking-normal text-slate-950 dark:text-white">Teams transcript auto-sync</h2>
+              </div>
             </div>
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-warning-500/30 bg-warning-500/10 text-warning-700 dark:text-warning-100">
-              <Mic className="h-4 w-4" />
-            </span>
+            <p className="m-0 w-full text-[0.92rem] leading-6 text-slate-600 dark:text-slate-300">
+              POST Teams, Zoom, or Meet transcripts here. SprintPulse matches speakers to project members and creates standups automatically.
+            </p>
           </div>
-          <p className="mb-5 text-sm leading-6 text-slate-600 dark:text-slate-300">
-            Any HTTP client can deliver Teams (or Zoom / Meet) transcripts to this webhook URL. Standups appear automatically for each speaker matched to a project member.
-          </p>
 
-          <div className="flex flex-1 flex-col gap-4">
-            <div className="grid gap-2">
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Webhook URL</span>
-              <div className="flex flex-col items-stretch gap-2 md:flex-row">
-                <code className="flex-1 break-all rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-3 font-mono text-xs text-slate-900 dark:border-white/10 dark:bg-white/[0.045] dark:text-white">
-                  {webhookUrl}
-                </code>
-                <button
-                  type="button"
-                  onClick={copyWebhookUrl}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-warning-500/30 bg-warning-500/10 px-4 text-sm font-black text-warning-700 transition hover:bg-warning-500/15 dark:text-warning-100"
-                >
-                  <Copy className="h-4 w-4" />
-                  Copy
-                </button>
+          <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.48fr)]">
+            <div className="grid min-w-0 gap-4">
+              <div className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-4 dark:border-white/10 dark:bg-white/[0.035]">
+                <div className="mb-1.5 flex items-center justify-between gap-3">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Webhook URL</span>
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <code className="block min-w-0 flex-1 overflow-x-auto whitespace-nowrap rounded-xl border border-slate-200/70 bg-white/80 px-3 py-3 font-mono text-xs text-slate-900 dark:border-white/10 dark:bg-slate-950/35 dark:text-white">
+                    {webhookUrl}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={copyWebhookUrl}
+                    className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-warning-500/30 bg-warning-500/10 px-5 text-sm font-black text-warning-700 transition hover:bg-warning-500/15 dark:text-warning-100"
+                  >
+                    <Copy className="h-4 w-4" />
+                    Copy URL
+                  </button>
+                </div>
               </div>
-              <small className="text-xs leading-5 text-slate-500 dark:text-slate-400">
-                For external services (Power Automate, Otter.ai), expose the API on a public HTTPS URL (Cloudflare Tunnel, ngrok, or AWS deploy) and swap the host.
-              </small>
-            </div>
 
-            <div className="rounded-xl border border-slate-200/80 bg-slate-50/60 p-4 dark:border-white/10 dark:bg-white/[0.035]">
-              <div className="mb-2 flex items-center gap-2">
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Works with</span>
-                <span className="h-px flex-1 bg-slate-200/80 dark:bg-white/10" />
-              </div>
-              <ul className="grid gap-1.5 text-sm leading-6 text-slate-700 dark:text-slate-300">
-                <li className="flex items-baseline gap-2"><span className="font-mono text-[10px] text-warning-600 dark:text-warning-400">▸</span> <span><strong className="font-black">Manual VTT/TXT/MD/CSV upload</strong> on the Standup page (works today)</span></li>
-                <li className="flex items-baseline gap-2"><span className="font-mono text-[10px] text-warning-600 dark:text-warning-400">▸</span> <span><strong className="font-black">Microsoft Power Automate flow</strong> where tenant Graph subscriptions are enabled</span></li>
-                <li className="flex items-baseline gap-2"><span className="font-mono text-[10px] text-warning-600 dark:text-warning-400">▸</span> <span><strong className="font-black">Otter.ai / Fireflies.ai bots</strong> &mdash; user-level auth, no admin needed</span></li>
-                <li className="flex items-baseline gap-2"><span className="font-mono text-[10px] text-warning-600 dark:text-warning-400">▸</span> <span><strong className="font-black">Custom Microsoft Graph poller</strong> using delegated read permissions</span></li>
-                <li className="flex items-baseline gap-2"><span className="font-mono text-[10px] text-warning-600 dark:text-warning-400">▸</span> <span><strong className="font-black">Any HTTP client</strong> that can POST JSON (curl, Postman, scripts)</span></li>
-              </ul>
-            </div>
+              <div className="grid gap-3">
+                <details className="group rounded-xl border border-slate-200/80 bg-slate-50/60 p-4 dark:border-white/10 dark:bg-white/[0.035]">
+                  <summary className="cursor-pointer list-none">
+                    <div className="flex min-h-9 items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <Workflow className="h-4 w-4 shrink-0 text-warning-700 dark:text-warning-100" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-700 dark:text-slate-200">Works with</span>
+                      </div>
+                      <span className="text-sm font-black text-warning-700 group-open:hidden dark:text-warning-100">Expand</span>
+                      <span className="hidden text-sm font-black text-warning-700 group-open:inline dark:text-warning-100">Collapse</span>
+                    </div>
+                  </summary>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    {webhookWorksWith.map((source) => (
+                      <div
+                        className="flex min-w-0 items-start gap-2 rounded-lg border border-warning-500/20 bg-white/70 p-3 text-sm dark:border-warning-400/20 dark:bg-white/[0.05]"
+                        key={source.label}
+                      >
+                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-warning-500" />
+                        <span className="min-w-0 leading-6">
+                          <strong className="font-black text-warning-700 dark:text-warning-100">{source.label}</strong>{" "}
+                          <span className="text-slate-600 dark:text-slate-300">{source.detail}</span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </details>
 
-            <details className="mt-auto rounded-xl border border-slate-200/80 bg-slate-50/60 dark:border-white/10 dark:bg-white/[0.035]">
-              <summary className="cursor-pointer p-4 text-sm font-black text-slate-900 dark:text-white">
-                Show JSON body template
-              </summary>
-              <pre className="overflow-x-auto px-4 pb-4 font-mono text-xs leading-relaxed text-slate-700 dark:text-slate-300">{`{
+                <details className="group rounded-xl border border-slate-200/80 bg-slate-50/60 p-4 dark:border-white/10 dark:bg-white/[0.035]">
+                  <summary className="cursor-pointer list-none">
+                    <div className="flex min-h-9 items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <FileJson2 className="h-4 w-4 shrink-0 text-warning-700 dark:text-warning-100" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-700 dark:text-slate-200">JSON body</span>
+                      </div>
+                      <span className="text-sm font-black text-warning-700 group-open:hidden dark:text-warning-100">Expand</span>
+                      <span className="hidden text-sm font-black text-warning-700 group-open:inline dark:text-warning-100">Collapse</span>
+                    </div>
+                  </summary>
+                  <div className="mt-2 grid gap-3">
+                    <pre className="max-h-40 overflow-auto rounded-xl border border-slate-800/30 bg-slate-950 p-4 font-mono text-xs leading-relaxed text-slate-200 shadow-[0_12px_28px_rgba(15,23,42,0.14)] dark:border-white/10">{`{
   "organizerEmail": "<sm@example.com>",
   "meetingSubject": "Daily Standup",
   "meetingId": "<optional-stable-id-for-dedup>",
   "transcript": "<WebVTT body or plain Speaker: text>"
 }`}</pre>
-              <p className="px-4 pb-4 text-xs leading-5 text-slate-500 dark:text-slate-400">
-                Authorization: the <code className="rounded bg-slate-200/60 px-1.5 py-0.5 font-mono dark:bg-white/[0.06]">organizerEmail</code> must match a project member. Returns <strong>201</strong> on success, <strong>404</strong> if the organizer isn't a project member. If any auth tokens exist, callers must also send <code className="rounded bg-slate-200/60 px-1.5 py-0.5 font-mono dark:bg-white/[0.06]">X-SprintPulse-Webhook-Token</code>.
-              </p>
-            </details>
-          </div>
-        </SectionPanel>
-
-        <SectionPanel className="flex h-full flex-col border-l-[3px] border-l-ai-500/70 dark:border-l-ai-400/70">
-          <div className="mb-4 flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="mb-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-ai-700 dark:text-ai-200">Auth &middot; Per-source secrets</div>
-              <h2 className="m-0 text-xl font-extrabold leading-tight text-slate-950 dark:text-white">Authentication tokens</h2>
-            </div>
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-ai-500/30 bg-ai-500/10 text-ai-700 dark:text-ai-100">
-              <KeyRound className="h-4 w-4" />
-            </span>
-          </div>
-          <p className="mb-5 text-sm leading-6 text-slate-600 dark:text-slate-300">
-            Mint one token per delivery source (Power Automate flow, Otter bot, etc.) so you can revoke individually. Plaintext is shown <strong className="font-black text-ai-700 dark:text-ai-100">once</strong> at mint time.
-          </p>
-
-          <div className="flex flex-1 flex-col gap-4">
-            {revealedToken ? (
-              <div className="grid gap-3 rounded-2xl border border-warning-500/40 bg-warning-500/10 p-4 dark:border-warning-400/40">
-                <div className="flex items-center gap-2 text-sm font-black text-warning-700 dark:text-warning-100">
-                  <ShieldAlert className="h-4 w-4" />
-                  Token for "{revealedToken.name}" — copy now, won't be shown again
-                </div>
-                <div className="flex flex-col items-stretch gap-2 md:flex-row">
-                  <code className="flex-1 break-all rounded-xl border border-warning-500/30 bg-white/80 px-3 py-3 font-mono text-xs text-slate-900 dark:bg-slate-950/60 dark:text-white">
-                    {revealedToken.plaintext}
-                  </code>
-                  <button
-                    type="button"
-                    onClick={copyRevealedToken}
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-warning-500 px-4 text-sm font-black text-white shadow-[0_10px_28px_rgba(245,158,11,0.32)] transition hover:-translate-y-0.5"
-                  >
-                    <Copy className="h-4 w-4" />
-                    Copy
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRevealedToken(null)}
-                    className="inline-flex min-h-11 items-center justify-center rounded-xl border border-warning-500/30 px-4 text-sm font-black text-warning-700 transition hover:bg-warning-500/15 dark:text-warning-100"
-                  >
-                    Dismiss
-                  </button>
-                </div>
-                <p className="text-xs text-warning-700/85 dark:text-warning-200/85">
-                  Add to your HTTP client as header <code className="rounded bg-white/60 px-1.5 py-0.5 font-mono dark:bg-slate-950/40">X-SprintPulse-Webhook-Token: &lt;paste&gt;</code>
-                </p>
-              </div>
-            ) : null}
-
-            {tokensError ? (
-              <div className="rounded-xl border border-danger-500/20 bg-danger-500/10 p-3 text-sm font-black text-danger-700 dark:text-danger-200">{tokensError}</div>
-            ) : null}
-
-            {tokensLoading ? (
-              <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Loading tokens…
-              </div>
-            ) : tokens.length === 0 ? (
-              <div className="grid place-items-center gap-3 rounded-2xl border border-dashed border-ai-500/30 bg-ai-500/[0.05] px-6 py-10 text-center dark:border-ai-400/30 dark:bg-ai-400/[0.05]">
-                <span className="grid h-12 w-12 place-items-center rounded-2xl bg-ai-500/10 text-ai-700 dark:text-ai-100">
-                  <KeyRound className="h-5 w-5" />
-                </span>
-                <strong className="text-sm font-black text-slate-950 dark:text-white">No webhook tokens yet</strong>
-                <p className="m-0 max-w-xs text-xs leading-5 text-slate-500 dark:text-slate-400">
-                  When unset, the webhook is open (organizer-must-be-a-member is the only barrier). Mint a token to require <code className="rounded bg-ai-500/10 px-1 py-0.5 font-mono dark:bg-ai-400/15">X-SprintPulse-Webhook-Token</code> on every call.
-                </p>
-              </div>
-            ) : (
-              <ul className="grid gap-2">
-                {tokens.map((token) => (
-                  <li
-                    key={token.id}
-                    className="grid items-center gap-3 rounded-xl border border-slate-200/80 bg-slate-50/60 p-3 dark:border-white/10 dark:bg-white/[0.035] md:grid-cols-[minmax(0,1fr)_auto_auto_auto]"
-                  >
-                    <div className="grid min-w-0 gap-1">
-                      <strong className="truncate text-sm font-black text-slate-950 dark:text-white">{token.name}</strong>
-                      <code className="text-[11px] text-slate-500 dark:text-slate-400">sptk_•••{token.tokenHint}</code>
+                    <div className="flex items-start gap-2 rounded-xl border border-slate-200/70 bg-white/55 p-3 text-sm leading-6 text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300">
+                      <LockKeyhole className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning-700 dark:text-warning-100" />
+                      <span>
+                        <code className="rounded bg-slate-200/60 px-1.5 py-0.5 font-mono dark:bg-white/[0.06]">organizerEmail</code> must match a project member. Success returns <strong>201</strong>; unknown organizers return <strong>404</strong>. If tokens exist, include <code className="rounded bg-slate-200/60 px-1.5 py-0.5 font-mono dark:bg-white/[0.06]">X-SprintPulse-Webhook-Token</code>.
+                      </span>
                     </div>
-                    <span className="hidden text-xs text-slate-500 dark:text-slate-400 md:inline">
-                      {new Date(token.createdAt).toLocaleDateString()}
-                    </span>
-                    <span className="hidden text-xs text-slate-500 dark:text-slate-400 md:inline">
-                      {token.lastUsedAt ? `Used ${new Date(token.lastUsedAt).toLocaleDateString()}` : "Never used"}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleRevokeToken(token.id, token.name)}
-                      disabled={revokingTokenId === token.id}
-                      className="inline-flex min-h-8 items-center justify-center gap-1 rounded-lg border border-danger-500/30 px-2.5 text-[11px] font-black text-danger-700 transition hover:bg-danger-500/10 disabled:opacity-50 dark:text-danger-200"
-                    >
-                      {revokingTokenId === token.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
-                      Revoke
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
+                  </div>
+                </details>
+              </div>
+            </div>
 
-            {/* Refined bottom CTA — outline ai-tone pill, capped width, centered.
-                The dashed top divider whispers "extensible — add more here". */}
-            <div className="mt-auto flex justify-center border-t border-dashed border-slate-200/80 pt-5 dark:border-white/10">
-              {showCreateToken ? (
-                <form className="grid w-full max-w-md grid-cols-1 gap-2 sm:grid-cols-[1fr_auto_auto]" onSubmit={submitCreateToken}>
+            <aside className="grid min-w-0 content-start gap-3 rounded-xl border border-slate-200/80 bg-white/60 p-4 dark:border-white/10 dark:bg-white/[0.035]">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="mb-2 text-[0.72rem] font-bold uppercase tracking-[0.14em] text-ai-700 dark:text-ai-200">Auth &middot; Per-source secrets</div>
+                  <h3 className="m-0 text-[1.35rem] font-extrabold leading-tight tracking-normal text-slate-950 dark:text-white">Authentication tokens</h3>
+                </div>
+                {!canConfigure ? (
+                  <StatusPill icon={ShieldAlert} tone="neutral">Read only</StatusPill>
+                ) : showCreateToken ? null : (
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateToken(true)}
+                    className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-ai-500/35 bg-ai-500/10 px-4 text-sm font-black text-ai-700 transition hover:bg-ai-500/15 dark:text-ai-100"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    New
+                  </button>
+                )}
+              </div>
+              <p className="m-0 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                Create one token per source so each can be revoked independently. Plaintext appears once.
+              </p>
+
+              {!canConfigure ? (
+                <div className="flex items-center gap-2 rounded-xl border border-slate-200/80 bg-slate-50/70 p-3 text-sm font-semibold leading-6 text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300">
+                  <ShieldAlert className="h-4 w-4 shrink-0" />
+                  Token changes are limited to project owners.
+                </div>
+              ) : showCreateToken ? (
+                <form className="grid grid-cols-1 gap-3 rounded-xl border border-ai-500/25 bg-ai-500/[0.05] p-3 sm:grid-cols-[1fr_auto_auto] xl:grid-cols-1" onSubmit={submitCreateToken}>
                   <Input
                     value={newTokenName}
                     onChange={(event) => setNewTokenName(event.target.value)}
@@ -951,127 +957,213 @@ export function ProjectIntegrationsPage() {
                     maxLength={80}
                     disabled={mintingToken}
                   />
-                  <button
-                    type="submit"
-                    disabled={mintingToken || !newTokenName.trim()}
-                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-ai-500 px-4 text-sm font-black text-white shadow-[0_10px_24px_rgba(168,85,247,0.28)] transition hover:-translate-y-0.5 disabled:opacity-50"
-                  >
-                    {mintingToken ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-                    Create
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setShowCreateToken(false); setNewTokenName(""); }}
-                    disabled={mintingToken}
-                    className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300/60 px-4 text-sm font-black text-slate-700 transition hover:bg-slate-200/40 dark:border-white/10 dark:text-slate-200"
-                  >
-                    Cancel
-                  </button>
+                  <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-2">
+                    <button
+                      type="submit"
+                      disabled={mintingToken || !newTokenName.trim()}
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-ai-500 px-5 text-sm font-black text-white shadow-[0_10px_24px_rgba(168,85,247,0.22)] transition hover:-translate-y-0.5 disabled:opacity-50"
+                    >
+                      {mintingToken ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                      Create
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowCreateToken(false); setNewTokenName(""); }}
+                      disabled={mintingToken}
+                      className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300/60 px-5 text-sm font-black text-slate-700 transition hover:bg-slate-200/40 dark:border-white/10 dark:text-slate-200"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </form>
+              ) : null}
+
+              {revealedToken ? (
+                <div className="grid gap-3 rounded-xl border border-warning-500/40 bg-warning-500/10 p-4 dark:border-warning-400/40">
+                  <div className="flex items-center gap-2 text-sm font-black text-warning-700 dark:text-warning-100">
+                    <ShieldAlert className="h-4 w-4" />
+                    Token for "{revealedToken.name}" — copy now
+                  </div>
+                  <code className="max-h-24 overflow-auto break-all rounded-xl border border-warning-500/30 bg-white/80 px-3 py-3 font-mono text-xs text-slate-900 dark:bg-slate-950/60 dark:text-white">
+                    {revealedToken.plaintext}
+                  </code>
+                  <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={copyRevealedToken}
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-warning-500 px-5 text-sm font-black text-white shadow-[0_10px_28px_rgba(245,158,11,0.28)] transition hover:-translate-y-0.5"
+                    >
+                      <Copy className="h-4 w-4" />
+                      Copy
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRevealedToken(null)}
+                      className="inline-flex min-h-11 items-center justify-center rounded-xl border border-warning-500/30 px-5 text-sm font-black text-warning-700 transition hover:bg-warning-500/15 dark:text-warning-100"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {tokensError ? (
+                <div className="rounded-lg border border-danger-500/20 bg-danger-500/10 p-3 text-sm font-black text-danger-700 dark:text-danger-200">{tokensError}</div>
+              ) : null}
+
+              {tokensLoading ? (
+                <div className="flex items-center gap-2 rounded-lg border border-slate-200/80 bg-slate-50/60 px-3 py-2.5 text-sm text-slate-500 dark:border-white/10 dark:bg-white/[0.035] dark:text-slate-400">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading tokens…
+                </div>
+              ) : tokens.length === 0 ? (
+                <div className="flex items-center gap-3 rounded-lg border border-dashed border-ai-500/30 bg-ai-500/[0.05] px-3 py-2.5 dark:border-ai-400/30 dark:bg-ai-400/[0.05]">
+                  <KeyRound className="h-4 w-4 shrink-0 text-ai-700 dark:text-ai-100" />
+                  <div className="min-w-0">
+                    <strong className="block text-sm font-black text-slate-950 dark:text-white">No tokens yet</strong>
+                    <p className="m-0 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                      Mint one to require the webhook token header.
+                    </p>
+                  </div>
+                </div>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => setShowCreateToken(true)}
-                  className="inline-flex min-h-10 items-center gap-2 rounded-full border border-ai-500/40 bg-ai-500/10 px-5 text-sm font-black text-ai-700 transition hover:-translate-y-0.5 hover:border-ai-500/60 hover:bg-ai-500/15 dark:text-ai-100"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Generate new token
-                </button>
+                <ul className="grid max-h-44 gap-1.5 overflow-auto pr-1">
+                  {tokens.map((token) => (
+                    <li
+                      key={token.id}
+                      className="grid items-center gap-2 rounded-lg border border-slate-200/80 bg-slate-50/60 px-3 py-1.5 dark:border-white/10 dark:bg-white/[0.035] md:grid-cols-[minmax(0,1fr)_auto_auto_auto] xl:grid-cols-[minmax(0,1fr)_auto]"
+                    >
+                      <div className="grid min-w-0 gap-0.5">
+                        <strong className="truncate text-sm font-black text-slate-950 dark:text-white">{token.name}</strong>
+                        <code className="text-[11px] text-slate-500 dark:text-slate-400">sptk_•••{token.tokenHint}</code>
+                      </div>
+                      <span className="hidden text-xs text-slate-500 dark:text-slate-400 md:inline xl:hidden">
+                        {new Date(token.createdAt).toLocaleDateString()}
+                      </span>
+                      <span className="hidden text-xs text-slate-500 dark:text-slate-400 md:inline xl:hidden">
+                        {token.lastUsedAt ? `Used ${new Date(token.lastUsedAt).toLocaleDateString()}` : "Never used"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleRevokeToken(token.id, token.name)}
+                        disabled={revokingTokenId === token.id}
+                        className="inline-flex min-h-8 items-center justify-center gap-1 rounded-md border border-danger-500/30 px-2.5 text-[11px] font-black text-danger-700 transition hover:bg-danger-500/10 disabled:opacity-50 dark:text-danger-200"
+                      >
+                        {revokingTokenId === token.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                        Revoke
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               )}
-            </div>
+            </aside>
           </div>
         </SectionPanel>
       </section>
 
       {/* ─── 05 / Agent access · MCP ───────────────────────────────────────── */}
       <div className="flex items-baseline gap-4 pt-2">
-        <span className="font-mono text-[0.72rem] font-black tracking-wider text-ai-500 dark:text-ai-400">05</span>
-        <span className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-ai-700 dark:text-ai-200">Agent access &middot; MCP</span>
-        <span className="h-px flex-1 bg-gradient-to-r from-ai-500/40 via-ai-500/10 to-transparent dark:from-ai-400/30 dark:via-ai-400/[0.05]" />
+        <span className="font-mono text-[0.72rem] font-black tracking-wider text-slate-400 dark:text-slate-500">05</span>
+        <span className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-700 dark:text-slate-300">Agent access &middot; MCP</span>
+        <span className="h-px flex-1 bg-gradient-to-r from-slate-300/70 via-slate-200/30 to-transparent dark:from-white/15 dark:via-white/[0.04]" />
       </div>
 
       <section id="mcp" className="grid scroll-mt-24 gap-5">
-        <SectionPanel className="relative overflow-hidden border-ai-500/30 bg-gradient-to-br from-ai-500/[0.06] via-transparent to-ai-500/[0.03] dark:border-ai-400/30 dark:from-ai-400/10">
-          <div aria-hidden className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-ai-500/15 blur-3xl dark:bg-ai-400/15" />
-          <div aria-hidden className="pointer-events-none absolute -bottom-20 -left-12 h-44 w-44 rounded-full bg-ai-500/10 blur-3xl dark:bg-ai-400/10" />
-
-          <div className="relative">
-            <div className="mb-5 flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-ai-500/30 bg-ai-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-ai-700 dark:text-ai-100">
-                  <span className="relative inline-flex h-1.5 w-1.5">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-ai-500 opacity-60" />
-                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-ai-500" />
-                  </span>
-                  Model Context Protocol
-                </div>
-                <h2 className="m-0 text-2xl font-extrabold leading-tight tracking-tight text-slate-950 dark:text-white">Agent integration</h2>
-                <p className="m-0 mt-2 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
-                  Drop SprintPulse into Claude Code, Cursor, or any Model Context Protocol host. Agents get a tool catalog that mirrors the REST API — same backend, but agent-callable.
-                </p>
-              </div>
-              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-ai-500/30 bg-gradient-to-br from-ai-500/20 to-ai-500/5 text-ai-700 shadow-sm dark:text-ai-100">
-                <Bot className="h-5 w-5" />
-              </span>
+        <SectionPanel className="border-l-[3px] border-l-ai-500/70 bg-gradient-to-br from-ai-500/[0.05] via-white/60 to-primary-500/[0.04] dark:border-l-ai-400/70 dark:from-ai-400/[0.10] dark:via-white/[0.03] dark:to-primary-400/[0.08]">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="mb-2 text-[0.72rem] font-bold uppercase tracking-[0.14em] text-ai-700 dark:text-ai-200">Agent access</div>
+              <h2 className="m-0 text-[1.35rem] font-extrabold leading-tight tracking-normal text-slate-950 dark:text-white">Agent integration</h2>
+              <p className="m-0 mt-2 w-full text-[0.92rem] leading-6 text-slate-600 dark:text-slate-300">
+                Use SprintPulse in Claude Code, Cursor, or any MCP host. Agents get the same REST-backed tool catalog.
+              </p>
             </div>
+          </div>
 
-            <div className="grid items-stretch gap-5 xl:grid-cols-2">
-              <div className="flex min-h-[360px] flex-col rounded-2xl border border-slate-200/80 bg-white/55 p-4 shadow-sm dark:border-white/10 dark:bg-white/[0.035]">
-                <div className="flex h-8 items-center justify-between gap-3">
+          <div className="mt-5 grid items-start gap-5">
+            <div className="rounded-xl border border-slate-200/80 bg-white/65 p-4 shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
+              <div className="mb-2 flex min-h-8 items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Code2 className="h-4 w-4 text-ai-700 dark:text-ai-100" />
                   <span className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-700 dark:text-slate-200">Tool catalog</span>
-                  <span className="inline-flex h-7 items-center rounded-md border border-slate-200/70 bg-white/50 px-2 font-mono text-[10px] font-bold text-slate-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-400">{mcpTools.length} tools</span>
                 </div>
-                <ul className="mt-3 grid content-start gap-2">
-                  {mcpTools.map((tool, idx) => (
-                    <li key={tool.name} className="group grid items-baseline gap-2 rounded-xl border border-slate-200/80 bg-white/70 px-3 py-2.5 transition hover:border-ai-500/30 hover:bg-ai-500/[0.04] dark:border-white/10 dark:bg-white/[0.04] dark:hover:bg-ai-400/[0.06] md:grid-cols-[28px_minmax(150px,auto)_minmax(0,1fr)]">
-                      <span className="font-mono text-[10px] font-bold text-slate-400 dark:text-slate-500">{String(idx + 1).padStart(2, "0")}</span>
-                      <code className="shrink-0 rounded bg-ai-500/10 px-2 py-0.5 font-mono text-xs font-black text-ai-700 dark:bg-ai-400/15 dark:text-ai-100">
-                        {tool.name}
-                      </code>
-                      <span className="text-xs leading-5 text-slate-600 dark:text-slate-400">{tool.purpose}</span>
-                    </li>
-                  ))}
-                </ul>
-                <div className="mt-auto rounded-xl border border-ai-500/25 bg-ai-500/[0.06] p-4 dark:border-ai-400/25 dark:bg-ai-400/[0.06]">
-                  <div className="mb-2 flex items-center gap-2">
-                    <Sparkles className="h-3.5 w-3.5 text-ai-700 dark:text-ai-200" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.22em] text-ai-700 dark:text-ai-200">Example agent prompts</span>
-                  </div>
-                  <ul className="grid gap-1.5 text-sm leading-6 text-ai-700 dark:text-ai-100">
-                    <li className="flex items-baseline gap-2"><span className="font-mono text-xs text-ai-500">›</span> "Look up risk on this project. If team health is below 70, drill into each member."</li>
-                    <li className="flex items-baseline gap-2"><span className="font-mono text-xs text-ai-500">›</span> "Here's today's standup transcript [paste]. Parse it and report missing members."</li>
-                    <li className="flex items-baseline gap-2"><span className="font-mono text-xs text-ai-500">›</span> "Run the PR review tool for every developer. Summarise the top 3 review-pressure risks."</li>
-                  </ul>
-                </div>
+                <StatusPill icon={ServerCog} tone="ai">{mcpTools.length} tools</StatusPill>
               </div>
-
-              <div className="flex min-h-[360px] flex-col rounded-2xl border border-slate-200/80 bg-white/55 p-4 shadow-sm dark:border-white/10 dark:bg-white/[0.035]">
-                <div className="flex h-8 items-center justify-between gap-3">
-                  <span className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-700 dark:text-slate-200">Host config</span>
-                  <button
-                    type="button"
-                    onClick={copyMcpConfig}
-                    className="inline-flex h-7 items-center gap-1.5 rounded-md border border-ai-500/30 bg-ai-500/10 px-2.5 text-[11px] font-black text-ai-700 transition hover:bg-ai-500/15 dark:text-ai-100"
+              <ul className="grid gap-2 lg:grid-cols-2">
+                {mcpTools.map((tool, idx) => (
+                  <li
+                    key={tool.name}
+                    className="group grid items-center gap-x-2 gap-y-1 rounded-lg border border-slate-200/80 bg-white/75 p-3 transition hover:border-ai-500/30 hover:bg-ai-500/[0.04] dark:border-white/10 dark:bg-white/[0.04] dark:hover:bg-ai-400/[0.06] sm:grid-cols-[22px_minmax(0,1fr)_auto]"
                   >
-                    <Copy className="h-3 w-3" />
-                    Copy config
-                  </button>
-                </div>
-                <div className="mt-3 flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-800/30 bg-slate-950 shadow-[0_18px_40px_rgba(15,23,42,0.18)] dark:border-white/10">
-                  <div className="flex items-center gap-1.5 border-b border-white/10 bg-slate-900/80 px-3 py-2">
-                    <span className="h-2.5 w-2.5 rounded-full bg-rose-500/80" aria-hidden />
-                    <span className="h-2.5 w-2.5 rounded-full bg-amber-500/80" aria-hidden />
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/80" aria-hidden />
-                    <span className="ml-2 font-mono text-[10px] text-slate-400">mcp_settings.json</span>
+                    <span className="font-mono text-[10px] font-bold text-slate-400 dark:text-slate-500">{String(idx + 1).padStart(2, "0")}</span>
+                    <code className="truncate rounded-md bg-ai-500/10 px-2 py-1 font-mono text-xs font-black text-ai-700 dark:bg-ai-400/15 dark:text-ai-100">
+                      {tool.name}
+                    </code>
+                    <span className={cn("w-fit rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-wider", compactToneClasses[tool.tone])}>
+                      {tool.mode}
+                    </span>
+                    <span className="text-sm font-semibold leading-6 text-slate-600 dark:text-slate-300 sm:col-start-2 sm:col-end-4" title={tool.purpose}>{tool.purpose}</span>
+                  </li>
+                ))}
+              </ul>
+              <details className="group mt-3 rounded-xl border border-ai-500/25 bg-ai-500/[0.06] p-4 dark:border-ai-400/25 dark:bg-ai-400/[0.06]">
+                <summary className="cursor-pointer list-none">
+                  <div className="flex min-h-9 items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <Sparkles className="h-3.5 w-3.5 shrink-0 text-ai-700 dark:text-ai-200" />
+                      <span className="text-[10px] font-black uppercase tracking-[0.18em] text-ai-700 dark:text-ai-100">Example agent prompts</span>
+                    </div>
+                    <span className="text-sm font-black text-ai-700 group-open:hidden dark:text-ai-100">Expand</span>
+                    <span className="hidden text-sm font-black text-ai-700 group-open:inline dark:text-ai-100">Collapse</span>
                   </div>
-                  <pre className="min-h-0 flex-1 overflow-auto p-4 font-mono text-[11px] leading-relaxed text-slate-200">{mcpConfigSnippet}</pre>
-                </div>
-                <p className="m-0 mt-3 rounded-xl border border-slate-200/70 bg-white/55 px-3 py-2 text-xs leading-5 text-slate-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-400">
-                  Save into <code className="rounded bg-slate-200/60 px-1.5 py-0.5 font-mono dark:bg-white/[0.06]">~/.claude/mcp_settings.json</code> or <code className="rounded bg-slate-200/60 px-1.5 py-0.5 font-mono dark:bg-white/[0.06]">~/.cursor/mcp.json</code>. Build once with <code className="rounded bg-slate-200/60 px-1.5 py-0.5 font-mono dark:bg-white/[0.06]">npm run build -w packages/mcp-server</code>, then restart the host.
-                </p>
-              </div>
+                </summary>
+                <ul className="mt-2 grid gap-1.5 text-sm leading-6 text-ai-700 dark:text-ai-100">
+                  <li className="flex items-baseline gap-2"><span className="font-mono text-xs text-ai-500">›</span> "Look up risk on this project. If team health is below 70, drill into each member."</li>
+                  <li className="flex items-baseline gap-2"><span className="font-mono text-xs text-ai-500">›</span> "Here's today's standup transcript [paste]. Parse it and report missing members."</li>
+                  <li className="flex items-baseline gap-2"><span className="font-mono text-xs text-ai-500">›</span> "Run the PR review tool for every developer. Summarise the top 3 review-pressure risks."</li>
+                </ul>
+              </details>
             </div>
 
+            <details className="group rounded-xl border border-slate-200/80 bg-white/65 p-4 shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
+              <summary className="cursor-pointer list-none">
+                <div className="flex min-h-9 items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Terminal className="h-4 w-4 shrink-0 text-ai-700 dark:text-ai-100" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-700 dark:text-slate-200">Host config</span>
+                  </div>
+                  <span className="text-sm font-black text-ai-700 group-open:hidden dark:text-ai-100">Expand</span>
+                  <span className="hidden text-sm font-black text-ai-700 group-open:inline dark:text-ai-100">Collapse</span>
+                </div>
+              </summary>
+              <div className="mt-2 flex items-center justify-end">
+                <button
+                  type="button"
+                  onClick={copyMcpConfig}
+                  className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-ai-500/30 bg-ai-500/10 px-4 text-sm font-black text-ai-700 transition hover:bg-ai-500/15 dark:text-ai-100"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                  Copy
+                </button>
+              </div>
+              <div className="mt-3 flex max-h-[300px] min-h-[220px] flex-col overflow-hidden rounded-xl border border-slate-800/30 bg-slate-950 shadow-[0_18px_40px_rgba(15,23,42,0.16)] dark:border-white/10">
+                <div className="flex items-center gap-1.5 border-b border-white/10 bg-slate-900/80 px-3 py-2">
+                  <span className="h-2.5 w-2.5 rounded-full bg-rose-500/80" aria-hidden />
+                  <span className="h-2.5 w-2.5 rounded-full bg-amber-500/80" aria-hidden />
+                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/80" aria-hidden />
+                  <span className="ml-2 font-mono text-[10px] text-slate-400">mcp_settings.json</span>
+                </div>
+                <pre className="min-h-0 flex-1 overflow-auto p-3 font-mono text-[11px] leading-relaxed text-slate-200">{mcpConfigSnippet}</pre>
+              </div>
+              <div className="mt-3 grid gap-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                <div className="flex items-start gap-2 rounded-xl border border-slate-200/70 bg-white/55 p-3 dark:border-white/10 dark:bg-white/[0.04]">
+                  <Terminal className="mt-0.5 h-3.5 w-3.5 shrink-0 text-ai-700 dark:text-ai-100" />
+                  <span>
+                    Save to <code className="rounded bg-slate-200/60 px-1.5 py-0.5 font-mono dark:bg-white/[0.06]">~/.claude/mcp_settings.json</code> or <code className="rounded bg-slate-200/60 px-1.5 py-0.5 font-mono dark:bg-white/[0.06]">~/.cursor/mcp.json</code>. Build with <code className="rounded bg-slate-200/60 px-1.5 py-0.5 font-mono dark:bg-white/[0.06]">npm run build -w packages/mcp-server</code>, then restart.
+                  </span>
+                </div>
+              </div>
+            </details>
           </div>
         </SectionPanel>
       </section>
