@@ -97,26 +97,41 @@ const configuredAiTimeout = Number(import.meta.env.VITE_AI_API_TIMEOUT_MS ?? INT
 const AI_API_TIMEOUT_MS = Number.isFinite(configuredAiTimeout) ? configuredAiTimeout : INTEGRATION_API_TIMEOUT_MS;
 const DIRECT_SUPABASE_PROJECTS = import.meta.env.VITE_DIRECT_SUPABASE_PROJECTS !== "false";
 const AI_INSIGHTS_ENABLED = import.meta.env.VITE_ENABLE_AI_INSIGHTS === "true";
+const TOKEN_REFRESH_MARGIN_SECONDS = 60;
+const API_CREDENTIAL_ERROR = "Missing or invalid credentials";
 
-async function request<T>(path: string, init?: RequestInit, options?: { timeoutMs?: number }): Promise<T> {
-  const timeoutMs = options?.timeoutMs;
-  const controller = timeoutMs ? new AbortController() : undefined;
-  const timeoutId = controller ? window.setTimeout(() => controller.abort(), timeoutMs) : undefined;
+const getSupabaseAccessToken = async (forceRefresh = false) => {
+  if (!supabase) {
+    return null;
+  }
 
-  // Attach the current Supabase session JWT so the API's auth middleware
-  // (when SPRINTPULSE_API_KEY is enabled on the server) accepts the request
-  // via the Bearer path. supabase-js caches the session locally so this is
-  // a sync read in practice; no extra network roundtrip per call.
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...((init?.headers as Record<string, string>) ?? {})
-  };
-  if (supabase) {
+  const { data } = await supabase.auth.getSession();
+  let session = data.session;
+  const expiresAt = session?.expires_at ?? 0;
+  const isExpiringSoon = expiresAt > 0 && expiresAt - Date.now() / 1000 <= TOKEN_REFRESH_MARGIN_SECONDS;
+
+  if (session && (forceRefresh || isExpiringSoon)) {
+    const refreshed = await supabase.auth.refreshSession(session);
+    if (refreshed.data.session) {
+      session = refreshed.data.session;
+    }
+  }
+
+  return session?.access_token ?? null;
+};
+
+const buildApiHeaders = async (init?: RequestInit, forceRefresh = false) => {
+  const headers = new Headers(init?.headers);
+
+  if (!headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  if (!headers.has("Authorization")) {
     try {
-      const { data } = await supabase.auth.getSession();
-      const token = data.session?.access_token;
-      if (token && !headers["Authorization"]) {
-        headers["Authorization"] = `Bearer ${token}`;
+      const token = await getSupabaseAccessToken(forceRefresh);
+      if (token) {
+        headers.set("Authorization", `Bearer ${token}`);
       }
     } catch {
       // Session lookup failure — fall through unauthenticated. The middleware
@@ -124,15 +139,36 @@ async function request<T>(path: string, init?: RequestInit, options?: { timeoutM
     }
   }
 
+  return headers;
+};
+
+const isApiCredentialError = (status: number, body: { error?: unknown }) =>
+  status === 401 && typeof body.error === "string" && body.error.includes(API_CREDENTIAL_ERROR);
+
+async function request<T>(path: string, init?: RequestInit, options?: { timeoutMs?: number }): Promise<T> {
+  const timeoutMs = options?.timeoutMs;
+  const controller = timeoutMs ? new AbortController() : undefined;
+  const timeoutId = controller ? window.setTimeout(() => controller.abort(), timeoutMs) : undefined;
+
   try {
-    const response = await fetch(withAppRoute(`${API_BASE}${path}`), {
-      headers,
-      ...init,
-      signal: init?.signal ?? controller?.signal
-    });
+    const runFetch = async (forceRefresh = false) =>
+      fetch(withAppRoute(`${API_BASE}${path}`), {
+        ...init,
+        headers: await buildApiHeaders(init, forceRefresh),
+        signal: init?.signal ?? controller?.signal
+      });
+
+    let response = await runFetch();
 
     if (!response.ok) {
-      const body = await response.json().catch(() => ({}));
+      let body = await response.json().catch(() => ({}));
+      if (isApiCredentialError(response.status, body)) {
+        response = await runFetch(true);
+        if (response.ok) {
+          return response.json() as Promise<T>;
+        }
+        body = await response.json().catch(() => ({}));
+      }
       throw new Error(body.error ?? `Request failed: ${response.status}`);
     }
 
