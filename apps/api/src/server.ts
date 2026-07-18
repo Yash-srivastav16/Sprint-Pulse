@@ -76,7 +76,7 @@ if (process.env.NODE_ENV === "production") {
     res.status(204).end();
   });
 
-  app.use(express.static(webDistPath));
+  app.use(express.static(webDistPath, { index: false }));
 
   // Express 5 requires named wildcard — bare * is not valid in path-to-regexp v8
   app.get("/{*splat}", (req, res) => {
