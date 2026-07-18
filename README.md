@@ -12,7 +12,7 @@ SprintPulse continuously compares standup updates against Jira ticket movement a
 - **Why it matters:** It finds the say-do gap before sprint review, when Scrum Masters and Engineering Managers can still unblock the work.
 - **What to demo first:** Log in as Maya Chen, open the dashboard, show the P1 decision brief, click Leo/Yash in the attention queue, then run **Sync AI analysis**.
 - **AI reliability:** Manual AI refreshes are persisted as dashboard snapshots, so repeat demos can load the same AI output without waiting on gateway latency.
-- **Agent story:** The MCP server exposes five SprintPulse tools for Claude Code, Cursor, Codex, or any MCP host.
+- **Agent story:** The MCP server exposes six SprintPulse tools for Claude Code, Cursor, Codex, or any MCP host.
 - **Validation commands:** `npm run typecheck`, `npm run benchmark:toon`, and `npm run check:role-demo`.
 
 ## UI Preview
@@ -43,7 +43,7 @@ These screenshots show the deployed system architecture and the primary dashboar
 | Scrum Master spends ~5 hours/sprint correlating standups, Jira boards, and PR queues by hand | Continuous AI correlation; SM sees one ranked attention queue |
 | 30+ minute daily standup conversations produce zero structured artifact | Every meeting transcript auto-parses into per-member entries + risk update |
 | Engineering manager learns about burnout signals from skip-level 1:1s, not data | `BURNOUT_SIGNAL` flag fires from commit-time + standup-tone divergence |
-| Cross-team agents have no machine-readable view of sprint state | MCP server exposes 5 tools so MCP-capable hosts such as Claude Code and Cursor can read SprintPulse like a database |
+| Cross-team agents have no machine-readable view of sprint state | MCP server exposes 6 tools so MCP-capable hosts such as Claude Code and Cursor can read SprintPulse like a database |
 
 **Pricing assumptions for the ROI conversation.** A typical 10-person scrum team running 2-week sprints loses ~$80K when a sprint slips a week (10 engineers × 40 hours × $200 loaded cost). Detecting one slip-able sprint per quarter recoups the cost of a year-long SprintPulse subscription priced at standard SaaS per-seat economics. The win isn't a 5% optimization — it's catching the one sprint per quarter that would have failed silently.
 
@@ -59,7 +59,7 @@ Most sprint analytics products are dashboard wrappers around the same data the s
 
 2. **Source-agnostic transcript ingestion** — One webhook URL accepts WebVTT (Teams) and plain `Speaker:` text. The same parser powers the standup page file upload and the webhook path, so SprintPulse can ingest transcripts from any source that can provide VTT or speaker-labelled text.
 
-3. **MCP-native — agents call SprintPulse, not just humans** — A built-in Model Context Protocol server exposes five tools (`get_project_risk`, `get_member_health`, `submit_standup`, `parse_transcript`, `run_member_pr_review`) over stdio. Claude Code, Cursor, Continue, and other MCP-capable hosts can read SprintPulse as a tool catalog without per-host connector code.
+3. **MCP-native — agents call SprintPulse, not just humans** — A built-in Model Context Protocol server exposes six tools (`get_project_risk`, `get_member_health`, `submit_standup`, `parse_transcript`, `run_member_pr_review`, `send_app_notification`) over stdio. Claude Code, Cursor, Continue, and other MCP-capable hosts can read SprintPulse and create in-app follow-ups without per-host connector code.
 
 The supporting differentiators — `withAppRoute()` for SemicoLabs proxy routing, per-project webhook tokens minted from the UI, dual-credential API auth (shared key OR Supabase JWT), Docker-from-git-URL deploy — are the operational craftsmanship that proves the team can ship production-grade infrastructure under hackathon time pressure.
 
@@ -560,8 +560,9 @@ Both paths are source-agnostic: Teams, Zoom, Meet, or third-party transcript too
 | `submit_standup` | Create a structured standup entry on behalf of a member |
 | `parse_transcript` | Turn a Teams/Zoom/Meet transcript into per-speaker standups + AI risk update |
 | `run_member_pr_review` | AI review of a member's recent commits/PRs |
+| `send_app_notification` | Create an in-app follow-up/action item for a project member |
 
-Every tool is a thin HTTP wrapper over an existing `/api` route — no business logic in the MCP package, just protocol translation.
+Every tool is a thin HTTP wrapper over an existing `/api` route — no business logic in the MCP package, just protocol translation. App notifications are stored as open `recommendations` rows and appear in the notification panel and member history.
 
 ### Wiring into an agent host
 
@@ -587,9 +588,11 @@ Then add it to your MCP host config. For **Claude Code** (`~/.claude/mcp_setting
 }
 ```
 
-For **Cursor**: same shape in `~/.cursor/mcp.json`. Restart the client after editing.
+For **Cursor**: same shape in `~/.cursor/mcp.json`. Restart the client after editing. Existing Codex/agent sessions only discover the tool list at MCP startup, so restart/reload the host after adding new tools or rebuilding `packages/mcp-server`.
 
 `SPRINTPULSE_API_KEY` is the shared secret between this MCP server and the SprintPulse API. When the API has `SPRINTPULSE_API_KEY` set in its own env (see `apps/api/.env.example`), every `/api/*` request must include the matching `X-SprintPulse-API-Key` header — or a valid Supabase JWT from a logged-in user — to pass the auth middleware. `/api/health` stays public for container probes. When neither side sets the var, the middleware is a no-op so local/dev flows are untouched.
+
+If the API sits behind the SemicoLabs `?app=` router, include that query in `SPRINTPULSE_API_BASE`, for example `https://solution1.demopersistent.com/api?app=<app-id>`. The MCP server carries base query parameters into every tool request.
 
 The web UI authenticates differently: `apps/web/src/api.ts` attaches `Authorization: Bearer <supabase-session-jwt>` to every API call, so the same middleware accepts logged-in users without sharing the MCP key with browsers.
 
@@ -602,6 +605,8 @@ Once wired, the agent discovers each tool's name + input schema through MCP's `t
 > "Here's the transcript from today's standup [pasted]. Parse it for project SCRUM as persona `yash` and report which members didn't have a clear today/yesterday."
 
 > "Run the PR review tool on every developer in the SCRUM project. Summarise the top 3 review-pressure risks."
+
+> "Notify Maya Chen in the app to clarify the OPS blocker and ask who owns the next action."
 
 The agent decides which tools to call and in what order based on the prompt — SprintPulse just answers each question. Same backend as the UI, now callable from agent workflows.
 

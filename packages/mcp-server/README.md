@@ -13,6 +13,7 @@ Any MCP-capable agent (Claude Code, Cursor, Continue, custom OpenAI agents via a
 | `submit_standup` | Create a structured standup entry |
 | `parse_transcript` | VTT/plain transcript → per-speaker standups + AI risk update |
 | `run_member_pr_review` | AI review of a member's recent PRs |
+| `send_app_notification` | Create an in-app follow-up/action item for a project member |
 
 Every tool is a thin HTTP wrapper over an existing SprintPulse REST route — no business logic in this package, just protocol translation.
 
@@ -48,6 +49,8 @@ npm run build -w packages/mcp-server
 
 Same shape as above. Restart the client after editing.
 
+MCP hosts discover the tool catalog when the server starts. After rebuilding this package or adding a tool, restart or reload Claude Code, Cursor, Codex, or any other MCP host before expecting the new tool to appear.
+
 ### Local dev (no host)
 
 ```bash
@@ -67,6 +70,8 @@ The server speaks MCP over stdio so it's not useful without a client driving the
 
 When the API runs without `SPRINTPULSE_API_KEY` set (the default dev/local case), this MCP-side variable is optional too: the header is sent if you provide a value, and ignored if you don't.
 
+If the deployment needs a routing query, include it in `SPRINTPULSE_API_BASE`; for example, `https://solution1.demopersistent.com/api?app=<app-id>`. Query params from the base URL are carried into every MCP API call.
+
 **Threat-model note:** This shared secret authenticates the MCP server *as a whole* to the API. It does not authenticate which user the agent is acting on behalf of — the `personaId` parameter on each tool call is still trusted. An adversarial prompt can ask the agent to act "as" any persona it can name. The next layer (per-user Personal Access Tokens) is on the roadmap; until then, treat the MCP server as a privileged caller and only run it in trusted contexts.
 
 ## Example agent prompts
@@ -78,6 +83,8 @@ Once the server is wired into Claude Code or Cursor, the agent can do things lik
 > "Here's the transcript from today's standup [pasted]. Parse it for project SCRUM as persona yash and report which members didn't have a clear today/yesterday."
 
 > "Run the PR review tool on every developer in the SCRUM project. Summarise the top 3 review-pressure risks."
+
+> "Notify Maya Chen in the app to clarify the OPS blocker and ask who owns the next action."
 
 The agent discovers each tool through MCP's `tools/list` and calls them autonomously based on the prompt.
 
