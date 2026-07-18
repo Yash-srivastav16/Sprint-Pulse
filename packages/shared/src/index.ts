@@ -898,10 +898,11 @@ const dailyStatusDaysRemaining = (sprint: SprintInfo, generatedAt: string) => {
 const storyKeysFromDailyText = (text: string) => Array.from(new Set(text.toUpperCase().match(storyKeyPattern) ?? []));
 
 const dailyStandupStatus = (text: string): UserStoryConfidence["standupStatus"] => {
+  const textWithoutResolvedBlockerPhrases = text.replace(/\bno blockers?\b\.?/gi, "");
   if (/\b(done|completed|closed|resolved|merged|shipped|deployed)\b/i.test(text)) {
     return "done";
   }
-  if (/\b(blocked|blocker|waiting|dependency|depends|stuck|cannot proceed)\b/i.test(text)) {
+  if (/\b(blocked|blocker|waiting|dependency|depends|stuck|cannot proceed)\b/i.test(textWithoutResolvedBlockerPhrases)) {
     return "blocked";
   }
   if (/\b(review|pr|pull request|qa|testing|validation)\b/i.test(text)) {

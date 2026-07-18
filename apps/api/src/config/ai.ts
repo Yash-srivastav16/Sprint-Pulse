@@ -24,7 +24,7 @@ const parseNumber = (value: string | undefined, defaultValue: number) => {
 export const aiInsightsRequested = parseBooleanFlag(process.env.ENABLE_AI_INSIGHTS, false);
 export const openAiApiKey = process.env.OPENAI_API_KEY?.trim() ?? "";
 export const openAiBaseUrl = process.env.OPENAI_BASE_URL?.trim() || "https://api.openai.com";
-export const openAiModel = process.env.OPENAI_MODEL?.trim() || "gpt-5.1-CIO";
+export const openAiModel = process.env.OPENAI_MODEL?.trim() || "gpt-4.1";
 export const aiRequestTimeoutMs = parseNumber(process.env.AI_REQUEST_TIMEOUT_MS, 20_000);
 export const aiCacheTtlMinutes = parseNumber(process.env.AI_CACHE_TTL_MINUTES, 10);
 export const aiInputFormat: "toon" | "json" =

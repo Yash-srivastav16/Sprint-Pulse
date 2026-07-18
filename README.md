@@ -1,13 +1,13 @@
 # SprintPulse AI
 
-![typecheck](https://img.shields.io/badge/typecheck-passing-brightgreen) ![TOON benchmark](https://img.shields.io/badge/TOON%20reduction-46.9%25-blue) ![role demo](https://img.shields.io/badge/role--switch%20demo-passing-brightgreen) ![MCP tools](https://img.shields.io/badge/MCP%20tools-6-blueviolet)
+![tests](https://img.shields.io/badge/tests-passing-brightgreen) ![typecheck](https://img.shields.io/badge/typecheck-passing-brightgreen) ![TOON benchmark](https://img.shields.io/badge/TOON%20reduction-46.9%25-blue) ![role demo](https://img.shields.io/badge/role--switch%20demo-passing-brightgreen) ![MCP tools](https://img.shields.io/badge/MCP%20tools-6-blueviolet)
 
 **Sprint risk intelligence that catches the gap between what your team _says_ in standup and what they _actually_ ship.**
 
 ### Contents
 
-- [Judge TL;DR](#judge-tldr) · [3Cs at a Glance](#3cs-at-a-glance) · [UI Preview](#ui-preview)
-- [Why This Matters](#why-this-matters--business-value) · [What Makes This Different](#what-makes-this-different) · [The Idea](#the-idea)
+- [Judge Quick Scan](#judge-quick-scan) · [3Cs at a Glance](#3cs-at-a-glance) · [UI Preview](#ui-preview)
+- [Why This Matters](#why-this-matters--business-value) · [What Makes This Different](#what-makes-this-different) · [Competitive Positioning](#competitive-positioning) · [The Idea](#the-idea)
 - [The 5 Detection Types](#the-5-detection-types) · [Feature Status](#feature-status) · [Dashboard Tour](#dashboard-tour)
 - [Architecture](#architecture) · [System Architecture](#system-architecture) · [AI Pipeline](#ai-pipeline) · [Design Tradeoffs](#design-tradeoffs)
 - [Code Quality](#code-quality) · [Roles and Personas](#roles-and-personas)
@@ -20,15 +20,17 @@ SprintPulse continuously compares standup updates against Jira ticket movement a
 
 ---
 
-## Judge TL;DR
+## Judge Quick Scan
 
-- **What it is:** SprintPulse is an AI sprint-risk cockpit that correlates standups, Jira, Git provider activity, PR/MR pressure, and transcript evidence.
-- **Why it matters:** It finds the say-do gap before sprint review, when Scrum Masters and Engineering Managers can still unblock the work.
-- **What to demo first:** Log in as Maya Chen, open the dashboard, show the P1 decision brief, click Leo/Yash in the attention queue, then run **Sync AI analysis**.
-- **AI reliability:** Manual AI refreshes are persisted as dashboard snapshots, so repeat demos can load the same AI output without waiting on gateway latency.
-- **Agent story:** The MCP server exposes six SprintPulse tools for Claude Code, Cursor, Codex, or any MCP host.
-- **Validation commands:** `npm run typecheck`, `npm run benchmark:toon`, and `npm run check:role-demo`.
-- **Live deployment:** [solution1.demopersistent.com](https://solution1.demopersistent.com/?app=f65ea48f-bc1d-48ff-a3ed-a204ffe48bee) — log in as `maya.chen@sprintpulse.dev` / `12345678` to see the Scrum Master view.
+| Signal | What to look for |
+|---|---|
+| **Product** | AI sprint-risk cockpit that correlates standups, Jira, Git provider activity, PR/MR pressure, and transcript evidence. |
+| **Core insight** | Detects the say-do gap before sprint review: what the team says vs what Jira/Git/PR evidence proves. |
+| **Demo path** | Log in as Maya Chen, open Dashboard, show the decision brief and attention queue, then run **Sync AI analysis**. |
+| **Reliability** | Manual AI refreshes persist dashboard snapshots, so demos load resolved AI output without depending on gateway latency. |
+| **Agent wow** | MCP exposes six tools for Claude Code, Cursor, Codex, or any MCP host to read risk, parse standups, run PR review, and create in-app follow-ups. |
+| **Validation** | `npm test`, `npm run typecheck`, `npm run benchmark:toon`, `npm run check:role-demo`. |
+| **Live demo** | [solution1.demopersistent.com](https://solution1.demopersistent.com/?app=f65ea48f-bc1d-48ff-a3ed-a204ffe48bee) — `maya.chen@sprintpulse.dev` / `12345678`. |
 
 ---
 
@@ -38,7 +40,7 @@ SprintPulse continuously compares standup updates against Jira ticket movement a
 |---|---|---|---|
 | **Lives in** | `apps/api/src/ai/sprintpulseAi.ts`, `apps/api/src/ai/prompts/` | `apps/api/src/ai/openaiResponses.ts`, `scripts/benchmark-toon.mjs` | `apps/api/src/routes/`, `packages/mcp-server/src/tools.ts` |
 | **What it does** | 10 prompt templates, signature-based cache, rule-based fallback | TOON encoding (~47% fewer tokens), three-signal correlation, evidence-linked output, RLS-scoped queries | Dashboard for humans, 6 MCP tools for agents — same backend, same evidence |
-| **Proof in repo** | `gpt-5.1-CIO` with `json_schema` structured output | `npm run benchmark:toon` (~46.9% reduction on bundled fixture) | `npm run check:role-demo` confirms cross-role data flow |
+| **Proof in repo** | `gpt-4.1` / `gpt-4.1-nano` with `json_schema` structured output | `npm run benchmark:toon` (~46.9% reduction on bundled fixture) | `npm run check:role-demo` confirms cross-role data flow |
 
 *Same intelligence brain. Two surfaces: humans through the dashboard, agents through MCP. Both see the same evidence trail.*
 
@@ -94,6 +96,21 @@ The supporting differentiators — `withAppRoute()` for SemicoLabs proxy routing
 
 ---
 
+## Competitive Positioning
+
+SprintPulse complements engineering analytics tools, but the wedge is different: it turns daily sprint evidence into named, actionable risk before the sprint fails.
+
+| Competitor category | What they are strong at | SprintPulse difference |
+|---|---|---|
+| **LinearB** | DORA metrics, cycle time, planning accuracy, engineering productivity reporting. | SprintPulse focuses on standup-to-Jira-to-Git contradictions and blocker prediction during the sprint, not only throughput trends. |
+| **Waydev** | Code activity analytics, team contribution trends, executive engineering reports. | SprintPulse adds natural-language standup evidence, transcript ingestion, role-aware decision briefs, and ticket-level next actions. |
+| **GitPrime / Pluralsight Flow** | Git-derived workflow analytics, review load, coding patterns, team health indicators. | SprintPulse combines Git with Jira state, standup claims, blockers, QA/review risk, and MCP tools so agents can act on the risk. |
+| **Jira dashboards alone** | Ticket status, boards, sprint burndown, manual reporting. | SprintPulse interprets whether Jira movement agrees with what the team said and creates an evidence-backed action queue. |
+
+**One-line differentiation:** LinearB, Waydev, and Flow explain engineering activity; SprintPulse explains sprint risk from the mismatch between activity, tickets, and human updates.
+
+---
+
 ## The Idea
 
 Most sprint dashboards report _activity_. SprintPulse reports _truth_. The product's core hypothesis is that the most reliable signal of sprint risk is the **divergence between standup language and delivery evidence**. A developer who says "continuing on the API task" every day while Git shows zero commits and Jira shows zero status transitions is the canonical case SprintPulse exists to surface.
@@ -129,13 +146,13 @@ A consolidated view of what ships today vs what's deferred to next horizons. Eve
 | ✅ Shipped | Transcript ingestion: manual upload + universal webhook (WebVTT, plain `Speaker:` text) |
 | ✅ Shipped | Jira OAuth 2.0 + GitHub sync + GitLab/self-hosted Git fetch |
 | ✅ Shipped | TOON encoding pipeline + benchmark + JSON debug fallback |
+| ✅ Shipped | Automated tests for the shared risk-signal engine via Node's built-in test runner |
 | ✅ Shipped | Dual-credential API auth, RLS, per-project webhook tokens, at-rest Git token encryption |
 | ✅ Shipped | Seeded demo: 5 personas, 2 projects, sprint history, 4 ready-to-paste transcripts |
 | 🔵 Planned | Real-time Slack/Teams alerts for high-risk signals |
 | 🔵 Planned | Azure DevOps integration (parity with Jira/GitHub coverage) |
 | 🔵 Planned | Per-user Personal Access Tokens for agents — RLS-scoped per agent caller |
 | 🔵 Planned | Multi-agent sprint orchestration (Planner + Risk + Retro agents) |
-| 🔵 Planned | Automated test suite (today: TypeScript + 3 validation scripts substitute) |
 
 ---
 
@@ -249,7 +266,7 @@ flowchart TB
         end
 
         CACHE["Signature Cache\nSame data → skip API call\nTTL: 10 min"]
-        GATEWAY["GenAI Hub Gateway\ngpt-5.1-CIO\n/v1/chat/completions\njson_schema structured output"]
+        GATEWAY["GenAI Hub / OpenAI Gateway\ngpt-4.1 or gpt-4.1-nano\n/v1/chat/completions\njson_schema structured output"]
     end
 
     %% ── React SPA ─────────────────────────────────────────────────
@@ -299,8 +316,8 @@ SprintPulse uses the GenAI Hub gateway (`/v1/chat/completions`, OpenAI-compatibl
 | Scenario | Model |
 |----------|-------|
 | Development / testing | `gpt-4.1-nano` — 20× cheaper, fast |
-| Demo / judging | `gpt-5.1-CIO` — GPT-5.1 premium deployment, best output quality |
-| Fallback | `gpt-4.1` — balanced cost and quality |
+| Demo / judging | `gpt-4.1` — balanced quality, latency, and cost |
+| Disabled fallback | Rule-based scoring + cached dashboard snapshots |
 
 ### 10 Prompt Templates
 
@@ -359,7 +376,7 @@ Decisions that look opinionated, with the reasoning so reviewers can see the *wh
 |---|---|
 | **TOON over JSON for AI inputs** | Sprint data is tabular (members × signals × dates) — TOON's sweet spot. ~47% measured token reduction makes per-member-per-sprint scoring economically viable. JSON fallback (`AI_INPUT_FORMAT=json`) kept for debugging |
 | **Signature-based cache, not time-only TTL** | Same sprint signals produce the same signature → no API call regardless of time elapsed. Demos stay snappy without stale outputs after a fresh sync |
-| **Two-model strategy (`gpt-4.1-nano` + `gpt-5.1-CIO`)** | Nano is ~20× cheaper for dev iteration; CIO is the demo and production model. Toggled via single `OPENAI_MODEL` env, no code change |
+| **Two-model strategy (`gpt-4.1-nano` + `gpt-4.1`)** | Nano keeps development and smoke checks cheap; `gpt-4.1` is the demo and production model. Toggled via single `OPENAI_MODEL` env, no code change |
 | **Dual-credential API auth (shared key OR Supabase JWT)** | Shared key for trusted server-to-server (MCP); user JWT for browser. One middleware, two auth modes, no separate routes per caller |
 | **Rule-based fallback alongside AI** | When the gateway is slow or disabled, the dashboard still renders meaningful scoring instead of empty cells. Demo-day insurance |
 | **One webhook for all transcript sources** | VTT (Teams), plain `Speaker:` text (Zoom/Meet), and JSON all flow through the same parser. New transcript sources need zero new endpoints |
@@ -369,12 +386,13 @@ Decisions that look opinionated, with the reasoning so reviewers can see the *wh
 
 ## Code Quality
 
-The hackathon-budget version of code quality — what's enforced today vs what's deferred. Honest disclosure: no automated test suite. The triad below is the substitute.
+Code quality is covered by automated tests plus validation scripts that exercise the shared risk engine, workspace type contracts, seeded personas, and TOON benchmark.
 
-**Three validation gates:**
+**Four validation gates:**
 
 | Command | What it checks |
 |---|---|
+| `npm test` | Builds `packages/shared` and runs Node test cases for blocker/dependency detection, status mismatch, sprint-end QA/review risk, and commit-proof confidence |
 | `npm run typecheck` | TypeScript across all 4 workspaces — primary correctness gate. Catches contract drift between `apps/web`, `apps/api`, and `packages/shared` |
 | `npm run check:role-demo` | Verifies the 5 seeded judge personas can sign in, switch roles, and load at least one project end-to-end |
 | `npm run benchmark:toon` | Confirms the TOON differentiator with measured numbers — emits both char and token reductions for the bundled sprint payload |
@@ -422,10 +440,10 @@ npm run dev   # API on :4000 · Web on :5173
 **Verify everything works** (run in a second terminal):
 
 ```bash
-npm run typecheck && npm run check:role-demo && npm run benchmark:toon
+npm test && npm run typecheck && npm run check:role-demo && npm run benchmark:toon
 ```
 
-All three should exit green. The third prints the measured TOON reduction.
+All four should exit green. The final command prints the measured TOON reduction.
 
 **Full steps:**
 
@@ -447,6 +465,7 @@ npm run dev            # Start API + web concurrently
 npm run dev:api        # API only (tsx watch)
 npm run dev:web        # Web only (Vite)
 npm run build          # Build shared → api → web (order matters)
+npm test               # Run automated risk-signal tests
 npm run typecheck      # Typecheck all workspaces
 npm run benchmark:toon # Compare JSON vs TOON size on SprintPulse-shaped data
 npm run check:role-demo # Verify pre-configured role-switch personas can load projects
@@ -480,7 +499,7 @@ ENABLE_AI_INSIGHTS=false
 # GenAI Hub gateway
 OPENAI_BASE_URL=https://hub-proxy-service.thankfulfield-16b4d5d6.eastus.azurecontainerapps.io
 OPENAI_API_KEY=your-gateway-api-key
-OPENAI_MODEL=gpt-5.1-CIO              # gpt-4.1-nano for testing, gpt-5.1-CIO for demo
+OPENAI_MODEL=gpt-4.1                  # gpt-4.1-nano for cheaper testing
 AI_REQUEST_TIMEOUT_MS=20000
 AI_CACHE_TTL_MINUTES=10               # set to 60 for demo
 AI_INPUT_FORMAT=toon                  # toon (default) | json
@@ -554,7 +573,7 @@ docker run -p 8000:8000 \
   -e SUPABASE_SERVICE_ROLE_KEY=... \
   -e OPENAI_BASE_URL=https://hub-proxy-service.thankfulfield-16b4d5d6.eastus.azurecontainerapps.io \
   -e OPENAI_API_KEY=... \
-  -e OPENAI_MODEL=gpt-5.1-CIO \
+  -e OPENAI_MODEL=gpt-4.1 \
   -e ENABLE_AI_INSIGHTS=true \
   sprintpulse
 ```
@@ -621,7 +640,7 @@ The demo sprint has 8 team members with deliberately varied risk signals to show
 
 **3. AI Refresh**
 - Press **Sync AI analysis** on the dashboard
-- Scores, narrative, and recommendations rewrite via `gpt-5.1-CIO`
+- Scores, narrative, and recommendations rewrite via `gpt-4.1`
 - Role-aware notifications generate for Maya's Scrum Master view
 
 **4. Transcript Parser**
