@@ -24,11 +24,6 @@ const projectRoles: ProjectRole[] = ["product-owner", "scrum-master", "engineeri
 type TeamEntryMode = "existing" | "invite";
 type TeamMember = TeamResponse["members"][number];
 
-const rosterGridClass =
-  "grid gap-4 xl:grid-cols-[minmax(220px,1fr)_minmax(150px,0.55fr)_minmax(180px,0.72fr)_minmax(180px,0.72fr)_minmax(180px,0.75fr)_auto]";
-const rosterHeaderClass = "text-[0.68rem] font-black uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400";
-const mobileFieldLabelClass = "mb-1 block text-[0.68rem] font-black uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400 xl:hidden";
-
 const roleLabel = (role: string) =>
   role === "qa"
     ? "QA"
@@ -72,6 +67,14 @@ const signalProfileForRole = (role: ProjectRole) => {
 
   return profiles[role];
 };
+
+const mappingBadgeClass = (mapped: boolean) =>
+  cn(
+    "inline-flex min-h-7 w-fit items-center gap-1.5 rounded-full text-xs font-black",
+    mapped
+      ? "border border-transparent px-0 text-emerald-700 dark:text-emerald-200"
+      : "border border-warning-500/30 bg-warning-500/10 px-2.5 text-warning-700 dark:text-warning-100"
+  );
 
 const signupLinkForInvite = (invite: ProjectInvite, name?: string) => {
   const params = new URLSearchParams({
@@ -300,7 +303,7 @@ export function ProjectTeamPage() {
       setSuccess(
         linkedUser
           ? `${member.name}'s integration identity was linked to ${linkedUser.name}.`
-          : `${member.name}'s Jira and GitHub mapping was updated.`
+          : `${member.name}'s Jira and Git mapping was updated.`
       );
       toast.success(linkedUser ? "SprintPulse user linked" : "Member mapping updated", {
         description: linkedUser ? `${member.name} -> ${linkedUser.name}` : member.name
@@ -360,7 +363,7 @@ export function ProjectTeamPage() {
       progress: team.members.length ? (jiraMapped / team.members.length) * 100 : 0
     },
     {
-      label: "GitHub mapped",
+      label: "Git mapped",
       value: `${gitMapped}/${team.members.length}`,
       detail: "Needed for commit and PR signals",
       icon: GitBranch,
@@ -391,14 +394,14 @@ export function ProjectTeamPage() {
           </>
         }
         title="Project team"
-        description="Keep every SprintPulse member, Jira owner, and GitHub handle mapped to the right project role so blockers and delivery signals reach the correct person."
+        description="Keep every SprintPulse member, Jira owner, and Git identity mapped to the right project role so blockers and delivery signals reach the correct person."
         score={attributionGapCount}
         scoreLabel="Attribution gaps"
         scoreTone={attributionGapCount ? "warning" : "success"}
         scoreDetail={
           attributionGapCount
-            ? `${team.members.length - jiraMapped} Jira and ${team.members.length - gitMapped} GitHub mappings still need an owner.`
-            : "Every project member is mapped to Jira and GitHub evidence."
+            ? `${team.members.length - jiraMapped} Jira and ${team.members.length - gitMapped} Git mappings still need an owner.`
+            : "Every project member is mapped to Jira and Git evidence."
         }
       />
 
@@ -532,8 +535,8 @@ export function ProjectTeamPage() {
                 <Input value={jiraAccountId} onChange={(event) => setJiraAccountId(event.target.value)} placeholder="Jira account id or email" />
               </label>
               <label className="grid gap-2">
-                <span className="text-sm font-black text-slate-700 dark:text-slate-200">GitHub username</span>
-                <Input value={githubUsername} onChange={(event) => setGithubUsername(event.target.value)} placeholder="github-handle" />
+                <span className="text-sm font-black text-slate-700 dark:text-slate-200">Git username</span>
+                <Input value={githubUsername} onChange={(event) => setGithubUsername(event.target.value)} placeholder="git-handle-or-email" />
               </label>
                 <button className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-primary-500 to-info-500 px-6 text-sm font-black text-white shadow-[0_16px_40px_rgba(16,169,154,0.24)] transition hover:-translate-y-0.5 disabled:pointer-events-none disabled:opacity-60 lg:col-span-2" type="submit" disabled={saving}>
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -547,13 +550,13 @@ export function ProjectTeamPage() {
                 </p>
                 <h3 className="m-0 mt-2 text-lg font-black text-slate-950 dark:text-white">Why mapping matters</h3>
                 <p className="m-0 mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                  SprintPulse uses this page to connect standup updates, Jira ownership, GitHub commits, and PR review risk to a real person.
+                  SprintPulse uses this page to connect standup updates, Jira ownership, Git commits, and review risk to a real person.
                 </p>
                 <div className="mt-4 grid gap-2">
                   {[
                     ["Role", "Controls project permissions and dashboard grouping"],
                     ["Jira", "Links stale issues and blocked story points"],
-                    ["GitHub", "Links commits, PR age, and review queues"]
+                    ["Git", "Links commits, PR/MR age, and review queues"]
                   ].map(([label, detail]) => (
                     <div className="rounded-2xl border border-slate-200/80 bg-white/75 p-3 dark:border-white/10 dark:bg-white/[0.045]" key={label}>
                       <strong className="text-sm font-black text-slate-950 dark:text-white">{label}</strong>
@@ -577,34 +580,9 @@ export function ProjectTeamPage() {
       {error ? <div className="rounded-xl border border-danger-500/20 bg-danger-500/10 px-4 py-3 text-sm font-semibold text-danger-700 dark:text-danger-100">{error}</div> : null}
       {success ? <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-700 dark:text-emerald-100">{success}</div> : null}
 
-      <SectionPanel className="overflow-hidden p-0">
-        <div className="border-b border-slate-200/80 p-5 dark:border-white/10">
-          <PanelHeader
-            eyebrow="Member roster"
-            title={`${team.members.length} people mapped to this project`}
-            description="Each row shows project role, Jira owner, GitHub handle, and whether SprintPulse can attribute signals to that person."
-            icon={UsersRound}
-            action={
-              <StatusPill tone={attributionGapCount ? "warning" : "success"}>
-                {attributionGapCount ? `${attributionGapCount} gaps` : "Fully attributed"}
-              </StatusPill>
-            }
-          />
-        </div>
-        <div className="grid gap-3 p-4 sm:p-5">
-          <div
-            className={cn(
-              rosterGridClass,
-              "hidden items-center rounded-2xl border border-slate-200/80 bg-slate-950/[0.025] px-4 py-3 dark:border-white/10 dark:bg-white/[0.035] xl:grid"
-            )}
-          >
-            <span className={rosterHeaderClass}>Member</span>
-            <span className={rosterHeaderClass}>Role</span>
-            <span className={rosterHeaderClass}>Jira</span>
-            <span className={rosterHeaderClass}>GitHub</span>
-            <span className={rosterHeaderClass}>Signal state</span>
-            <span className={cn(rosterHeaderClass, "text-right")}>Action</span>
-          </div>
+      <SectionPanel>
+        <PanelHeader eyebrow="Member roster" title={`${team.members.length} people mapped to this project`} description="Each row shows project role, Jira owner, Git identity, and whether SprintPulse can attribute signals to that person." icon={UsersRound} />
+        <div className="grid gap-3">
           {team.members.map((member) => {
             const isEditing = editingMemberId === member.personaId;
             const isSavingMember = savingMemberId === member.personaId;
@@ -623,11 +601,11 @@ export function ProjectTeamPage() {
               : linkTargets;
             const mappingSignals = [
               {
-                label: member.githubUsername ? "GitHub mapped" : "GitHub missing",
+                label: member.githubUsername ? "Git mapped" : "Git missing",
                 tone: member.githubUsername ? ("success" as const) : ("warning" as const),
                 title: member.githubUsername
-                  ? "Commits and PRs can map through this GitHub username."
-                  : "Add GitHub username so commits, PRs, and reviews map to this member."
+                  ? "Commits and reviews can map through this Git identity."
+                  : "Add Git username or commit email so commits and reviews map to this member."
               },
               {
                 label: member.jiraAccountId ? "Jira mapped" : "Jira missing",
@@ -648,94 +626,107 @@ export function ProjectTeamPage() {
             return (
               <article
                 className={cn(
-                  "rounded-2xl border border-slate-200/80 bg-white/72 p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-primary-500/25 hover:bg-white dark:border-white/10 dark:bg-white/[0.045] dark:hover:bg-white/[0.065]",
-                  isEditing && "border-primary-500/35 ring-2 ring-primary-500/20"
+                  "rounded-3xl border border-slate-200/80 bg-slate-50/80 p-4 shadow-sm transition hover:border-primary-500/25 hover:bg-white/85 dark:border-white/10 dark:bg-white/[0.045] dark:hover:bg-white/[0.065]",
+                  isEditing && "ring-2 ring-primary-500/20"
                 )}
                 key={member.personaId}
               >
-                <div className={cn(rosterGridClass, "items-start xl:items-center")}>
+                <div className="grid items-center gap-4 xl:grid-cols-[minmax(260px,0.9fr)_minmax(420px,1.35fr)_auto]">
                   <div className="flex min-w-0 items-center gap-3">
                     <MemberAvatar initials={member.initials} seed={member.name} />
                     <span className="min-w-0">
                       <strong className="block truncate text-base font-black text-slate-950 dark:text-white">{member.name}</strong>
                       <small className="block truncate text-slate-500 dark:text-slate-400">{displayMemberEmail(member)}</small>
-                      {isImportedIdentity || isPendingInvite ? (
-                        <span className="mt-2 inline-flex min-h-7 w-fit items-center rounded-full border border-info-500/20 bg-info-500/10 px-2.5 text-[0.68rem] font-black uppercase tracking-[0.08em] text-info-700 dark:text-info-100">
-                          {isImportedIdentity ? "Integration identity" : "Pending signup"}
+                      <span className="mt-2 flex flex-wrap gap-2">
+                        <span className="inline-flex min-h-8 items-center rounded-full border border-primary-500/20 bg-primary-500/10 px-3 text-xs font-black text-primary-700 dark:text-primary-100">
+                          {roleLabel(member.role)}
                         </span>
-                      ) : null}
+                        {isImportedIdentity || isPendingInvite ? (
+                          <span className="inline-flex min-h-8 items-center rounded-full border border-info-500/20 bg-info-500/10 px-3 text-xs font-black text-info-700 dark:text-info-100">
+                            {isImportedIdentity ? "Integration identity" : "Pending signup"}
+                          </span>
+                        ) : null}
+                      </span>
+                      <span className="mt-2 flex flex-wrap gap-1.5">
+                        {mappingSignals.map((signal) => (
+                          <StatusPill className="px-2 py-0.5 text-[0.68rem]" key={signal.label} title={signal.title} tone={signal.tone}>
+                            {signal.label}
+                          </StatusPill>
+                        ))}
+                      </span>
                     </span>
                   </div>
 
-                  <div className="min-w-0">
-                    <span className={mobileFieldLabelClass}>Role</span>
-                    {isEditing ? (
-                      <SelectField ariaLabel={`Project role for ${member.name}`} value={memberDraft.role} onChange={(value) => setMemberDraft((draft) => ({ ...draft, role: value as ProjectRole }))}>
-                        {projectRoles.map((role) => (
-                          <option value={role} key={role}>
-                            {roleLabel(role)}
-                          </option>
-                        ))}
-                      </SelectField>
-                    ) : (
-                      <>
-                        <strong className="block text-sm font-black text-slate-950 dark:text-white">{roleLabel(member.role)}</strong>
-                        <small className="mt-1 block line-clamp-2 text-xs leading-5 text-slate-500 dark:text-slate-400">{signalProfileForRole(member.role)}</small>
-                      </>
-                    )}
-                  </div>
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <div className="rounded-2xl border border-slate-200/80 bg-white/75 p-3 dark:border-white/10 dark:bg-slate-950/25">
+                      <small className="text-[0.68rem] font-black uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">Project role</small>
+                      {isEditing ? (
+                        <div className="mt-2">
+                          <SelectField ariaLabel={`Project role for ${member.name}`} value={memberDraft.role} onChange={(value) => setMemberDraft((draft) => ({ ...draft, role: value as ProjectRole }))}>
+                            {projectRoles.map((role) => (
+                              <option value={role} key={role}>
+                                {roleLabel(role)}
+                              </option>
+                            ))}
+                          </SelectField>
+                        </div>
+                      ) : (
+                        <>
+                          <strong className="mt-2 block text-sm text-slate-950 dark:text-white">{roleLabel(member.role)}</strong>
+                          <small className="mt-1 block line-clamp-2 text-xs leading-5 text-slate-500 dark:text-slate-400">{signalProfileForRole(member.role)}</small>
+                        </>
+                      )}
+                    </div>
 
-                  <div className="min-w-0">
-                    <span className={mobileFieldLabelClass}>Jira</span>
-                    {isEditing ? (
-                      <Input
-                        aria-label={`Jira account for ${member.name}`}
-                        value={memberDraft.jiraAccountId}
-                        onChange={(event) => setMemberDraft((draft) => ({ ...draft, jiraAccountId: event.target.value }))}
-                        placeholder="Jira account id or email"
-                      />
-                    ) : (
-                      <span className="flex min-w-0 items-center gap-2">
-                        {member.jiraAccountId ? <Check className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-300" /> : null}
-                        <strong className={cn("block truncate text-sm", member.jiraAccountId ? "text-slate-950 dark:text-white" : "text-warning-700 dark:text-warning-100")}>
-                          {member.jiraAccountId || "Not mapped"}
-                        </strong>
-                      </span>
-                    )}
-                  </div>
+                    <div className="rounded-2xl border border-slate-200/80 bg-white/75 p-3 dark:border-white/10 dark:bg-slate-950/25">
+                      <div className="flex items-center justify-between gap-2">
+                        <small className="text-[0.68rem] font-black uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">Jira</small>
+                        {!isEditing ? (
+                          <span className={mappingBadgeClass(Boolean(member.jiraAccountId))}>
+                            {member.jiraAccountId ? (
+                              <>
+                                <Check className="h-3.5 w-3.5" />
+                                Mapped
+                              </>
+                            ) : (
+                              "Needs map"
+                            )}
+                          </span>
+                        ) : null}
+                      </div>
+                      {isEditing ? (
+                        <Input className="mt-2" aria-label={`Jira account for ${member.name}`} value={memberDraft.jiraAccountId} onChange={(event) => setMemberDraft((draft) => ({ ...draft, jiraAccountId: event.target.value }))} placeholder="Jira account id or email" />
+                      ) : (
+                        <strong className={cn("mt-2 block truncate text-sm", member.jiraAccountId ? "text-slate-950 dark:text-white" : "text-warning-700 dark:text-warning-100")}>{member.jiraAccountId || "Not mapped"}</strong>
+                      )}
+                    </div>
 
-                  <div className="min-w-0">
-                    <span className={mobileFieldLabelClass}>GitHub</span>
-                    {isEditing ? (
-                      <Input
-                        aria-label={`GitHub username for ${member.name}`}
-                        value={memberDraft.githubUsername}
-                        onChange={(event) => setMemberDraft((draft) => ({ ...draft, githubUsername: event.target.value }))}
-                        placeholder="github-handle"
-                      />
-                    ) : (
-                      <span className="flex min-w-0 items-center gap-2">
-                        {member.githubUsername ? <Check className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-300" /> : null}
-                        <strong className={cn("block truncate text-sm", member.githubUsername ? "text-slate-950 dark:text-white" : "text-warning-700 dark:text-warning-100")}>
-                          {member.githubUsername || "Not mapped"}
-                        </strong>
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="min-w-0">
-                    <span className={mobileFieldLabelClass}>Signal state</span>
-                    <div className="flex flex-wrap gap-1.5 xl:grid xl:grid-cols-1">
-                      {mappingSignals.map((signal) => (
-                        <StatusPill className="px-2 py-0.5 text-[0.68rem]" key={signal.label} title={signal.title} tone={signal.tone}>
-                          {signal.label}
-                        </StatusPill>
-                      ))}
+                    <div className="rounded-2xl border border-slate-200/80 bg-white/75 p-3 dark:border-white/10 dark:bg-slate-950/25">
+                      <div className="flex items-center justify-between gap-2">
+                        <small className="text-[0.68rem] font-black uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">Git</small>
+                        {!isEditing ? (
+                          <span className={mappingBadgeClass(Boolean(member.githubUsername))}>
+                            {member.githubUsername ? (
+                              <>
+                                <Check className="h-3.5 w-3.5" />
+                                Mapped
+                              </>
+                            ) : (
+                              "Needs map"
+                            )}
+                          </span>
+                        ) : null}
+                      </div>
+                      {isEditing ? (
+                        <Input className="mt-2" aria-label={`Git username for ${member.name}`} value={memberDraft.githubUsername} onChange={(event) => setMemberDraft((draft) => ({ ...draft, githubUsername: event.target.value }))} placeholder="git-handle-or-email" />
+                      ) : (
+                        <strong className={cn("mt-2 block truncate text-sm", member.githubUsername ? "text-slate-950 dark:text-white" : "text-warning-700 dark:text-warning-100")}>{member.githubUsername || "Not mapped"}</strong>
+                      )}
                     </div>
                   </div>
 
                   {team.canEditTeam ? (
-                    <div className="flex items-center gap-2 xl:justify-end">
+                    <div className="flex items-center justify-end gap-2">
                       {isEditing ? (
                         <>
                           <button className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-500/10 text-emerald-700 transition hover:bg-emerald-500/15 dark:text-emerald-100" type="button" onClick={() => void saveMemberMapping(member)} disabled={Boolean(savingMemberId)} aria-label={`Save mappings for ${member.name}`}>
@@ -752,111 +743,108 @@ export function ProjectTeamPage() {
                         </button>
                       )}
                     </div>
-                  ) : (
-                    <span aria-hidden="true" />
-                  )}
+                  ) : null}
                 </div>
                 {isEditing && canLinkToSprintPulse ? (
-                  <div className="mt-4 min-w-0 rounded-2xl border border-info-500/20 bg-info-500/[0.055] p-4 dark:bg-info-500/[0.075]">
-                    <div className="grid gap-4 lg:grid-cols-[minmax(220px,0.75fr)_minmax(0,1.25fr)]">
-                      <div className="grid content-start gap-3">
-                        <span className="flex min-w-0 gap-3">
-                          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-info-500/10 text-info-700 ring-1 ring-info-500/20 dark:text-info-100">
-                            <UserCheck className="h-4 w-4" />
-                          </span>
-                          <span className="min-w-0">
-                            <small className="text-xs font-black uppercase tracking-[0.18em] text-info-700 dark:text-info-100">SprintPulse user</small>
-                            <strong className="mt-1 block truncate text-sm font-black text-slate-950 dark:text-white">
-                              {selectedLinkUser ? selectedLinkUser.name : "Keep as external identity"}
-                            </strong>
-                            <small className="block text-xs leading-5 text-slate-500 dark:text-slate-400">
-                              {selectedLinkUser
-                                ? `${selectedLinkUser.email} - ${roleLabel(selectedLinkUser.appRole)}`
-                                : "Choose a signed-up user to absorb this integration identity, or keep it external until signup."}
-                            </small>
-                          </span>
+                  <div className="mt-4 min-w-0 border-t border-slate-200/80 pt-4 dark:border-white/10">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <span className="flex min-w-0 gap-3">
+                        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-info-500/10 text-info-700 ring-1 ring-info-500/20 dark:text-info-100">
+                          <UserCheck className="h-4 w-4" />
                         </span>
-                        <button
-                          className={cn(
-                            "inline-flex min-h-9 w-fit items-center rounded-xl border px-3 text-xs font-black uppercase tracking-[0.14em] transition",
-                            memberDraft.linkProfileId
-                              ? "border-slate-200 bg-white text-slate-600 hover:text-slate-950 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:text-white"
-                              : "border-info-500/30 bg-info-500/10 text-info-700 dark:text-info-100"
-                          )}
-                          type="button"
-                          onClick={() => setMemberDraft((draft) => ({ ...draft, linkProfileId: "" }))}
-                        >
-                          Keep external
-                        </button>
-                        <small className="text-xs leading-5 text-slate-500 dark:text-slate-400">
-                          Linking transfers Jira/GitHub ownership and removes this imported placeholder from the roster.
-                        </small>
-                      </div>
+                        <span className="min-w-0">
+                          <small className="text-xs font-black uppercase tracking-[0.18em] text-info-700 dark:text-info-100">SprintPulse user</small>
+                          <strong className="mt-1 block truncate text-sm font-black text-slate-950 dark:text-white">
+                            {selectedLinkUser ? selectedLinkUser.name : "Keep as external identity"}
+                          </strong>
+                          <small className="block max-w-3xl text-xs leading-5 text-slate-500 dark:text-slate-400">
+                            {selectedLinkUser
+                              ? `${selectedLinkUser.email} - ${roleLabel(selectedLinkUser.appRole)}`
+                              : "Choose a signed-up SprintPulse user to absorb this Jira/Git identity, or keep it external until signup."}
+                          </small>
+                        </span>
+                      </span>
+                      <button
+                        className={cn(
+                          "inline-flex min-h-9 items-center rounded-xl border px-3 text-xs font-black uppercase tracking-[0.14em] transition",
+                          memberDraft.linkProfileId
+                            ? "border-slate-200 bg-white text-slate-600 hover:text-slate-950 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:text-white"
+                            : "border-info-500/30 bg-info-500/10 text-info-700 dark:text-info-100"
+                        )}
+                        type="button"
+                        onClick={() => setMemberDraft((draft) => ({ ...draft, linkProfileId: "" }))}
+                      >
+                        Keep external
+                      </button>
+                    </div>
 
-                      <div className="grid min-w-0 gap-3">
-                        <label className="grid content-start gap-2">
-                          <span className="text-xs font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Find account</span>
-                          <span className="relative block">
-                            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                            <Input
-                              aria-label={`Search SprintPulse users for ${member.name}`}
-                              className="h-11 pl-10"
-                              value={linkSearch}
-                              onChange={(event) => setLinkSearch(event.target.value)}
-                              placeholder="Search by name, email, or role"
-                            />
-                          </span>
-                        </label>
+                    <div className="mt-4 grid gap-3">
+                      <label className="grid max-w-2xl content-start gap-2">
+                        <span className="text-xs font-black uppercase text-slate-500 dark:text-slate-400">Find account</span>
+                        <span className="relative block">
+                          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                          <Input
+                            aria-label={`Search SprintPulse users for ${member.name}`}
+                            className="h-11 pl-10"
+                            value={linkSearch}
+                            onChange={(event) => setLinkSearch(event.target.value)}
+                            placeholder="Search by name, email, or role"
+                          />
+                        </span>
+                      </label>
 
-                        <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white/75 dark:border-white/10 dark:bg-slate-950/35">
-                          <div className="max-h-72 overflow-y-auto p-2">
-                            {linkTargets.length ? (
-                              filteredLinkTargets.length ? (
-                                <div className="grid gap-2 md:grid-cols-2 2xl:grid-cols-3">
-                                  {filteredLinkTargets.map((user) => {
-                                    const isSelected = memberDraft.linkProfileId === user.id;
+                      <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200/80 bg-white/70 dark:border-white/10 dark:bg-slate-950/30">
+                        <div className="max-h-64 overflow-y-auto p-2">
+                          {linkTargets.length ? (
+                            filteredLinkTargets.length ? (
+                              <div className="grid gap-2">
+                                {filteredLinkTargets.map((user) => {
+                                  const isSelected = memberDraft.linkProfileId === user.id;
 
-                                    return (
-                                      <button
-                                        className={cn(
-                                          "grid min-h-20 grid-cols-[auto_minmax(0,1fr)] items-center gap-3 rounded-xl border px-3 py-2 text-left transition",
-                                          isSelected
-                                            ? "border-info-500/35 bg-info-500/15 text-info-800 ring-1 ring-info-500/30 dark:text-info-100"
-                                            : "border-transparent text-slate-700 hover:border-slate-200/80 hover:bg-slate-100/80 dark:text-slate-200 dark:hover:border-white/10 dark:hover:bg-white/5"
-                                        )}
-                                        key={user.id}
-                                        type="button"
-                                        onClick={() => setMemberDraft((draft) => ({ ...draft, linkProfileId: user.id }))}
-                                      >
-                                        <MemberAvatar initials={user.initials} seed={user.name} size="sm" />
-                                        <span className="min-w-0">
-                                          <span className="flex min-w-0 items-center gap-2">
-                                            <strong className="block truncate text-sm font-black">{user.name}</strong>
-                                            {isSelected ? <Check className="h-4 w-4 shrink-0 text-info-700 dark:text-info-100" /> : null}
-                                          </span>
-                                          <small className="block truncate text-xs text-slate-500 dark:text-slate-400">{user.email}</small>
-                                          <small className="mt-1 inline-flex rounded-full border border-slate-200 px-2 py-0.5 text-[0.62rem] font-black uppercase text-slate-500 dark:border-white/10 dark:text-slate-300">
-                                            {roleLabel(user.appRole)}
-                                          </small>
-                                        </span>
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              ) : (
-                                <div className="px-3 py-4 text-sm font-semibold text-slate-500 dark:text-slate-400">
-                                  No SprintPulse users match this search.
-                                </div>
-                              )
+                                  return (
+                                    <button
+                                      className={cn(
+                                        "grid min-h-14 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-lg px-3 py-2 text-left transition",
+                                        isSelected
+                                          ? "bg-info-500/15 text-info-800 ring-1 ring-info-500/30 dark:text-info-100"
+                                          : "text-slate-700 hover:bg-slate-100/80 dark:text-slate-200 dark:hover:bg-white/5"
+                                      )}
+                                      key={user.id}
+                                      type="button"
+                                      onClick={() => setMemberDraft((draft) => ({ ...draft, linkProfileId: user.id }))}
+                                    >
+                                      <MemberAvatar initials={user.initials} />
+                                      <span className="min-w-0">
+                                        <strong className="block truncate text-sm font-black">{user.name}</strong>
+                                        <small className="block truncate text-xs text-slate-500 dark:text-slate-400">{user.email}</small>
+                                      </span>
+                                      <span className="flex items-center gap-2">
+                                        <small className="hidden rounded-full border border-slate-200 px-2 py-1 text-[0.68rem] font-black uppercase text-slate-500 dark:border-white/10 dark:text-slate-300 sm:inline-flex">
+                                          {roleLabel(user.appRole)}
+                                        </small>
+                                        {isSelected ? <Check className="h-4 w-4 text-info-700 dark:text-info-100" /> : null}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
                             ) : (
                               <div className="px-3 py-4 text-sm font-semibold text-slate-500 dark:text-slate-400">
-                                No eligible SprintPulse users are available to link right now.
+                                No SprintPulse users match this search.
                               </div>
-                            )}
-                          </div>
+                            )
+                          ) : (
+                            <div className="px-3 py-4 text-sm font-semibold text-slate-500 dark:text-slate-400">
+                              No eligible SprintPulse users are available to link right now.
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
+
+                    <small className="mt-3 block text-xs leading-5 text-slate-500 dark:text-slate-400">
+                      Linking transfers Jira/Git ownership and removes this imported placeholder from the roster.
+                    </small>
                   </div>
                 ) : null}
               </article>

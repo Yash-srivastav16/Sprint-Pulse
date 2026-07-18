@@ -422,12 +422,16 @@ export interface JiraConnection {
 export interface GitConnection {
   id: string;
   projectId: string;
-  provider: "github";
+  provider: "github" | "gitlab";
+  baseUrl?: string;
   repoOwner: string;
   repoName: string;
   defaultBranch: string;
   status: IntegrationStatus;
+  tokenStatus?: "valid" | "invalid" | "revoked" | "unchecked";
   lastSyncAt?: string;
+  lastVerifiedAt?: string;
+  lastError?: string;
 }
 
 export interface JiraIssue {
@@ -619,10 +623,13 @@ export interface JiraOAuthCallbackResponse {
 
 export interface ConfigureGitRequest {
   personaId: string;
-  provider: "github";
+  provider: "github" | "gitlab";
+  baseUrl?: string;
   repoOwner: string;
   repoName: string;
   defaultBranch?: string;
+  accessToken?: string;
+  verify?: boolean;
 }
 
 export interface ConfigureGitResponse {

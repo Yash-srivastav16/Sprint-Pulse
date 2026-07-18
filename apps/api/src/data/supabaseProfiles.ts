@@ -257,7 +257,7 @@ const autoLinkGitSignalsByEmail = async (email: string, profile: ProfileRow, war
       return;
     }
 
-    warnings.push(`GitHub email auto-link skipped: ${commits.error.message}`);
+    warnings.push(`Git email auto-link skipped: ${commits.error.message}`);
     return;
   }
 
@@ -276,7 +276,7 @@ const autoLinkGitSignalsByEmail = async (email: string, profile: ProfileRow, war
   );
 
   if (memberWrite.error) {
-    warnings.push(`GitHub project membership auto-link skipped: ${memberWrite.error.message}`);
+    warnings.push(`Git project membership auto-link skipped: ${memberWrite.error.message}`);
     return;
   }
 
@@ -286,7 +286,7 @@ const autoLinkGitSignalsByEmail = async (email: string, profile: ProfileRow, war
     .ilike("author_email", normalizedEmail);
 
   if (commitWrite.error) {
-    warnings.push(`GitHub commit auto-link skipped: ${commitWrite.error.message}`);
+    warnings.push(`Git commit auto-link skipped: ${commitWrite.error.message}`);
   }
 };
 

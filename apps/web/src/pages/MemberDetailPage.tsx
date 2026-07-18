@@ -194,7 +194,7 @@ export function MemberDetailPage() {
       .catch((err: Error) => {
         const msg = err.message;
         if (msg.includes('not found') || msg.includes('Not Found') || msg.includes('token')) {
-          setPrReviewError('GitHub repository not accessible. Check that the GitHub token is valid and has read access to this repository.');
+          setPrReviewError("Git repository not accessible. Check that the saved provider token is valid and has read access to this repository.");
         } else {
           setPrReviewError(msg);
         }
@@ -578,16 +578,13 @@ export function MemberDetailPage() {
             <div className="rounded-2xl border border-slate-200/80 bg-white/70 p-4 dark:border-white/10 dark:bg-white/[0.045]">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <strong className="text-sm font-black text-slate-950 dark:text-white">Jira work</strong>
-                <Badge variant="outline">{tickets.length ? `${tickets.length} issues` : "Issue trail"}</Badge>
+                <Badge variant="outline">Issue trail</Badge>
               </div>
-              <div className="grid max-h-56 gap-2 overflow-y-auto pr-1">
-                {visibleTickets.map((ticket) => (
-                  <div className="grid grid-cols-[80px_minmax(0,1fr)] items-center gap-3 rounded-xl bg-slate-950/[0.035] px-3 py-2 dark:bg-white/[0.045] sm:grid-cols-[80px_minmax(0,1fr)_64px_112px]" key={ticket.key}>
+              <div className="grid gap-2">
+                {visibleTickets.slice(0, 4).map((ticket) => (
+                  <div className="grid grid-cols-[80px_minmax(0,1fr)_112px] items-center gap-3 rounded-xl bg-slate-950/[0.035] px-3 py-2 dark:bg-white/[0.045]" key={ticket.key}>
                     <strong className="font-mono text-xs text-slate-950 dark:text-white">{ticket.key}</strong>
                     <span className="truncate text-sm text-slate-600 dark:text-slate-300">{ticket.title}</span>
-                    <small className="text-xs font-black text-slate-500 dark:text-slate-400">
-                      {typeof ticket.storyPoints === "number" ? `${ticket.storyPoints} pts` : "No pts"}
-                    </small>
                     <small className="text-right text-xs font-black text-slate-500 dark:text-slate-400">
                       {ticket.status} / {ticket.daysIdle}d
                     </small>
@@ -653,8 +650,8 @@ export function MemberDetailPage() {
                     <StatusPill tone={codeReviewTone(codeReviewState)}>
                       {codeReviewState === "needs-fixes" ? "Needs fixes" : codeReviewState === "watch" ? "Watch" : "Clean"}
                     </StatusPill>
-                    <StatusPill tone={reviewerGateMet ? "success" : "warning"} title="GitHub branch protection requires two approving reviewers.">
-                      GitHub: 2 reviewers required
+                    <StatusPill tone={reviewerGateMet ? "success" : "warning"} title="Repository branch protection requires two approving reviewers.">
+                      Git: 2 reviewers required
                     </StatusPill>
                     <StatusPill tone={reviewerGateMet ? "success" : "warning"}>
                       {Math.min(reviewApprovals, requiredReviewers)}/{requiredReviewers} approved

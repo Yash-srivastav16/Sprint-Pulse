@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID } from "node:crypto";
 import type {
   AppRole,
   AiChatRequest,
@@ -73,6 +73,26 @@ import {
   type JiraOAuthTokenResponse,
   type JiraUser
 } from "../integrations/jiraCloud.js";
+import {
+  fetchGitCommitDetails,
+  fetchGitCommits,
+  fetchGitPullRequestCommits,
+  fetchGitPullRequestFiles,
+  fetchGitPullRequestReviewSignals,
+  fetchGitPullRequests,
+  configuredGitProvider,
+  gitCommitInSprint,
+  gitMaxPagesLimit,
+  gitProviderLabel,
+  gitReviewName,
+  mergeGitCommits,
+  type GitProvider,
+  type GitProviderCommit,
+  type GitProviderConnection,
+  type GitProviderPullRequest,
+  type GitProviderPullRequestFile,
+  type PullRequestReviewSignal
+} from "../integrations/gitProviders.js";
 import { supabaseAdmin } from "../lib/supabaseAdmin.js";
 import {
   AI_DASHBOARD_SNAPSHOT_TITLE,
@@ -153,12 +173,19 @@ type ProjectMemberRow = {
 type GitConnectionRow = {
   id: string;
   project_id: string;
-  provider: "github";
+  provider: "github" | "gitlab";
+  base_url?: string | null;
   repo_owner: string;
   repo_name: string;
   default_branch: string;
   status: GitConnection["status"];
+  token_ciphertext?: string | null;
+  token_nonce?: string | null;
+  token_tag?: string | null;
+  token_status?: GitConnection["tokenStatus"] | null;
   last_sync_at?: string | null;
+  last_verified_at?: string | null;
+  last_error?: string | null;
 };
 
 type JiraIssueRow = {
@@ -321,12 +348,93 @@ const toGitConnection = (row: GitConnectionRow): GitConnection => ({
   id: row.id,
   projectId: row.project_id,
   provider: row.provider,
+  baseUrl: row.base_url ?? undefined,
   repoOwner: row.repo_owner,
   repoName: row.repo_name,
   defaultBranch: row.default_branch,
   status: row.status,
-  lastSyncAt: row.last_sync_at ?? undefined
+  tokenStatus: row.token_status ?? undefined,
+  lastSyncAt: row.last_sync_at ?? undefined,
+  lastVerifiedAt: row.last_verified_at ?? undefined,
+  lastError: row.last_error ?? undefined
 });
+
+const gitTokenEncryptionKey = () => {
+  const secret = (process.env.GIT_TOKEN_ENCRYPTION_KEY ?? process.env.SPRINTPULSE_API_KEY ?? "").trim();
+  if (!secret) {
+    throw new Error("Set GIT_TOKEN_ENCRYPTION_KEY in apps/api env before storing per-project Git tokens.");
+  }
+
+  return createHash("sha256").update(secret).digest();
+};
+
+const encryptGitToken = (token: string) => {
+  const nonce = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", gitTokenEncryptionKey(), nonce);
+  const ciphertext = Buffer.concat([cipher.update(token, "utf8"), cipher.final()]);
+
+  return {
+    token_ciphertext: ciphertext.toString("base64"),
+    token_nonce: nonce.toString("base64"),
+    token_tag: cipher.getAuthTag().toString("base64")
+  };
+};
+
+const decryptGitToken = (row: Pick<GitConnectionRow, "token_ciphertext" | "token_nonce" | "token_tag">) => {
+  if (!row.token_ciphertext || !row.token_nonce || !row.token_tag) {
+    return undefined;
+  }
+
+  try {
+    const decipher = createDecipheriv("aes-256-gcm", gitTokenEncryptionKey(), Buffer.from(row.token_nonce, "base64"));
+    decipher.setAuthTag(Buffer.from(row.token_tag, "base64"));
+    return Buffer.concat([
+      decipher.update(Buffer.from(row.token_ciphertext, "base64")),
+      decipher.final()
+    ]).toString("utf8");
+  } catch {
+    throw new Error("Stored Git token could not be decrypted. Re-save the repository token for this project.");
+  }
+};
+
+const toGitRuntimeConnection = (row: GitConnectionRow): GitProviderConnection => ({
+  ...toGitConnection(row),
+  accessToken: decryptGitToken(row)
+});
+
+const normalizeGitProvider = (provider?: ConfigureGitRequest["provider"] | null): GitProvider =>
+  provider === "gitlab" || provider === "github" ? provider : configuredGitProvider();
+
+const normalizeGitBaseUrl = (provider: GitProvider, value?: string) => {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return provider === "gitlab" ? "https://gitlab.com/api/v4" : null;
+  }
+
+  const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  const withoutTrailingSlash = withProtocol.replace(/\/+$/, "");
+  if (provider === "gitlab" && !/\/api\/v4$/i.test(withoutTrailingSlash)) {
+    return `${withoutTrailingSlash}/api/v4`;
+  }
+
+  return withoutTrailingSlash;
+};
+
+const gitTokenStatusFromError = (message: string): GitConnection["tokenStatus"] =>
+  /revoked/i.test(message) ? "revoked" : /auth|token|401|403/i.test(message) ? "invalid" : "unchecked";
+
+const loadGitRuntimeConnection = async (projectId: string) => {
+  const client = requireSupabaseAdmin();
+  const { data, error } = await client.from("git_connections").select("*").eq("project_id", projectId).maybeSingle();
+  if (error) {
+    throw new Error(error.message);
+  }
+  if (!data) {
+    throw new Error("Configure Git before running sync.");
+  }
+
+  return toGitRuntimeConnection(data as GitConnectionRow);
+};
 
 const toJiraIssue = (row: JiraIssueRow): JiraIssue => ({
   id: row.id,
@@ -467,12 +575,7 @@ const fetchSignals = async (project: SprintProject, sprintId?: string): Promise<
       .eq("project_id", project.id)
       .eq("sprint_id", selectedSprint.id)
       .order("date", { ascending: false }),
-    client
-      .from("jira_issues")
-      .select("*")
-      .eq("project_id", project.id)
-      .eq("sprint_id", selectedSprint.id)
-      .order("updated_at_source", { ascending: false, nullsFirst: false }),
+    client.from("jira_issues").select("*").eq("project_id", project.id).eq("sprint_id", selectedSprint.id),
     client
       .from("git_commits")
       .select("*")
@@ -1013,7 +1116,7 @@ const buildMemberPulse = (project: SprintProject, member: ProjectMember, signals
       type: "SAY_DO_GAP",
       severity: "high",
       title: "No repo evidence for active work",
-      message: `${member.name} has active sprint work, but GitHub has no mapped commits for the sprint window.`
+      message: `${member.name} has active sprint work, but Git has no mapped commits for the sprint window.`
     });
   }
   if (lateNightCommits > 0) {
@@ -1072,7 +1175,7 @@ const buildMemberPulse = (project: SprintProject, member: ProjectMember, signals
       type: "VAGUE_UPDATE",
       severity: "medium",
       title: "Silent contributor",
-      message: `${member.name} has GitHub activity but no standup update, so communication confidence is lower.`
+      message: `${member.name} has Git activity but no standup update, so communication confidence is lower.`
     });
   }
   if (!issues.length && commits.length >= 3) {
@@ -1853,8 +1956,8 @@ export const buildSupabaseIntegrations = async (
     jira: signals.jira,
     git: signals.git,
     recentRuns: signals.runs,
-    issuePreview: signals.issues,
-    commitPreview: signals.commits
+    issuePreview: signals.issues.slice(0, 8),
+    commitPreview: signals.commits.slice(0, 8)
   };
 };
 
@@ -2760,18 +2863,50 @@ export const configureSupabaseGit = async (
   }
 
   const client = requireSupabaseAdmin();
+  const provider = normalizeGitProvider(input.provider);
+  const baseUrl = normalizeGitBaseUrl(provider, input.baseUrl);
+  const token = input.accessToken?.trim();
+  const { data: existingConnection, error: existingError } = await client
+    .from("git_connections")
+    .select("provider")
+    .eq("project_id", projectId)
+    .maybeSingle();
+  if (existingError) {
+    throw new Error(existingError.message);
+  }
+  const providerChanged = Boolean(existingConnection && (existingConnection as Pick<GitConnectionRow, "provider">).provider !== provider);
+  const tokenPatch = token
+    ? {
+        ...encryptGitToken(token),
+        token_status: "unchecked" as const,
+        last_verified_at: null,
+        last_error: null
+      }
+    : providerChanged
+      ? {
+          token_ciphertext: null,
+          token_nonce: null,
+          token_tag: null,
+          token_status: "unchecked" as const,
+          last_verified_at: null,
+          last_error: null
+        }
+    : {};
+
   const { data, error } = await client
     .from("git_connections")
     .upsert(
       {
         project_id: projectId,
-        provider: input.provider,
+        provider,
+        base_url: baseUrl,
         repo_owner: input.repoOwner.trim(),
         repo_name: input.repoName.trim(),
         default_branch: input.defaultBranch?.trim() || "main",
         status: "configured",
         created_by: input.personaId,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        ...tokenPatch
       },
       { onConflict: "project_id" }
     )
@@ -2782,119 +2917,57 @@ export const configureSupabaseGit = async (
     throw new Error(error.message);
   }
 
+  let connectionRow = data as GitConnectionRow;
+  const warnings: string[] = [];
+  const providerLabel = gitProviderLabel(provider);
+
+  if (input.verify) {
+    const now = new Date().toISOString();
+    try {
+      const runtimeConnection = toGitRuntimeConnection(connectionRow);
+      await fetchGitPullRequests(provider, runtimeConnection);
+      const { data: verifiedRow, error: verifyUpdateError } = await client
+        .from("git_connections")
+        .update({
+          status: "configured",
+          token_status: runtimeConnection.accessToken ? "valid" : "unchecked",
+          last_verified_at: now,
+          last_error: null,
+          updated_at: now
+        })
+        .eq("project_id", projectId)
+        .select()
+        .single();
+
+      if (verifyUpdateError) {
+        throw new Error(verifyUpdateError.message);
+      }
+      connectionRow = verifiedRow as GitConnectionRow;
+      warnings.push(`${providerLabel} repository access verified.`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : `${providerLabel} verification failed.`;
+      const { data: failedRow } = await client
+        .from("git_connections")
+        .update({
+          status: "failed",
+          token_status: gitTokenStatusFromError(message),
+          last_verified_at: now,
+          last_error: message,
+          updated_at: now
+        })
+        .eq("project_id", projectId)
+        .select()
+        .single();
+      connectionRow = (failedRow as GitConnectionRow | null) ?? connectionRow;
+      warnings.push(`${providerLabel} verification failed: ${message}`);
+    }
+  }
+
   return {
-    connection: toGitConnection(data as GitConnectionRow),
+    connection: toGitConnection(connectionRow),
     importedCommits: 0,
-    warnings: ["GitHub is configured. Run sync to import commit activity."]
+    warnings: warnings.length ? warnings : [`${providerLabel} is configured. Run sync to import commit activity.`]
   };
-};
-
-type GitHubCommitListItem = {
-  sha: string;
-  html_url?: string;
-  author?: {
-    login?: string | null;
-  } | null;
-  commit: {
-    message?: string;
-    author?: {
-      email?: string | null;
-      date?: string | null;
-    } | null;
-    committer?: {
-      email?: string | null;
-      date?: string | null;
-    } | null;
-  };
-  stats?: {
-    additions?: number;
-    deletions?: number;
-  };
-};
-
-type GitHubPullRequestListItem = {
-  number: number;
-  title: string;
-  html_url?: string;
-  state?: "open" | "closed" | string;
-  draft?: boolean;
-  created_at: string;
-  updated_at: string;
-  user?: {
-    login?: string | null;
-  } | null;
-  head?: {
-    ref?: string | null;
-    sha?: string | null;
-  } | null;
-  base?: {
-    ref?: string | null;
-  } | null;
-};
-
-type GitHubPullRequestReview = {
-  id: number;
-  state?: string | null;
-  body?: string | null;
-  submitted_at?: string | null;
-  user?: {
-    login?: string | null;
-  } | null;
-};
-
-type GitHubPullRequestReviewComment = {
-  id: number;
-  body?: string | null;
-  path?: string | null;
-  created_at?: string | null;
-  user?: {
-    login?: string | null;
-  } | null;
-};
-
-type GitHubPullRequestConversationComment = {
-  id: number;
-  body?: string | null;
-  created_at?: string | null;
-  user?: {
-    login?: string | null;
-  } | null;
-};
-
-type GitHubPullRequestCommitRef = {
-  sha: string;
-};
-
-type GitHubCommitComment = {
-  id: number;
-  body?: string | null;
-  path?: string | null;
-  position?: number | null;
-  created_at?: string | null;
-  user?: {
-    login?: string | null;
-  } | null;
-};
-
-type GitHubPullRequestFile = {
-  filename: string;
-  status?: string;
-  additions?: number;
-  deletions?: number;
-  changes?: number;
-  patch?: string;
-};
-
-type PullRequestReviewSignal = {
-  reviewCount: number;
-  reviewComments: number;
-  conversationComments: number;
-  inlineComments: number;
-  reviewBodyComments: number;
-  commitComments: number;
-  changeRequests: number;
-  approvals: number;
-  issueCount: number;
 };
 
 type GitCommitInsertRow = {
@@ -2912,284 +2985,7 @@ type GitCommitInsertRow = {
 
 const normalizedGitValue = (value?: string | null) => value?.trim().toLowerCase() ?? "";
 
-const sprintStartIso = (sprint: SprintInfo) => new Date(`${sprint.startDate}T00:00:00.000Z`).toISOString();
-
-const sprintEndIso = (sprint: SprintInfo) => new Date(`${sprint.endDate}T23:59:59.999Z`).toISOString();
-
-const githubMaxPages = () => {
-  const parsed = Number(process.env.GITHUB_MAX_PAGES ?? 5);
-  if (!Number.isFinite(parsed)) {
-    return 5;
-  }
-
-  return Math.max(1, Math.min(10, Math.floor(parsed)));
-};
-
-const githubCommitDetailLimit = () => {
-  const parsed = Number(process.env.GITHUB_COMMIT_DETAIL_LIMIT ?? 120);
-  if (!Number.isFinite(parsed)) {
-    return 120;
-  }
-
-  return Math.max(0, Math.min(300, Math.floor(parsed)));
-};
-
-const githubPullRequestCommitCommentLimit = () => {
-  const parsed = Number(process.env.GITHUB_PR_COMMIT_COMMENT_LIMIT ?? 25);
-  if (!Number.isFinite(parsed)) {
-    return 25;
-  }
-
-  return Math.max(0, Math.min(100, Math.floor(parsed)));
-};
-
-const githubHeaders = () => {
-  const token = (process.env.GITHUB_TOKEN ?? process.env.GITHUB_PAT ?? "").trim();
-  const headers: Record<string, string> = {
-    Accept: "application/vnd.github+json",
-    "User-Agent": "SprintPulse-AI",
-    "X-GitHub-Api-Version": "2022-11-28"
-  };
-
-  // Real GitHub access belongs in apps/api/.env.local. Never add this token to Vite/web env files.
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
-  return headers;
-};
-
-const githubJson = async <T>(url: URL): Promise<T> => {
-  const response = await fetch(url, { headers: githubHeaders() });
-  if (!response.ok) {
-    const body = (await response.json().catch(() => ({}))) as { message?: string };
-    const details = body.message ? ` ${body.message}` : "";
-
-    if (response.status === 401 || response.status === 403) {
-      throw new Error(`GitHub authentication failed.${details} Check GITHUB_TOKEN in apps/api/.env.local.`);
-    }
-
-    if (response.status === 404) {
-      throw new Error(`GitHub repository was not found or the token cannot access it.${details}`);
-    }
-
-    throw new Error(`GitHub API request failed with ${response.status}.${details}`);
-  }
-
-  return response.json() as Promise<T>;
-};
-
-const fetchGithubCommits = async (connection: GitConnection, sprint: SprintInfo) => {
-  const commits: GitHubCommitListItem[] = [];
-  const maxPages = githubMaxPages();
-
-  // Real repo details come from the Integrations page: owner, repo name, and default branch.
-  for (let page = 1; page <= maxPages; page += 1) {
-    const url = new URL(
-      `https://api.github.com/repos/${encodeURIComponent(connection.repoOwner)}/${encodeURIComponent(connection.repoName)}/commits`
-    );
-    url.searchParams.set("sha", connection.defaultBranch || "main");
-    url.searchParams.set("since", sprintStartIso(sprint));
-    url.searchParams.set("until", sprintEndIso(sprint));
-    url.searchParams.set("per_page", "100");
-    url.searchParams.set("page", String(page));
-
-    const pageCommits = await githubJson<GitHubCommitListItem[]>(url);
-    commits.push(...pageCommits);
-
-    if (pageCommits.length < 100) {
-      break;
-    }
-  }
-
-  return commits;
-};
-
-const fetchGithubCommitDetails = async (connection: GitConnection, commits: GitHubCommitListItem[]) => {
-  const detailLimit = githubCommitDetailLimit();
-  if (!detailLimit) {
-    return commits;
-  }
-
-  const detailedCommits = await Promise.all(
-    commits.slice(0, detailLimit).map((commit) => {
-      const url = new URL(
-        `https://api.github.com/repos/${encodeURIComponent(connection.repoOwner)}/${encodeURIComponent(connection.repoName)}/commits/${encodeURIComponent(commit.sha)}`
-      );
-      return githubJson<GitHubCommitListItem>(url).catch(() => commit);
-    })
-  );
-
-  return [...detailedCommits, ...commits.slice(detailLimit)];
-};
-
-const githubCommitDate = (commit: GitHubCommitListItem) =>
-  commit.commit.author?.date ?? commit.commit.committer?.date ?? "";
-
-const githubCommitInSprint = (commit: GitHubCommitListItem, sprint: SprintInfo) => {
-  const rawDate = githubCommitDate(commit);
-  if (!rawDate) {
-    return true;
-  }
-
-  const commitTime = new Date(rawDate).getTime();
-  return (
-    !Number.isNaN(commitTime) &&
-    commitTime >= new Date(sprintStartIso(sprint)).getTime() &&
-    commitTime <= new Date(sprintEndIso(sprint)).getTime()
-  );
-};
-
-const mergeGithubCommits = (commits: GitHubCommitListItem[]) => {
-  const seen = new Set<string>();
-
-  return commits.filter((commit) => {
-    if (!commit.sha || seen.has(commit.sha)) {
-      return false;
-    }
-
-    seen.add(commit.sha);
-    return true;
-  });
-};
-
-const fetchGithubPullRequests = async (connection: GitConnection) => {
-  const url = new URL(
-    `https://api.github.com/repos/${encodeURIComponent(connection.repoOwner)}/${encodeURIComponent(connection.repoName)}/pulls`
-  );
-  url.searchParams.set("state", "open");
-  url.searchParams.set("sort", "updated");
-  url.searchParams.set("direction", "desc");
-  url.searchParams.set("per_page", "100");
-
-  return githubJson<GitHubPullRequestListItem[]>(url);
-};
-
-const fetchGithubPullRequestCommits = async (
-  connection: GitConnection,
-  pullRequests: GitHubPullRequestListItem[]
-) => {
-  const pairs = await Promise.all(
-    pullRequests.map(async (pullRequest) => {
-      const url = new URL(
-        `https://api.github.com/repos/${encodeURIComponent(connection.repoOwner)}/${encodeURIComponent(connection.repoName)}/pulls/${pullRequest.number}/commits`
-      );
-      url.searchParams.set("per_page", "100");
-
-      const commits = await githubJson<GitHubCommitListItem[]>(url).catch(() => []);
-      const detailedCommits = await fetchGithubCommitDetails(connection, commits);
-      return [pullRequest.number, detailedCommits] as const;
-    })
-  );
-
-  return new Map(pairs);
-};
-
-const fetchGithubPullRequestFiles = async (connection: GitConnection, pullRequest: GitHubPullRequestListItem) => {
-  const url = new URL(
-    `https://api.github.com/repos/${encodeURIComponent(connection.repoOwner)}/${encodeURIComponent(connection.repoName)}/pulls/${pullRequest.number}/files`
-  );
-  url.searchParams.set("per_page", "100");
-
-  return githubJson<GitHubPullRequestFile[]>(url);
-};
-
-const fetchGithubPullRequestReviewSignals = async (
-  connection: GitConnection,
-  pullRequests: GitHubPullRequestListItem[]
-) => {
-  const warnings: string[] = [];
-  const commitCommentLimit = githubPullRequestCommitCommentLimit();
-  const pairs = await Promise.all(
-    pullRequests.map(async (pullRequest) => {
-      const repoBase = `https://api.github.com/repos/${encodeURIComponent(connection.repoOwner)}/${encodeURIComponent(connection.repoName)}`;
-      const pullBase = `${repoBase}/pulls/${pullRequest.number}`;
-      const reviewsUrl = new URL(`${pullBase}/reviews`);
-      const commentsUrl = new URL(`${pullBase}/comments`);
-      const conversationCommentsUrl = new URL(`${repoBase}/issues/${pullRequest.number}/comments`);
-      const pullCommitsUrl = new URL(`${pullBase}/commits`);
-      reviewsUrl.searchParams.set("per_page", "100");
-      commentsUrl.searchParams.set("per_page", "100");
-      conversationCommentsUrl.searchParams.set("per_page", "100");
-      pullCommitsUrl.searchParams.set("per_page", "100");
-
-      try {
-        const [reviews, comments, conversationComments, pullCommits] = await Promise.all([
-          githubJson<GitHubPullRequestReview[]>(reviewsUrl),
-          githubJson<GitHubPullRequestReviewComment[]>(commentsUrl),
-          githubJson<GitHubPullRequestConversationComment[]>(conversationCommentsUrl),
-          commitCommentLimit
-            ? githubJson<GitHubPullRequestCommitRef[]>(pullCommitsUrl)
-            : Promise.resolve([] as GitHubPullRequestCommitRef[])
-        ]);
-        const commitCommentGroups = await Promise.all(
-          pullCommits.slice(0, commitCommentLimit).map((commit) => {
-            const commitCommentsUrl = new URL(`${repoBase}/commits/${encodeURIComponent(commit.sha)}/comments`);
-            commitCommentsUrl.searchParams.set("per_page", "100");
-            return githubJson<GitHubCommitComment[]>(commitCommentsUrl).catch(() => [] as GitHubCommitComment[]);
-          })
-        );
-        const latestReviewsByReviewer = new Map<string, GitHubPullRequestReview>();
-        for (const review of reviews) {
-          const reviewer = review.user?.login ?? String(review.id);
-          const current = latestReviewsByReviewer.get(reviewer);
-          const currentTime = current?.submitted_at ? new Date(current.submitted_at).getTime() : 0;
-          const nextTime = review.submitted_at ? new Date(review.submitted_at).getTime() : 0;
-          if (!current || nextTime >= currentTime) {
-            latestReviewsByReviewer.set(reviewer, review);
-          }
-        }
-        const latestReviewStates = Array.from(latestReviewsByReviewer.values()).map((review) => review.state);
-        const changeRequests = latestReviewStates.filter((state) => state === "CHANGES_REQUESTED").length;
-        const approvals = latestReviewStates.filter((state) => state === "APPROVED").length;
-        const inlineComments = comments.length;
-        const conversationCommentCount = conversationComments.length;
-        const reviewBodyComments = reviews.filter((review) => Boolean(review.body?.trim())).length;
-        const commitComments = commitCommentGroups.reduce((total, group) => total + group.length, 0);
-        const reviewComments = inlineComments + conversationCommentCount + reviewBodyComments + commitComments;
-
-        return [
-          pullRequest.number,
-          {
-            reviewCount: reviews.length,
-            reviewComments,
-            conversationComments: conversationCommentCount,
-            inlineComments,
-            reviewBodyComments,
-            commitComments,
-            changeRequests,
-            approvals,
-            issueCount: reviewComments + changeRequests
-          }
-        ] as const;
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "GitHub review signal fetch failed.";
-        warnings.push(`PR #${pullRequest.number} review signal skipped: ${message}`);
-        return [
-          pullRequest.number,
-          {
-            reviewCount: 0,
-            reviewComments: 0,
-            conversationComments: 0,
-            inlineComments: 0,
-            reviewBodyComments: 0,
-            commitComments: 0,
-            changeRequests: 0,
-            approvals: 0,
-            issueCount: 0
-          }
-        ] as const;
-      }
-    })
-  );
-
-  return {
-    reviewSignals: new Map<number, PullRequestReviewSignal>(pairs),
-    warnings
-  };
-};
-
-const commitMember = (commit: GitHubCommitListItem, members: ProjectMember[]) => {
+const commitMember = (commit: GitProviderCommit, members: ProjectMember[]) => {
   const login = normalizedGitValue(commit.author?.login);
   const authorEmail = normalizedGitValue(commit.commit.author?.email);
   const committerEmail = normalizedGitValue(commit.commit.committer?.email);
@@ -3205,11 +3001,12 @@ const commitMember = (commit: GitHubCommitListItem, members: ProjectMember[]) =>
   });
 };
 
-const githubCommitRows = (
+const gitCommitRows = (
   projectId: string,
   sprint: SprintInfo,
   members: ProjectMember[],
-  commits: GitHubCommitListItem[]
+  commits: GitProviderCommit[],
+  providerLabel: string
 ): GitCommitInsertRow[] =>
   commits.flatMap((commit) => {
     const member = commitMember(commit, members);
@@ -3218,7 +3015,7 @@ const githubCommitRows = (
     }
 
     const committedAt = commit.commit.author?.date ?? commit.commit.committer?.date ?? new Date().toISOString();
-    const rawMessage = commit.commit.message?.trim() || "GitHub commit";
+    const rawMessage = commit.commit.message?.trim() || `${providerLabel} commit`;
     const message = rawMessage.split("\n")[0].slice(0, 240);
 
     return [
@@ -3233,24 +3030,24 @@ const githubCommitRows = (
         additions: commit.stats?.additions ?? 0,
         deletions: commit.stats?.deletions ?? 0,
         raw: {
-          source: "github",
+          source: "git",
           repo: null,
           url: commit.html_url ?? null,
-          githubAuthor: commit.author?.login ?? null
+          gitAuthor: commit.author?.login ?? null
         }
       }
     ];
   });
 
 const stalePullRequestDays = () => {
-  const parsed = Number(process.env.GITHUB_STALE_PR_DAYS ?? 2);
+  const parsed = Number(process.env.GIT_STALE_REVIEW_DAYS ?? process.env.GITLAB_STALE_MR_DAYS ?? process.env.GITHUB_STALE_PR_DAYS ?? 2);
   return Number.isFinite(parsed) ? Math.max(1, Math.floor(parsed)) : 2;
 };
 
 const pullRequestMember = (
-  pullRequest: GitHubPullRequestListItem,
+  pullRequest: GitProviderPullRequest,
   members: ProjectMember[],
-  pullRequestCommits: Map<number, GitHubCommitListItem[]>
+  pullRequestCommits: Map<number, GitProviderCommit[]>
 ) => {
   const commits = pullRequestCommits.get(pullRequest.number) ?? [];
   const commitMappedMember = [...commits]
@@ -3266,10 +3063,10 @@ const pullRequestMember = (
   return loginMember;
 };
 
-const githubPullRequestStats = (
+const gitPullRequestStats = (
   members: ProjectMember[],
-  pullRequests: GitHubPullRequestListItem[],
-  pullRequestCommits: Map<number, GitHubCommitListItem[]>,
+  pullRequests: GitProviderPullRequest[],
+  pullRequestCommits: Map<number, GitProviderCommit[]>,
   sprint: SprintInfo,
   reviewSignals: Map<number, PullRequestReviewSignal>
 ) => {
@@ -3305,7 +3102,7 @@ const githubPullRequestStats = (
       }
 
       const sprintCommits = (pullRequestCommits.get(pullRequest.number) ?? []).filter((commit) =>
-        githubCommitInSprint(commit, sprint)
+        gitCommitInSprint(commit, sprint)
       );
       const additions = sprintCommits.reduce((total, commit) => total + (commit.stats?.additions ?? 0), 0);
       const deletions = sprintCommits.reduce((total, commit) => total + (commit.stats?.deletions ?? 0), 0);
@@ -3385,7 +3182,7 @@ const githubPullRequestStats = (
   };
 };
 
-const pullRequestFilesForAi = (files: GitHubPullRequestFile[]) => {
+const pullRequestFilesForAi = (files: GitProviderPullRequestFile[]) => {
   let remainingPatchBudget = 12_000;
 
   return files.slice(0, 25).map((file) => {
@@ -3414,32 +3211,62 @@ export const syncSupabaseGit = async (projectId: string, personaId: string): Pro
   if (!signals.git) {
     throw new Error("Configure Git before running sync.");
   }
+  const gitConnection = await loadGitRuntimeConnection(projectId);
+  const provider = normalizeGitProvider(gitConnection.provider);
+  const providerLabel = gitProviderLabel(provider);
+  const reviewName = gitReviewName(provider);
 
-  const [githubCommitList, githubPullRequests] = await Promise.all([
-    fetchGithubCommits(signals.git, signals.sprint),
-    fetchGithubPullRequests(signals.git)
-  ]);
-  const branchCommits = await fetchGithubCommitDetails(signals.git, githubCommitList);
-  const [pullRequestCommits, pullRequestReviewResult] = await Promise.all([
-    fetchGithubPullRequestCommits(signals.git, githubPullRequests),
-    fetchGithubPullRequestReviewSignals(signals.git, githubPullRequests)
-  ]);
+  let gitCommitList: GitProviderCommit[];
+  let gitPullRequests: GitProviderPullRequest[];
+  let branchCommits: GitProviderCommit[];
+  let pullRequestCommits: Map<number, GitProviderCommit[]>;
+  let pullRequestReviewResult: Awaited<ReturnType<typeof fetchGitPullRequestReviewSignals>>;
+
+  try {
+    [gitCommitList, gitPullRequests] = await Promise.all([
+      fetchGitCommits(provider, gitConnection, signals.sprint),
+      fetchGitPullRequests(provider, gitConnection)
+    ]);
+    branchCommits = await fetchGitCommitDetails(provider, gitConnection, gitCommitList);
+    [pullRequestCommits, pullRequestReviewResult] = await Promise.all([
+      fetchGitPullRequestCommits(provider, gitConnection, gitPullRequests),
+      fetchGitPullRequestReviewSignals(provider, gitConnection, gitPullRequests)
+    ]);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : `${providerLabel} sync failed.`;
+    const now = new Date().toISOString();
+    await client
+      .from("git_connections")
+      .update({
+        status: "failed",
+        token_status: gitTokenStatusFromError(message),
+        last_error: message,
+        updated_at: now
+      })
+      .eq("project_id", projectId);
+    await insertSyncRun(projectId, personaId, "git", { importedCommits: 0, repo: `${gitConnection.repoOwner}/${gitConnection.repoName}` }, "failed", message).catch(
+      () => undefined
+    );
+    throw err;
+  }
+
   const pullRequestCommitList = Array.from(pullRequestCommits.values()).flat().filter((commit) =>
-    githubCommitInSprint(commit, signals.sprint)
+    gitCommitInSprint(commit, signals.sprint)
   );
-  const githubCommits = mergeGithubCommits([...branchCommits, ...pullRequestCommitList]);
-  const pullRequestStats = githubPullRequestStats(
+  const gitCommits = mergeGitCommits([...branchCommits, ...pullRequestCommitList]);
+  const pullRequestStats = gitPullRequestStats(
     context.project.members,
-    githubPullRequests,
+    gitPullRequests,
     pullRequestCommits,
     signals.sprint,
     pullRequestReviewResult.reviewSignals
   );
-  const rows = githubCommitRows(projectId, signals.sprint, context.project.members, githubCommits).map((row) => ({
+  const rows = gitCommitRows(projectId, signals.sprint, context.project.members, gitCommits, providerLabel).map((row) => ({
     ...row,
     raw: {
       ...row.raw,
-      repo: `${signals.git?.repoOwner}/${signals.git?.repoName}`
+      source: provider,
+      repo: `${gitConnection.repoOwner}/${gitConnection.repoName}`
     }
   }));
 
@@ -3453,14 +3280,19 @@ export const syncSupabaseGit = async (projectId: string, personaId: string): Pro
     throw new Error(demoDeleteError.message);
   }
 
-  const { error: staleGithubDeleteError } = await client
-    .from("git_commits")
-    .delete()
-    .eq("project_id", projectId)
-    .eq("sprint_id", signals.sprint.id)
-    .contains("raw", { source: "github" });
-  if (staleGithubDeleteError) {
-    throw new Error(staleGithubDeleteError.message);
+  const staleGitDeletes = await Promise.all(
+    (["github", "gitlab"] as GitProvider[]).map((source) =>
+      client
+        .from("git_commits")
+        .delete()
+        .eq("project_id", projectId)
+        .eq("sprint_id", signals.sprint.id)
+        .contains("raw", { source })
+    )
+  );
+  const staleGitDeleteError = staleGitDeletes.find((result) => result.error)?.error;
+  if (staleGitDeleteError) {
+    throw new Error(staleGitDeleteError.message);
   }
 
   if (rows.length) {
@@ -3472,19 +3304,29 @@ export const syncSupabaseGit = async (projectId: string, personaId: string): Pro
 
   let gitEmailLinkWarning: string | undefined;
   const gitEmailLinks = await autoLinkGitCommitsByEmail(projectId).catch((err) => {
-    gitEmailLinkWarning = err instanceof Error ? err.message : "Unable to auto-link GitHub commit emails.";
+    gitEmailLinkWarning = err instanceof Error ? err.message : `Unable to auto-link ${providerLabel} commit emails.`;
     return { linkedCommitEmails: 0, linkedMembers: 0 };
   });
 
   const now = new Date().toISOString();
   await Promise.all([
-    client.from("git_connections").update({ status: "synced", last_sync_at: now, updated_at: now }).eq("project_id", projectId),
+    client
+      .from("git_connections")
+      .update({
+        status: "synced",
+        token_status: gitConnection.accessToken ? "valid" : "unchecked",
+        last_sync_at: now,
+        last_verified_at: now,
+        last_error: null,
+        updated_at: now
+      })
+      .eq("project_id", projectId),
     client.from("projects").update({ last_sync_at: now, updated_at: now }).eq("id", projectId)
   ]);
-  const openPullRequests = githubPullRequests.filter((pullRequest) => pullRequest.state === "open").length;
+  const openPullRequests = gitPullRequests.filter((pullRequest) => pullRequest.state === "open").length;
   const run = await insertSyncRun(projectId, personaId, "git", {
     importedCommits: rows.length,
-    fetchedCommits: githubCommits.length,
+    fetchedCommits: gitCommits.length,
     fetchedBranchCommits: branchCommits.length,
     fetchedPrCommits: pullRequestCommitList.length,
     openPullRequests,
@@ -3513,36 +3355,53 @@ export const syncSupabaseGit = async (projectId: string, personaId: string): Pro
     reviewCommitComments: Object.values(pullRequestStats.reviewCommitCommentsByMember).reduce((total, count) => total + count, 0),
     reviewChangeRequests: Object.values(pullRequestStats.reviewChangeRequestsByMember).reduce((total, count) => total + count, 0),
     reviewIssues: Object.values(pullRequestStats.reviewIssuesByMember).reduce((total, count) => total + count, 0),
-    repo: `${signals.git.repoOwner}/${signals.git.repoName}`,
+    repo: `${gitConnection.repoOwner}/${gitConnection.repoName}`,
     autoLinkedCommitEmails: gitEmailLinks.linkedCommitEmails,
     autoLinkedMembers: gitEmailLinks.linkedMembers
   });
+  const hasProviderToken = Boolean(
+    gitConnection.accessToken ||
+      (provider === "gitlab" ? process.env.GITLAB_TOKEN || process.env.GIT_TOKEN : process.env.GITHUB_TOKEN || process.env.GITHUB_PAT)
+  );
   const warnings = [
-    ...(process.env.GITHUB_TOKEN || process.env.GITHUB_PAT
+    ...(hasProviderToken
       ? []
-      : ["No GITHUB_TOKEN was found, so GitHub sync used unauthenticated public-repo access."]),
+      : [`No ${providerLabel} token is saved for this project, so sync used unauthenticated public-repo access.`]),
     ...(rows.length
-      ? ["GitHub sync imported real default-branch and open-PR commit activity for mapped project members."]
-      : ["GitHub sync found no commits mapped to project members. Check GitHub usernames on the Team page."]),
-    ...(githubPullRequests.length
-      ? ["GitHub sync also checked open PRs for conversation comments and review feedback."]
+      ? [`${providerLabel} sync imported real default-branch and open-${reviewName} commit activity for mapped project members.`]
+      : [`${providerLabel} sync found no commits mapped to project members. Check Git identity mapping on the Team page.`]),
+    ...(gitPullRequests.length
+      ? [`${providerLabel} sync also checked open ${reviewName}s for conversation comments and review feedback.`]
       : []),
     ...pullRequestReviewResult.warnings,
-    ...(githubCommits.length >= githubMaxPages() * 100
-      ? ["GitHub sync hit the page cap. Increase GITHUB_MAX_PAGES if this sprint has more commit history."]
+    ...(gitCommits.length >= gitMaxPagesLimit() * 100
+      ? [`${providerLabel} sync hit the page cap. Increase GIT_MAX_PAGES if this sprint has more commit history.`]
       : []),
     ...(gitEmailLinks.linkedCommitEmails
       ? [
-          `${gitEmailLinks.linkedCommitEmails} GitHub email ${
+          `${gitEmailLinks.linkedCommitEmails} ${providerLabel} email ${
             gitEmailLinks.linkedCommitEmails === 1 ? "match was" : "matches were"
           } linked to SprintPulse users.`
         ]
       : []),
-    ...(gitEmailLinkWarning ? [`GitHub email auto-link skipped: ${gitEmailLinkWarning}`] : [])
+    ...(gitEmailLinkWarning ? [`${providerLabel} email auto-link skipped: ${gitEmailLinkWarning}`] : [])
   ];
 
   return {
-    connection: { ...signals.git, status: "synced", lastSyncAt: now },
+    connection: {
+      id: gitConnection.id,
+      projectId: gitConnection.projectId,
+      provider: gitConnection.provider,
+      baseUrl: gitConnection.baseUrl,
+      repoOwner: gitConnection.repoOwner,
+      repoName: gitConnection.repoName,
+      defaultBranch: gitConnection.defaultBranch,
+      status: "synced",
+      tokenStatus: gitConnection.accessToken ? "valid" : "unchecked",
+      lastSyncAt: now,
+      lastVerifiedAt: now,
+      lastError: undefined
+    },
     run,
     importedCommits: rows.length,
     warnings
@@ -3570,12 +3429,14 @@ export const reviewSupabaseMemberPullRequests = async (
   }
 
   if (!signals.git) {
-    throw new Error("Configure GitHub before running AI PR review.");
+    throw new Error("Configure Git before running AI PR review.");
   }
+  const gitConnection = await loadGitRuntimeConnection(projectId);
+  const provider = normalizeGitProvider(gitConnection.provider);
 
-  const githubPullRequests = await fetchGithubPullRequests(signals.git);
-  const openPullRequests = githubPullRequests.filter((pullRequest) => (pullRequest.state ?? "open") === "open");
-  const pullRequestCommits = await fetchGithubPullRequestCommits(signals.git, openPullRequests);
+  const gitPullRequests = await fetchGitPullRequests(provider, gitConnection);
+  const openPullRequests = gitPullRequests.filter((pullRequest) => (pullRequest.state ?? "open") === "open");
+  const pullRequestCommits = await fetchGitPullRequestCommits(provider, gitConnection, openPullRequests);
   const mappedMemberPullRequests = openPullRequests.filter(
     (pullRequest) => pullRequestMember(pullRequest, context.project.members, pullRequestCommits)?.personaId === memberId
   );
@@ -3583,10 +3444,12 @@ export const reviewSupabaseMemberPullRequests = async (
     ? mappedMemberPullRequests.filter((pullRequest) => pullRequest.number === pullRequestNumber)
     : mappedMemberPullRequests.slice(0, 3);
   const fileGroups = await Promise.all(
-    memberPullRequests.map((pullRequest) => fetchGithubPullRequestFiles(signals.git as GitConnection, pullRequest).catch(() => []))
+    memberPullRequests.map((pullRequest) =>
+      fetchGitPullRequestFiles(provider, gitConnection, pullRequest).catch(() => [])
+    )
   );
   const reviewPullRequests = memberPullRequests.map((pullRequest, index) => {
-    const commits = (pullRequestCommits.get(pullRequest.number) ?? []).filter((commit) => githubCommitInSprint(commit, signals.sprint));
+    const commits = (pullRequestCommits.get(pullRequest.number) ?? []).filter((commit) => gitCommitInSprint(commit, signals.sprint));
     const files = fileGroups[index] ?? [];
     const additions = files.reduce((total, file) => total + (file.additions ?? 0), 0);
     const deletions = files.reduce((total, file) => total + (file.deletions ?? 0), 0);
@@ -3601,7 +3464,9 @@ export const reviewSupabaseMemberPullRequests = async (
       additions,
       deletions,
       churnLines: additions + deletions,
-      commitMessages: commits.map((commit) => commit.commit.message?.split("\n")[0]?.slice(0, 180) ?? "GitHub commit").slice(0, 20),
+      commitMessages: commits
+        .map((commit) => commit.commit.message?.split("\n")[0]?.slice(0, 180) ?? `${gitProviderLabel(provider)} commit`)
+        .slice(0, 20),
       files: pullRequestFilesForAi(files)
     };
   });

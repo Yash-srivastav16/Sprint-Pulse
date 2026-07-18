@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-SprintPulse AI is a sprint delivery intelligence platform that predicts risk by comparing standup updates with Jira/GitHub signals. It uses AI to generate role-aware insights for Scrum Masters, Product Owners, Engineering Managers, and developers.
+SprintPulse AI is a sprint delivery intelligence platform that predicts risk by comparing standup updates with Jira/Git signals. It uses AI to generate role-aware insights for Scrum Masters, Product Owners, Engineering Managers, and developers.
 
 ## Commands
 
@@ -112,7 +112,7 @@ The OpenAI model is configured via `OPENAI_MODEL` env var (default: `gpt-5.5`).
 ## Integrations
 
 - **Jira**: OAuth 2.0 flow. Tokens stored per-member in `project_members`. Story points field: `customfield_10016` (override with `JIRA_STORY_POINTS_FIELD`).
-- **GitHub**: Server-side only via `GITHUB_TOKEN`. Fetches commit history and PR metrics.
+- **Git providers**: GitHub/GitLab tokens are saved per project through the API, encrypted server-side, and used for commit plus PR/MR metrics. Legacy env tokens remain optional fallbacks.
 
 ## Deployment
 
@@ -120,4 +120,4 @@ Single Docker container — Express serves both the API and the compiled React S
 - **Port**: 8000 (required by SemicoLabs pipeline, set as default in both `server.ts` and Dockerfile)
 - **Build**: Dockerfile at repo root does multi-stage: builder (compiles shared→web→api) → runtime (prod deps only)
 - **VITE_ vars** are baked at build time via Dockerfile `ARG` with public Supabase defaults
-- **Runtime secrets** (`SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`, `GITHUB_TOKEN`) must be injected as ECS/App Runner environment variables — never in Dockerfile
+- **Runtime secrets** (`SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`, `GIT_TOKEN_ENCRYPTION_KEY`, optional Git fallback tokens) must be injected as ECS/App Runner environment variables — never in Dockerfile

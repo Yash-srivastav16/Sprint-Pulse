@@ -8,7 +8,7 @@ SprintPulse continuously compares standup updates against Jira ticket movement a
 
 ## Judge TL;DR
 
-- **What it is:** SprintPulse is an AI sprint-risk cockpit that correlates standups, Jira, GitHub, PR pressure, and transcript evidence.
+- **What it is:** SprintPulse is an AI sprint-risk cockpit that correlates standups, Jira, Git provider activity, PR/MR pressure, and transcript evidence.
 - **Why it matters:** It finds the say-do gap before sprint review, when Scrum Masters and Engineering Managers can still unblock the work.
 - **What to demo first:** Log in as Maya Chen, open the dashboard, show the P1 decision brief, click Leo/Yash in the attention queue, then run **Sync AI analysis**.
 - **AI reliability:** Manual AI refreshes are persisted as dashboard snapshots, so repeat demos can load the same AI output without waiting on gateway latency.
@@ -31,7 +31,7 @@ These screenshots show the deployed system architecture and the primary dashboar
 
 ## Why This Matters — Business Value
 
-**The problem we sell against.** Engineering teams already have Jira (truth about tickets), GitHub (truth about code), and standups (the team's narrative of work). What no one has is the **delta between those three sources**. That delta is where sprint failure lives. Industry data consistently shows ~70% of software projects miss original timelines (Standish Group CHAOS) and ~25% of sprints fail to deliver on commitment (Scrum.org research). The cost of a missed sprint isn't the delay alone — it's the cascade: rework, scope cuts, missed releases, and the burnout that compounds across quarters.
+**The problem we sell against.** Engineering teams already have Jira (truth about tickets), Git providers (truth about code), and standups (the team's narrative of work). What no one has is the **delta between those three sources**. That delta is where sprint failure lives. Industry data consistently shows ~70% of software projects miss original timelines (Standish Group CHAOS) and ~25% of sprints fail to deliver on commitment (Scrum.org research). The cost of a missed sprint isn't the delay alone — it's the cascade: rework, scope cuts, missed releases, and the burnout that compounds across quarters.
 
 **Where today's tools stop.** Jira dashboards report activity volume. Git analytics report commit velocity. Manual standup notes are unstructured prose nobody re-reads. None of these surface the *say–do gap*: a developer telling the team they're "continuing on the API task" while Git shows zero commits and Jira shows zero status transitions for three days running. That gap is the canonical early warning of a sprint in trouble, and it gets lost between three siloed tools.
 
@@ -111,7 +111,7 @@ Additional contextual flags: `BURNOUT_SIGNAL`, `TEST_RISK`, `SPRINT_END_RISK`.
             │                                     │
             ▼                                     ▼
    Supabase (anon key,                 Supabase (service role)
-   direct read optional)               Jira REST · GitHub REST
+   direct read optional)               Jira REST · Git provider REST
                                        GenAI Hub → gpt-4.1
                                        (TOON-encoded prompts)
 ```
@@ -156,7 +156,7 @@ flowchart TB
     subgraph EXT ["  External Sources  "]
         direction LR
         JIRA["🔗 Jira REST API\nOAuth 2.0"]
-        GH["🐙 GitHub REST API\nPersonal token"]
+        GH["Git provider REST API\nPer-project token"]
         USER["🧑 Team Members\nStandup submission\nTranscript paste"]
     end
 
@@ -370,7 +370,10 @@ AI_INPUT_FORMAT=toon                  # toon (default) | json
 SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
 
-GITHUB_TOKEN=your-github-token
+GIT_TOKEN_ENCRYPTION_KEY=replace-with-a-random-32-byte-secret
+GITHUB_TOKEN=your-github-token            # optional legacy fallback
+GITLAB_TOKEN=your-gitlab-token            # optional legacy fallback
+GITLAB_API_BASE_URL=https://gitlab.com/api/v4
 JIRA_CLIENT_ID=your-atlassian-oauth-client-id
 JIRA_CLIENT_SECRET=your-atlassian-oauth-client-secret
 JIRA_REDIRECT_URI=http://localhost:4000/api/jira/oauth/callback
@@ -474,7 +477,7 @@ The demo sprint has 8 team members with deliberately varied risk signals to show
 
 | Member | Health | Risk Level | Detection |
 |--------|--------|------------|-----------|
-| Yash | 64 | **High** | `SAY_DO_GAP` — "Working on scoring engine" with no commits. `BLOCKER_ANOMALY` — Jira/GitHub credentials blocker unresolved. |
+| Yash | 64 | **High** | `SAY_DO_GAP` — "Working on scoring engine" with no commits. `BLOCKER_ANOMALY` — Jira/Git credentials blocker unresolved. |
 | Mahesh | 71 | **Medium** | `VAGUE_UPDATE` — Standups say "form stuff", "continue form stuff" — no specifics. |
 | Atharv | 78 | **Medium** | `STALE_WORK` — Same UI polish task across multiple standups, no Jira movement. |
 | Vikrant | 74 | **Medium** | `TEST_RISK` — Smoke suite not started, validation checklist still forming. |
