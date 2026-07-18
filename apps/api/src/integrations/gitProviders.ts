@@ -1,3 +1,4 @@
+import { request as httpsRequest } from "node:https";
 import type { GitConnection, SprintInfo } from "@sprintpulse/shared";
 
 export type GitProvider = "github" | "gitlab";
@@ -251,8 +252,87 @@ const githubHeaders = (connection: GitProviderConnection) => {
   return headers;
 };
 
+const gitFetchFailureMessage = (providerLabel: string, url: URL, err: unknown) => {
+  const error = err instanceof Error ? err : undefined;
+  const cause = error?.cause as { code?: string; message?: string; name?: string } | undefined;
+  const causeParts = [cause?.code, cause?.name, cause?.message].filter(Boolean);
+  const detail = causeParts.length ? causeParts.join(": ") : error?.message ?? "Unknown network error";
+
+  return `${providerLabel} network request failed before an API response from ${url.origin}. ${detail}`;
+};
+
+const publicGitHosts = new Set(["api.github.com", "github.com", "gitlab.com", "www.gitlab.com"]);
+
+const requestHeaders = (headers: RequestInit["headers"]) => {
+  if (!headers) {
+    return undefined;
+  }
+
+  if (headers instanceof Headers) {
+    return Object.fromEntries(headers.entries());
+  }
+
+  if (Array.isArray(headers)) {
+    return Object.fromEntries(headers);
+  }
+
+  return headers;
+};
+
+const selfHostedGitFetch = (url: URL, init: RequestInit) =>
+  new Promise<Response>((resolve, reject) => {
+    const request = httpsRequest(
+      url,
+      {
+        headers: requestHeaders(init.headers),
+        method: init.method ?? "GET",
+        rejectUnauthorized: false
+      },
+      (response) => {
+        const chunks: Buffer[] = [];
+        response.on("data", (chunk: Buffer | string) => {
+          chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+        });
+        response.on("end", () => {
+          const responseHeaders = new Headers();
+          for (const [key, value] of Object.entries(response.headers)) {
+            if (Array.isArray(value)) {
+              value.forEach((entry) => responseHeaders.append(key, entry));
+            } else if (value !== undefined) {
+              responseHeaders.set(key, String(value));
+            }
+          }
+
+          resolve(
+            new Response(Buffer.concat(chunks).toString("utf8"), {
+              headers: responseHeaders,
+              status: response.statusCode ?? 500,
+              statusText: response.statusMessage
+            })
+          );
+        });
+      }
+    );
+
+    request.on("error", reject);
+    request.setTimeout(30_000, () => request.destroy(new Error("Git request timed out after 30000ms.")));
+    request.end();
+  });
+
+const gitFetch = (url: URL, init: RequestInit) => {
+  const isSelfHostedGit = url.protocol === "https:" && !publicGitHosts.has(url.hostname.toLowerCase());
+
+  return isSelfHostedGit ? selfHostedGitFetch(url, init) : fetch(url, init);
+};
+
 const githubJson = async <T>(url: URL, connection: GitProviderConnection): Promise<T> => {
-  const response = await fetch(url, { headers: githubHeaders(connection) });
+  let response: Response;
+  try {
+    response = await gitFetch(url, { headers: githubHeaders(connection) });
+  } catch (err) {
+    throw new Error(gitFetchFailureMessage("GitHub", url, err), { cause: err });
+  }
+
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as { message?: string };
     const details = body.message ? ` ${body.message}` : "";
@@ -295,7 +375,13 @@ const gitLabHeaders = (connection: GitProviderConnection) => {
 };
 
 const gitLabJson = async <T>(url: URL, connection: GitProviderConnection): Promise<T> => {
-  const response = await fetch(url, { headers: gitLabHeaders(connection) });
+  let response: Response;
+  try {
+    response = await gitFetch(url, { headers: gitLabHeaders(connection) });
+  } catch (err) {
+    throw new Error(gitFetchFailureMessage("GitLab", url, err), { cause: err });
+  }
+
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as { message?: unknown; error?: string };
     const message =
