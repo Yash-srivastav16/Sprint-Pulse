@@ -427,6 +427,26 @@ Code quality is covered by automated tests plus validation scripts that exercise
 
 Scoring and notifications are role-filtered — a Scrum Master is never flagged for missing Git commits. Jira/Git evidence checks only apply to roles expected to own those signals.
 
+### UX Evidence: Personas, Journey, and Flow
+
+| Persona | Goal | Pain point | SprintPulse value |
+|---|---|---|---|
+| Maya Chen, Scrum Master | Spot blockers before standup ends | Updates are vague and blockers surface late | Ranked risks, blocker owners, and next actions |
+| Devon Reed, Engineering Manager | Understand delivery pressure | Jira says "in progress" but Git/PR evidence is weak | PR pressure, stale work, and team health |
+| Priya Shah, Product Owner | Know whether the sprint goal is safe | Technical signals are hard to translate into business risk | Readiness score and business-facing risk summary |
+| Aisha Okafor, QA Lead | Catch validation risk early | Test risks appear only near release | QA/test-risk signals tied to sprint work |
+| Leo Martinez, Developer | Know what action is expected | Feedback is scattered across Jira, Git, and standups | Personal pulse and focused next steps |
+
+| Journey step | User action | Current friction | SprintPulse response |
+|---|---|---|---|
+| 1 | Team gives standup updates | Updates are inconsistent | Parse transcript into structured standups |
+| 2 | Jira/Git signals sync | Evidence is spread across tools | Correlate Jira movement, commits, PRs, and blockers |
+| 3 | Scrum Master opens dashboard | Hard to know who needs help first | Rank the attention queue by risk and evidence |
+| 4 | Member detail is reviewed | Root cause is unclear | Show timeline, flags, and supporting proof |
+| 5 | Follow-up is assigned | Actions get lost after the meeting | Create an in-app notification/action item |
+
+Critical flow: log in as Maya, open the dashboard, review the P1 alert and signal breakdown, open the highest-risk member, inspect evidence, send a follow-up, then re-sync AI analysis after new standup data arrives.
+
 ---
 
 ## Run Locally
