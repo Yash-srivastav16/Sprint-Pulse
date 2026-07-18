@@ -14,6 +14,7 @@ import { registerDashboardRoutes } from "./dashboard.js";
 import { registerAiRoutes } from "./ai.js";
 import { registerMemberRoutes } from "./members.js";
 import { registerWebhookTokenRoutes } from "./webhookTokens.js";
+import { configRouter } from "./config.js";
 
 export const apiRouter = Router();
 
@@ -52,6 +53,7 @@ registerDashboardRoutes(apiRouter);
 registerAiRoutes(apiRouter);
 registerMemberRoutes(apiRouter);
 registerWebhookTokenRoutes(apiRouter);
+apiRouter.use("/config", configRouter);
 
 // 404 for unmatched /api/* routes
 apiRouter.use((_req, res) => {

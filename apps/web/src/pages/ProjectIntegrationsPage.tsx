@@ -100,11 +100,20 @@ export function ProjectIntegrationsPage() {
   const [saving, setSaving] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [sprintpulseApiKey, setSprintpulseApiKey] = useState<string>("");
 
   const canConfigure = data?.permissions.includes("project:connect") ?? false;
 
   const apiBase = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? "http://localhost:4000/api" : "/api");
   const absoluteApiBase = apiBase.startsWith("http") ? apiBase : `${window.location.origin}${apiBase}`;
+
+  // Fetch the real SPRINTPULSE_API_KEY from the backend to show in the MCP config snippet
+  useEffect(() => {
+    fetch(`${apiBase}/config`)
+      .then((r) => r.json())
+      .then((d) => { if (d.sprintpulseApiKey) setSprintpulseApiKey(d.sprintpulseApiKey); })
+      .catch(() => {});
+  }, [apiBase]);
   // withAppRoute appends ?app=<uuid> on the deployed SemicoLabs platform so
   // the URL works for external callers (Power Automate, Otter, curl); no-op
   // in local dev where the param isn't present.
@@ -120,8 +129,7 @@ export function ProjectIntegrationsPage() {
 
   // MCP host config snippet — drops into Claude Code / Cursor / any MCP client.
   // The API_BASE matches whatever the SPA is hitting (so it's correct for both
-  // local dev and the SemicoLabs deploy). API key is left blank — the user
-  // pastes their SPRINTPULSE_API_KEY from the deployment's env.
+  // local dev and the production deploy). API key is fetched live from /api/config.
   const mcpConfigSnippet = JSON.stringify(
     {
       mcpServers: {
@@ -130,7 +138,7 @@ export function ProjectIntegrationsPage() {
           args: ["./packages/mcp-server/dist/index.js"],
           env: {
             SPRINTPULSE_API_BASE: absoluteApiBase,
-            SPRINTPULSE_API_KEY: "<paste from your deployment's SPRINTPULSE_API_KEY>"
+            SPRINTPULSE_API_KEY: sprintpulseApiKey || "<configure SPRINTPULSE_API_KEY in your deployment>"
           }
         }
       }
