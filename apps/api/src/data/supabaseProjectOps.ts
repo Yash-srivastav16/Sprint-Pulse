@@ -2659,16 +2659,6 @@ export const startSupabaseJiraOAuth = async (
   const now = new Date().toISOString();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
   const state = randomUUID();
-  console.info("[jira-oauth] start preparing state", {
-    projectId,
-    personaId: input.personaId,
-    jiraSite,
-    projectKey,
-    state: shortLogValue(state),
-    redirectUri: jiraOAuthConfig.redirectUri,
-    frontendBaseUrl: jiraOAuthConfig.frontendBaseUrl,
-    scopes: jiraOAuthConfig.scopes
-  });
 
   await client.from("jira_oauth_states").delete().lt("expires_at", now);
 
@@ -2716,15 +2706,6 @@ export const startSupabaseJiraOAuth = async (
     throw new Error(stateWrite.error.message);
   }
 
-  console.info("[jira-oauth] start state saved", {
-    projectId,
-    personaId: input.personaId,
-    jiraSite,
-    projectKey,
-    state: shortLogValue(state),
-    expiresAt
-  });
-
   return {
     authorizationUrl: buildJiraAuthorizationUrl(state),
     state,
@@ -2740,13 +2721,6 @@ export const completeSupabaseJiraOAuth = async (
   if (!jiraOAuthConfigured) {
     throw new Error(jiraOAuthConfigError ?? "Jira OAuth is not configured.");
   }
-
-  console.info("[jira-oauth] callback completion started", {
-    state: shortLogValue(state),
-    hasCode: Boolean(code),
-    redirectUri: jiraOAuthConfig.redirectUri,
-    frontendBaseUrl: jiraOAuthConfig.frontendBaseUrl
-  });
 
   const client = requireSupabaseAdmin();
   const { data: stateData, error: stateError } = await client
@@ -2773,48 +2747,16 @@ export const completeSupabaseJiraOAuth = async (
     throw new Error("Jira OAuth state expired. Start the connection flow again.");
   }
 
-  console.info("[jira-oauth] callback state loaded", {
-    state: shortLogValue(state),
-    projectId: savedState.project_id,
-    personaId: savedState.persona_id,
-    jiraSite: savedState.jira_site,
-    projectKey: savedState.project_key,
-    expiresAt: savedState.expires_at
-  });
-
   const tokens = await exchangeJiraAuthorizationCode(code);
-  console.info("[jira-oauth] callback token exchange succeeded", {
-    state: shortLogValue(state),
-    projectId: savedState.project_id,
-    tokenType: tokens.token_type,
-    expiresIn: tokens.expires_in,
-    scopes: scopesFrom(tokens)
-  });
 
   const resources = await getJiraAccessibleResources(tokens.access_token);
   const { resource, warning } = selectJiraResource(resources, savedState.jira_site);
-  console.info("[jira-oauth] callback accessible resources loaded", {
-    state: shortLogValue(state),
-    projectId: savedState.project_id,
-    requestedSite: savedState.jira_site,
-    resourceCount: resources.length,
-    selectedResourceId: resource?.id,
-    selectedResourceName: resource?.name,
-    selectedResourceUrl: resource?.url,
-    warning
-  });
 
   if (!resource) {
     throw new Error("No Jira Cloud site was granted to this authorization.");
   }
 
   const currentUser = await getJiraCurrentUser(tokens.access_token, resource.id).catch(() => null);
-  console.info("[jira-oauth] callback current user lookup completed", {
-    state: shortLogValue(state),
-    projectId: savedState.project_id,
-    hasCurrentUser: Boolean(currentUser),
-    accountId: currentUser?.accountId
-  });
 
   const now = new Date().toISOString();
   const connectionWrite = await client
@@ -2852,15 +2794,6 @@ export const completeSupabaseJiraOAuth = async (
   await client.from("jira_oauth_states").delete().eq("state", state);
   const redirectTo = buildJiraFrontendRedirectUrl(`/projects/${savedState.project_id}/integrations`, {
     jira: "connected"
-  });
-
-  console.info("[jira-oauth] callback completed", {
-    state: shortLogValue(state),
-    projectId: savedState.project_id,
-    connectionId: connection.id,
-    cloudId: connection.cloudId,
-    redirectTo,
-    warnings: warning ? [warning] : []
   });
 
   return {

@@ -32,15 +32,7 @@ export const buildJiraFrontendRedirectUrl = (
     }
   }
 
-  const redirectUrl = url.toString();
-  console.info("[jira-oauth] frontend redirect built", {
-    frontendBaseUrl: jiraOAuthConfig.frontendBaseUrl,
-    pathname: normalizedPathname,
-    params,
-    redirectUrl
-  });
-
-  return redirectUrl;
+  return url.toString();
 };
 
 export const jiraOAuthConfigured = Boolean(
