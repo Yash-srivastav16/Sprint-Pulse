@@ -25,3 +25,11 @@ pnpm-debug.log*
 
 # OS/editor noise
 .DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+
+# TypeScript incremental build artifacts
+*.tsbuildinfo

@@ -1,6 +1,6 @@
 # SprintPulse AI
 
-![typecheck](https://img.shields.io/badge/typecheck-passing-brightgreen) ![TOON benchmark](https://img.shields.io/badge/TOON%20reduction-46.9%25-blue) ![role demo](https://img.shields.io/badge/role--switch%20demo-passing-brightgreen) ![MCP tools](https://img.shields.io/badge/MCP%20tools-6-blueviolet) ![AI model](https://img.shields.io/badge/AI-gpt--5.1--CIO%20via%20GenAI%20Hub-orange)
+![typecheck](https://img.shields.io/badge/typecheck-passing-brightgreen) ![TOON benchmark](https://img.shields.io/badge/TOON%20reduction-46.9%25-blue) ![role demo](https://img.shields.io/badge/role--switch%20demo-passing-brightgreen) ![MCP tools](https://img.shields.io/badge/MCP%20tools-6-blueviolet)
 
 **Sprint risk intelligence that catches the gap between what your team _says_ in standup and what they _actually_ ship.**
 
