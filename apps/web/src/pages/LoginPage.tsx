@@ -115,6 +115,18 @@ export function LoginPage() {
     navigate(nextMode === "create" ? "/signup" : "/login", { replace: true });
   };
 
+  const DEMO_EMAIL = "maya.chen@sprintpulse.dev";
+  const DEMO_PASSWORD = "12345678";
+
+  const fillDemo = () => {
+    setMode("signin");
+    setEmail(DEMO_EMAIL);
+    setPassword(DEMO_PASSWORD);
+    setError(null);
+    setSuccess(null);
+    navigate("/login", { replace: true });
+  };
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (configurationError) {
@@ -331,6 +343,18 @@ export function LoginPage() {
                   />
                 </div>
               </label>
+            ) : null}
+
+            {mode === "signin" ? (
+              <button
+                type="button"
+                className="demo-login-button"
+                onClick={fillDemo}
+                disabled={submitting || isLoading}
+              >
+                <span className="demo-badge">DEMO</span>
+                <span>Try with demo account — maya.chen@sprintpulse.dev</span>
+              </button>
             ) : null}
 
             <button

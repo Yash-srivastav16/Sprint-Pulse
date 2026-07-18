@@ -1,5 +1,14 @@
 # SprintPulse AI
 
+> 🚀 **Live Demo** → [https://sprintpulseapi-production.up.railway.app](https://sprintpulseapi-production.up.railway.app)
+>
+> | Field | Value |
+> |-------|-------|
+> | **Email** | `maya.chen@sprintpulse.dev` |
+> | **Password** | `12345678` |
+>
+> Click **"Try with demo account"** on the login page — credentials auto-fill instantly.
+
 ![tests](https://img.shields.io/badge/tests-passing-brightgreen) ![typecheck](https://img.shields.io/badge/typecheck-passing-brightgreen) ![TOON benchmark](https://img.shields.io/badge/TOON%20reduction-46.9%25-blue) ![role demo](https://img.shields.io/badge/role--switch%20demo-passing-brightgreen) ![MCP tools](https://img.shields.io/badge/MCP%20tools-6-blueviolet)
 
 **Sprint risk intelligence that catches the gap between what your team _says_ in standup and what they _actually_ ship.**

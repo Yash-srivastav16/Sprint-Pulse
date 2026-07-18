@@ -259,6 +259,44 @@ a {
   width: 100%;
 }
 
+/* Demo login button */
+.demo-login-button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1.5px dashed var(--accent-teal);
+  background: color-mix(in srgb, var(--accent-teal) 8%, transparent);
+  color: var(--accent-teal);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease;
+  text-align: left;
+}
+
+.demo-login-button:hover {
+  background: color-mix(in srgb, var(--accent-teal) 15%, transparent);
+}
+
+.demo-login-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.demo-badge {
+  flex-shrink: 0;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: var(--accent-teal);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
 .primary-button:disabled {
   cursor: wait;
   opacity: 0.68;
