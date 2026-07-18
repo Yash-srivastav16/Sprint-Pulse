@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "installCommand": "npm install",
+  "builds": [
+    {
+      "src": "api/index.ts",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": ["apps/api/src/**", "packages/shared/**"]
+      }
+    },
+    {
+      "src": "apps/web/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist",
+        "buildCommand": "cd ../../ && npm run build -w packages/shared && npm run build -w apps/web"
+      }
+    }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/index.ts" },
+    { "src": "/favicon.ico", "dest": "/api/index.ts" },
+    { "src": "/(.*)", "dest": "/apps/web/dist/$1" }
+  ]
+}
