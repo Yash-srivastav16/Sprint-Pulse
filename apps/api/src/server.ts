@@ -1,5 +1,6 @@
 import cors from "cors";
 import express from "express";
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { apiRouter } from "./routes/index.js";
@@ -44,12 +45,43 @@ app.use("/api", apiRouter);
 if (process.env.NODE_ENV === "production") {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const webDistPath = process.env.WEB_DIST_PATH ?? path.join(__dirname, "../../../apps/web/dist");
+  const indexHtmlPath = path.join(webDistPath, "index.html");
+  const indexHtml = fs.readFileSync(indexHtmlPath, "utf8");
+
+  const appendAppParam = (url: string, appId: string) => {
+    const separator = url.includes("?") ? "&" : "?";
+    return `${url}${separator}app=${encodeURIComponent(appId)}`;
+  };
+
+  const renderIndexHtml = (appId?: string) => {
+    if (!appId) {
+      return indexHtml;
+    }
+
+    const htmlWithRoutedAssets = indexHtml.replace(/\b(src|href)="([^"]+)"/g, (match, attr: string, url: string) => {
+      if (url.startsWith("/assets/") || url === "/favicon.ico") {
+        return `${attr}="${appendAppParam(url, appId)}"`;
+      }
+      return match;
+    });
+
+    if (/\brel=["'](?:shortcut icon|icon)["']/.test(htmlWithRoutedAssets)) {
+      return htmlWithRoutedAssets;
+    }
+
+    return htmlWithRoutedAssets.replace("</head>", `    <link rel="icon" href="${appendAppParam("/favicon.ico", appId)}" />\n  </head>`);
+  };
+
+  app.get("/favicon.ico", (_req, res) => {
+    res.status(204).end();
+  });
 
   app.use(express.static(webDistPath));
 
   // Express 5 requires named wildcard — bare * is not valid in path-to-regexp v8
-  app.get("/{*splat}", (_req, res) => {
-    res.sendFile(path.join(webDistPath, "index.html"));
+  app.get("/{*splat}", (req, res) => {
+    const appId = typeof req.query.app === "string" ? req.query.app : undefined;
+    res.type("html").send(renderIndexHtml(appId));
   });
 }
 
