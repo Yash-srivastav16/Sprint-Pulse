@@ -36,6 +36,10 @@ app.use(
 );
 app.use(express.json({ limit: "1mb" }));
 
+// Public routes — no auth required (registered BEFORE auth middleware)
+import { configRouter } from "./routes/config.js";
+app.use("/api/config", configRouter);
+
 // Auth gate runs before the api router. If SPRINTPULSE_API_KEY env is unset
 // the middleware is a no-op so dev/local flows are untouched. When set, every
 // /api/* request needs either the matching header or a valid Supabase JWT.
