@@ -78,10 +78,23 @@ if (process.env.NODE_ENV === "production") {
 
   app.use(express.static(webDistPath, { index: false }));
 
+  const defaultAppId = process.env.DEFAULT_APP_ID?.trim() || undefined;
+
   // Express 5 requires named wildcard — bare * is not valid in path-to-regexp v8
   app.get("/{*splat}", (req, res) => {
     const appId = typeof req.query.app === "string" ? req.query.app : undefined;
-    res.type("html").send(renderIndexHtml(appId));
+
+    // SemicoLabs edge proxy routes to this container by the `?app=` query param.
+    // On deep-link refresh (e.g. /projects/:id/dashboard) the browser drops the
+    // param, which makes the proxy 503 before the request reaches Express. If a
+    // DEFAULT_APP_ID is configured, redirect any non-API GET that lacks `app=`
+    // back to itself with the param appended so the proxy can route it.
+    if (!appId && defaultAppId) {
+      res.redirect(302, appendAppParam(req.originalUrl, defaultAppId));
+      return;
+    }
+
+    res.type("html").send(renderIndexHtml(appId ?? defaultAppId));
   });
 }
 

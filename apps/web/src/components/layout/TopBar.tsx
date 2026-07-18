@@ -357,7 +357,7 @@ function NotificationPanel({
                         {notification.severity}
                       </span>
                     </div>
-                    <p className="mt-1 line-clamp-2 text-sm leading-5 text-slate-600 dark:text-slate-300">{notification.message}</p>
+                    <p className="mt-1 text-sm leading-5 text-slate-600 dark:text-slate-300">{notification.message}</p>
                     <p className="mt-3 text-xs font-black text-primary-700 dark:text-primary-200">{notification.actionLabel}</p>
                   </div>
                 </div>

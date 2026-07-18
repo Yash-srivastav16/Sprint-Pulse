@@ -145,7 +145,8 @@ export function ProjectIntegrationsPage() {
     { name: "submit_standup", purpose: "Create a structured standup entry for a member", mode: "Write", tone: "success" },
     { name: "parse_transcript", purpose: "VTT or plain text → speaker-mapped standups + risk update", mode: "Ingest", tone: "warning" },
     { name: "run_member_pr_review", purpose: "AI review of a member's recent commits/PRs", mode: "Analyze", tone: "ai" },
-    { name: "run_qa_activity_review", purpose: "AI review of QA activity: test case creation + test execution", mode: "Analyze", tone: "ai" }
+    { name: "run_qa_activity_review", purpose: "AI review of QA activity: test case creation + test execution", mode: "Analyze", tone: "ai" },
+    { name: "send_app_notification", purpose: "Create in-app follow-ups for project members", mode: "Write", tone: "success" }
   ];
 
   const webhookWorksWith = [
@@ -1123,6 +1124,7 @@ export function ProjectIntegrationsPage() {
                   <li className="flex items-baseline gap-2"><span className="font-mono text-xs text-ai-500">›</span> "Look up risk on this project. If team health is below 70, drill into each member."</li>
                   <li className="flex items-baseline gap-2"><span className="font-mono text-xs text-ai-500">›</span> "Here's today's standup transcript [paste]. Parse it and report missing members."</li>
                   <li className="flex items-baseline gap-2"><span className="font-mono text-xs text-ai-500">›</span> "Run the PR review tool for every developer. Summarise the top 3 review-pressure risks."</li>
+                  <li className="flex items-baseline gap-2"><span className="font-mono text-xs text-ai-500">›</span> "Notify Maya Chen in the app to clarify the OPS blocker and ask who owns the next action."</li>
                 </ul>
               </details>
             </div>
