@@ -59,7 +59,12 @@ import {
   parseTranscriptWithAi,
   reviewPullRequestsWithAi
 } from "../ai/sprintpulseAi.js";
-import { jiraOAuthConfig, jiraOAuthConfigError, jiraOAuthConfigured } from "../config/jira.js";
+import {
+  buildJiraFrontendRedirectUrl,
+  jiraOAuthConfig,
+  jiraOAuthConfigError,
+  jiraOAuthConfigured
+} from "../config/jira.js";
 import {
   buildJiraAuthorizationUrl,
   exchangeJiraAuthorizationCode,
@@ -1997,6 +2002,8 @@ export const buildSupabaseIntegrations = async (
   };
 };
 
+const shortLogValue = (value?: string | null) => (value ? `${value.slice(0, 8)}...` : undefined);
+
 const normalizeJiraSite = (site: string) =>
   site
     .trim()
@@ -2652,6 +2659,16 @@ export const startSupabaseJiraOAuth = async (
   const now = new Date().toISOString();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
   const state = randomUUID();
+  console.info("[jira-oauth] start preparing state", {
+    projectId,
+    personaId: input.personaId,
+    jiraSite,
+    projectKey,
+    state: shortLogValue(state),
+    redirectUri: jiraOAuthConfig.redirectUri,
+    frontendBaseUrl: jiraOAuthConfig.frontendBaseUrl,
+    scopes: jiraOAuthConfig.scopes
+  });
 
   await client.from("jira_oauth_states").delete().lt("expires_at", now);
 
@@ -2669,6 +2686,13 @@ export const startSupabaseJiraOAuth = async (
     { onConflict: "project_id" }
   );
   if (connectionWrite.error) {
+    console.error("[jira-oauth] start connection upsert failed", {
+      projectId,
+      personaId: input.personaId,
+      jiraSite,
+      projectKey,
+      error: connectionWrite.error.message
+    });
     throw new Error(connectionWrite.error.message);
   }
 
@@ -2681,8 +2705,25 @@ export const startSupabaseJiraOAuth = async (
     expires_at: expiresAt
   });
   if (stateWrite.error) {
+    console.error("[jira-oauth] start state insert failed", {
+      projectId,
+      personaId: input.personaId,
+      jiraSite,
+      projectKey,
+      state: shortLogValue(state),
+      error: stateWrite.error.message
+    });
     throw new Error(stateWrite.error.message);
   }
+
+  console.info("[jira-oauth] start state saved", {
+    projectId,
+    personaId: input.personaId,
+    jiraSite,
+    projectKey,
+    state: shortLogValue(state),
+    expiresAt
+  });
 
   return {
     authorizationUrl: buildJiraAuthorizationUrl(state),
@@ -2700,6 +2741,13 @@ export const completeSupabaseJiraOAuth = async (
     throw new Error(jiraOAuthConfigError ?? "Jira OAuth is not configured.");
   }
 
+  console.info("[jira-oauth] callback completion started", {
+    state: shortLogValue(state),
+    hasCode: Boolean(code),
+    redirectUri: jiraOAuthConfig.redirectUri,
+    frontendBaseUrl: jiraOAuthConfig.frontendBaseUrl
+  });
+
   const client = requireSupabaseAdmin();
   const { data: stateData, error: stateError } = await client
     .from("jira_oauth_states")
@@ -2708,22 +2756,66 @@ export const completeSupabaseJiraOAuth = async (
     .maybeSingle();
 
   if (stateError) {
+    console.error("[jira-oauth] callback state lookup failed", {
+      state: shortLogValue(state),
+      error: stateError.message
+    });
     throw new Error(stateError.message);
   }
 
   const savedState = (stateData as JiraOAuthStateRow | null) ?? null;
   if (!savedState || new Date(savedState.expires_at).getTime() < Date.now()) {
+    console.error("[jira-oauth] callback state missing or expired", {
+      state: shortLogValue(state),
+      found: Boolean(savedState),
+      expiresAt: savedState?.expires_at
+    });
     throw new Error("Jira OAuth state expired. Start the connection flow again.");
   }
 
+  console.info("[jira-oauth] callback state loaded", {
+    state: shortLogValue(state),
+    projectId: savedState.project_id,
+    personaId: savedState.persona_id,
+    jiraSite: savedState.jira_site,
+    projectKey: savedState.project_key,
+    expiresAt: savedState.expires_at
+  });
+
   const tokens = await exchangeJiraAuthorizationCode(code);
+  console.info("[jira-oauth] callback token exchange succeeded", {
+    state: shortLogValue(state),
+    projectId: savedState.project_id,
+    tokenType: tokens.token_type,
+    expiresIn: tokens.expires_in,
+    scopes: scopesFrom(tokens)
+  });
+
   const resources = await getJiraAccessibleResources(tokens.access_token);
   const { resource, warning } = selectJiraResource(resources, savedState.jira_site);
+  console.info("[jira-oauth] callback accessible resources loaded", {
+    state: shortLogValue(state),
+    projectId: savedState.project_id,
+    requestedSite: savedState.jira_site,
+    resourceCount: resources.length,
+    selectedResourceId: resource?.id,
+    selectedResourceName: resource?.name,
+    selectedResourceUrl: resource?.url,
+    warning
+  });
+
   if (!resource) {
     throw new Error("No Jira Cloud site was granted to this authorization.");
   }
 
   const currentUser = await getJiraCurrentUser(tokens.access_token, resource.id).catch(() => null);
+  console.info("[jira-oauth] callback current user lookup completed", {
+    state: shortLogValue(state),
+    projectId: savedState.project_id,
+    hasCurrentUser: Boolean(currentUser),
+    accountId: currentUser?.accountId
+  });
+
   const now = new Date().toISOString();
   const connectionWrite = await client
     .from("jira_connections")
@@ -2747,17 +2839,34 @@ export const completeSupabaseJiraOAuth = async (
     .single();
 
   if (connectionWrite.error) {
+    console.error("[jira-oauth] callback connection upsert failed", {
+      state: shortLogValue(state),
+      projectId: savedState.project_id,
+      error: connectionWrite.error.message
+    });
     throw new Error(connectionWrite.error.message);
   }
 
   const connection = toJiraConnection(connectionWrite.data as JiraConnectionRow);
   await saveJiraToken(connection.id, tokens);
   await client.from("jira_oauth_states").delete().eq("state", state);
+  const redirectTo = buildJiraFrontendRedirectUrl(`/projects/${savedState.project_id}/integrations`, {
+    jira: "connected"
+  });
+
+  console.info("[jira-oauth] callback completed", {
+    state: shortLogValue(state),
+    projectId: savedState.project_id,
+    connectionId: connection.id,
+    cloudId: connection.cloudId,
+    redirectTo,
+    warnings: warning ? [warning] : []
+  });
 
   return {
     projectId: savedState.project_id,
     connection,
-    redirectTo: `${jiraOAuthConfig.frontendBaseUrl.replace(/\/+$/, "")}/projects/${savedState.project_id}/integrations?jira=connected`,
+    redirectTo,
     warnings: warning ? [warning] : []
   };
 };

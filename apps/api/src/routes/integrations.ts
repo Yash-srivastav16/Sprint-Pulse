@@ -1,7 +1,7 @@
 import { type Router } from "express";
 import type { ConfigureGitRequest, ConfigureJiraRequest, JiraOAuthStartRequest } from "@sprintpulse/shared";
 import { mockFlowEnabled, realDataNotReadyMessage } from "../config/runtime.js";
-import { jiraOAuthConfig } from "../config/jira.js";
+import { buildJiraFrontendRedirectUrl } from "../config/jira.js";
 import { buildProjectDetail } from "../data/seed.js";
 import {
   buildSupabaseIntegrations,
@@ -11,6 +11,8 @@ import {
   startSupabaseJiraOAuth,
   syncSupabaseProjectSignals
 } from "../data/supabaseProjectOps.js";
+
+const shortLogValue = (value?: string | null) => (value ? `${value.slice(0, 8)}...` : undefined);
 
 export function registerIntegrationRoutes(router: Router): void {
   router.get("/projects/:projectId/integrations", async (req, res) => {
@@ -75,9 +77,32 @@ export function registerIntegrationRoutes(router: Router): void {
 
   router.post("/projects/:projectId/jira/oauth/start", async (req, res) => {
     if (!mockFlowEnabled) {
+      const projectId = String(req.params.projectId ?? "");
+      const body = req.body as JiraOAuthStartRequest;
+      console.info("[jira-oauth] start request received", {
+        projectId,
+        personaId: body?.personaId,
+        jiraSite: body?.jiraSite,
+        projectKey: body?.projectKey,
+        mockFlowEnabled
+      });
+
       try {
-        res.json(await startSupabaseJiraOAuth(String(req.params.projectId ?? ""), req.body as JiraOAuthStartRequest));
+        const response = await startSupabaseJiraOAuth(projectId, body);
+        console.info("[jira-oauth] start request completed", {
+          projectId,
+          personaId: body?.personaId,
+          state: shortLogValue(response.state),
+          expiresAt: response.expiresAt,
+          warnings: response.warnings
+        });
+        res.json(response);
       } catch (err) {
+        console.error("[jira-oauth] start request failed", {
+          projectId,
+          personaId: body?.personaId,
+          error: err instanceof Error ? err.message : "Unable to start Jira OAuth"
+        });
         res.status(500).json({ error: err instanceof Error ? err.message : "Unable to start Jira OAuth" });
       }
       return;
@@ -86,18 +111,44 @@ export function registerIntegrationRoutes(router: Router): void {
   });
 
   router.get("/jira/oauth/callback", async (req, res) => {
+    const code = String(req.query.code ?? "");
+    const state = String(req.query.state ?? "");
+    console.info("[jira-oauth] callback request received", {
+      hasCode: Boolean(code),
+      state: shortLogValue(state),
+      queryKeys: Object.keys(req.query)
+    });
+
     try {
-      const code = String(req.query.code ?? "");
-      const state = String(req.query.state ?? "");
       if (!code || !state) {
+        console.error("[jira-oauth] callback request missing code or state", {
+          hasCode: Boolean(code),
+          state: shortLogValue(state)
+        });
         res.status(400).json({ error: "Jira OAuth code and state are required" });
         return;
       }
       const result = await completeSupabaseJiraOAuth(code, state);
+      console.info("[jira-oauth] callback redirecting to frontend", {
+        state: shortLogValue(state),
+        projectId: result.projectId,
+        connectionId: result.connection.id,
+        redirectTo: result.redirectTo,
+        warnings: result.warnings
+      });
       res.redirect(result.redirectTo);
     } catch (err) {
-      const message = encodeURIComponent(err instanceof Error ? err.message : "Jira OAuth callback failed");
-      res.redirect(`${jiraOAuthConfig.frontendBaseUrl.replace(/\/+$/, "")}/projects?jira=error&message=${message}`);
+      const message = err instanceof Error ? err.message : "Jira OAuth callback failed";
+      const redirectTo = buildJiraFrontendRedirectUrl("/projects", {
+        jira: "error",
+        message
+      });
+      console.error("[jira-oauth] callback failed", {
+        state: shortLogValue(state),
+        error: message,
+        redirectTo
+      });
+      res.redirect(redirectTo);
     }
   });
 

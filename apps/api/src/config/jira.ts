@@ -16,6 +16,33 @@ export const jiraOAuthConfig = {
   storyPointsField: process.env.JIRA_STORY_POINTS_FIELD?.trim() || "customfield_10016"
 };
 
+export const buildJiraFrontendRedirectUrl = (
+  pathname: string,
+  params: Record<string, string | number | boolean | null | undefined> = {}
+) => {
+  const url = new URL(jiraOAuthConfig.frontendBaseUrl);
+  const normalizedPathname = pathname.startsWith("/") ? pathname : `/${pathname}`;
+  const basePathname = url.pathname.replace(/\/+$/, "");
+  url.pathname =
+    basePathname && basePathname !== "/" ? `${basePathname}${normalizedPathname}` : normalizedPathname;
+
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null) {
+      url.searchParams.set(key, String(value));
+    }
+  }
+
+  const redirectUrl = url.toString();
+  console.info("[jira-oauth] frontend redirect built", {
+    frontendBaseUrl: jiraOAuthConfig.frontendBaseUrl,
+    pathname: normalizedPathname,
+    params,
+    redirectUrl
+  });
+
+  return redirectUrl;
+};
+
 export const jiraOAuthConfigured = Boolean(
   jiraOAuthConfig.clientId && jiraOAuthConfig.clientSecret && jiraOAuthConfig.redirectUri
 );
