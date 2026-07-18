@@ -610,16 +610,16 @@ export function MemberDetailPage() {
                   </StatusPill>
                 ))}
               </div>
-              <div className="mb-3 grid gap-2 sm:grid-cols-3">
+              <div className="mb-3 grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(9rem,1fr))]">
                 {[
                   ["Confidence", `${deliveryConfidence}%`],
                   ["Churn", `${churnLines} lines`],
                   ["Velocity", velocityLabel(velocityState)],
                   ["Late-night", member.git.lateNightCommits ?? 0]
                 ].map(([label, value]) => (
-                  <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-2 dark:border-white/10 dark:bg-white/[0.04]" key={label}>
-                    <span className="block text-[0.68rem] font-black uppercase text-slate-500 dark:text-slate-400">{label}</span>
-                    <strong className="mt-1 block text-sm text-slate-950 dark:text-white">{value}</strong>
+                  <div className="min-w-0 rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-2 dark:border-white/10 dark:bg-white/[0.04]" key={label}>
+                    <span className="block break-words text-[0.68rem] font-black uppercase leading-4 text-slate-500 dark:text-slate-400">{label}</span>
+                    <strong className="mt-1 block break-words text-sm leading-5 text-slate-950 dark:text-white">{value}</strong>
                   </div>
                 ))}
               </div>
@@ -700,7 +700,7 @@ export function MemberDetailPage() {
                   {codeReviewSummary}
                 </p>
 
-                <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+                <div className="mt-4 grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(7.75rem,1fr))]">
                   {[
                     ["Issues", reviewIssues],
                     ["PR comments", reviewComments],
@@ -708,9 +708,9 @@ export function MemberDetailPage() {
                     ["Conversation", reviewConversationComments],
                     ["PR churn", `${pullRequestChurnLines} lines`]
                   ].map(([label, value]) => (
-                    <div className="rounded-xl border border-slate-200/80 bg-white/80 px-4 py-3 dark:border-white/10 dark:bg-white/[0.04]" key={label}>
-                      <span className="block text-[0.68rem] font-black uppercase text-slate-500 dark:text-slate-400">{label}</span>
-                      <strong className="mt-1 block text-sm text-slate-950 dark:text-white">{value}</strong>
+                    <div className="min-w-0 rounded-xl border border-slate-200/80 bg-white/80 px-4 py-3 dark:border-white/10 dark:bg-white/[0.04]" key={label}>
+                      <span className="block break-words text-[0.68rem] font-black uppercase leading-4 text-slate-500 dark:text-slate-400">{label}</span>
+                      <strong className="mt-1 block break-words text-sm leading-5 text-slate-950 dark:text-white">{value}</strong>
                     </div>
                   ))}
                 </div>
@@ -938,7 +938,7 @@ export function MemberDetailPage() {
                 {reviewWaitDays ? ` Oldest PR has waited about ${reviewWaitDays}d.` : ""}
               </span>
             </div>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(7.75rem,1fr))]">
               {[
                 ["Issues", reviewIssues],
                 ["PR comments", reviewComments],
@@ -946,9 +946,9 @@ export function MemberDetailPage() {
                 ["Conversation", reviewConversationComments],
                 ["PR churn", `${pullRequestChurnLines} lines`]
               ].map(([label, value]) => (
-                <div className="rounded-xl border border-slate-200/80 bg-white/80 px-3 py-2 dark:border-white/10 dark:bg-white/[0.04]" key={label}>
-                  <span className="block text-[0.68rem] font-black uppercase text-slate-500 dark:text-slate-400">{label}</span>
-                  <strong className="mt-1 block text-sm text-slate-950 dark:text-white">{value}</strong>
+                <div className="min-w-0 rounded-xl border border-slate-200/80 bg-white/80 px-3 py-2 dark:border-white/10 dark:bg-white/[0.04]" key={label}>
+                  <span className="block break-words text-[0.68rem] font-black uppercase leading-4 text-slate-500 dark:text-slate-400">{label}</span>
+                  <strong className="mt-1 block break-words text-sm leading-5 text-slate-950 dark:text-white">{value}</strong>
                 </div>
               ))}
             </div>
