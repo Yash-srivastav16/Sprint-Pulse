@@ -780,7 +780,7 @@ export function ProjectIntegrationsPage() {
               {gitProvider === "gitlab" ? (
                 <label className="grid gap-2">
                   <span className="text-sm font-black text-slate-700 dark:text-slate-200">GitLab URL</span>
-                  <Input value={gitBaseUrl} onChange={(event) => setGitBaseUrl(event.target.value)} placeholder="gitlab.demopersistent.com" disabled={!canConfigure} required />
+                  <Input value={gitBaseUrl} onChange={(event) => setGitBaseUrl(event.target.value)} placeholder="gitlab.demo.com" disabled={!canConfigure} required />
                 </label>
               ) : null}
               <label className="grid gap-2">

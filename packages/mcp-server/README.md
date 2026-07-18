@@ -6,14 +6,14 @@ Any MCP-capable agent (Claude Code, Cursor, Continue, custom OpenAI agents via a
 
 ## Tools
 
-| Tool | Purpose |
-|---|---|
-| `get_project_risk` | Current team health, top risks, P1 state, next actions |
-| `get_member_health` | Single member's pulse — flags, standups, evidence |
-| `submit_standup` | Create a structured standup entry |
-| `parse_transcript` | VTT/plain transcript → per-speaker standups + AI risk update |
-| `run_member_pr_review` | AI review of a member's recent PRs |
-| `send_app_notification` | Create an in-app follow-up/action item for a project member |
+| Tool                    | Purpose                                                      |
+| ----------------------- | ------------------------------------------------------------ |
+| `get_project_risk`      | Current team health, top risks, P1 state, next actions       |
+| `get_member_health`     | Single member's pulse — flags, standups, evidence            |
+| `submit_standup`        | Create a structured standup entry                            |
+| `parse_transcript`      | VTT/plain transcript → per-speaker standups + AI risk update |
+| `run_member_pr_review`  | AI review of a member's recent PRs                           |
+| `send_app_notification` | Create an in-app follow-up/action item for a project member  |
 
 Every tool is a thin HTTP wrapper over an existing SprintPulse REST route — no business logic in this package, just protocol translation.
 
@@ -35,7 +35,9 @@ npm run build -w packages/mcp-server
   "mcpServers": {
     "sprintpulse": {
       "command": "node",
-      "args": ["/absolute/path/to/Semicolons/packages/mcp-server/dist/index.js"],
+      "args": [
+        "/absolute/path/to/Semicolons/packages/mcp-server/dist/index.js"
+      ],
       "env": {
         "SPRINTPULSE_API_BASE": "http://localhost:4000/api",
         "SPRINTPULSE_API_KEY": ""
@@ -61,18 +63,16 @@ The server speaks MCP over stdio so it's not useful without a client driving the
 
 ## Environment
 
-| Var | Required | Default |
-|---|---|---|
-| `SPRINTPULSE_API_BASE` | no | `http://localhost:4000/api` |
-| `SPRINTPULSE_API_KEY` | when API enforces auth | empty |
+| Var                    | Required               | Default                     |
+| ---------------------- | ---------------------- | --------------------------- |
+| `SPRINTPULSE_API_BASE` | no                     | `http://localhost:4000/api` |
+| `SPRINTPULSE_API_KEY`  | when API enforces auth | empty                       |
 
 `SPRINTPULSE_API_KEY` is sent as `X-SprintPulse-API-Key` on every outbound request. The SprintPulse API gates `/api/*` on this header (or a valid Supabase JWT) when its own `SPRINTPULSE_API_KEY` env var is set — both sides must use the same value. `/api/health` stays public so container probes work.
 
 When the API runs without `SPRINTPULSE_API_KEY` set (the default dev/local case), this MCP-side variable is optional too: the header is sent if you provide a value, and ignored if you don't.
 
-If the deployment needs a routing query, include it in `SPRINTPULSE_API_BASE`; for example, `https://solution1.demopersistent.com/api?app=<app-id>`. Query params from the base URL are carried into every MCP API call.
-
-**Threat-model note:** This shared secret authenticates the MCP server *as a whole* to the API. It does not authenticate which user the agent is acting on behalf of — the `personaId` parameter on each tool call is still trusted. An adversarial prompt can ask the agent to act "as" any persona it can name. The next layer (per-user Personal Access Tokens) is on the roadmap; until then, treat the MCP server as a privileged caller and only run it in trusted contexts.
+**Threat-model note:** This shared secret authenticates the MCP server _as a whole_ to the API. It does not authenticate which user the agent is acting on behalf of — the `personaId` parameter on each tool call is still trusted. An adversarial prompt can ask the agent to act "as" any persona it can name. The next layer (per-user Personal Access Tokens) is on the roadmap; until then, treat the MCP server as a privileged caller and only run it in trusted contexts.
 
 ## Example agent prompts
 

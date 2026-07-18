@@ -30,7 +30,6 @@ SprintPulse continuously compares standup updates against Jira ticket movement a
 | **Reliability** | Manual AI refreshes persist dashboard snapshots, so demos load resolved AI output without depending on gateway latency. |
 | **Agent wow** | MCP exposes six tools for Claude Code, Cursor, Codex, or any MCP host to read risk, parse standups, run PR review, and create in-app follow-ups. |
 | **Validation** | `npm test`, `npm run typecheck`, `npm run benchmark:toon`, `npm run check:role-demo`. |
-| **Live demo** | [solution1.demopersistent.com](https://solution1.demopersistent.com/?app=f65ea48f-bc1d-48ff-a3ed-a204ffe48bee) — `maya.chen@sprintpulse.dev` / `12345678`. |
 | **Pitch artifacts** | `presentation.pptx`, `demo_video.mp4`, architecture/dashboard screenshots in `docs/assets/`. |
 
 ---
@@ -429,7 +428,7 @@ Scoring and notifications are role-filtered — a Scrum Master is never flagged 
 
 ### UX Evidence: Personas, Journey, and Flow
 
-The five personas below are **role archetypes** — Scrum Master, Engineering Manager, Product Owner, Developer, and QA Lead — each grounded in pain points we have observed firsthand working in those roles across delivery engagements at Persistent. The named identities (Maya, Devon, Priya, Leo, Aisha) are demo seed users so reviewers can log in and walk the dashboard from each role's perspective; the per-row "Pain point" column is the research-backed claim, not the names.
+The five personas below are **role archetypes** — Scrum Master, Engineering Manager, Product Owner, Developer, and QA Lead — each grounded in pain points we have observed firsthand working in those roles across delivery engagements at companies. The named identities (Maya, Devon, Priya, Leo, Aisha) are demo seed users so reviewers can log in and walk the dashboard from each role's perspective; the per-row "Pain point" column is the research-backed claim, not the names.
 
 We did not run formal user interviews for this hackathon scope, but each pain point reflects a recurring pattern we have seen in real sprint retrospectives: standups that mask the say-do gap, blockers escalated too late, and validation risk surfacing only near release. The journey table below maps each step to a verifiable surface in the demo seed (`database/supabase/seed_demo_project_ops.sql`).
 
@@ -767,8 +766,6 @@ For **Cursor**: same shape in `~/.cursor/mcp.json`. Restart the client after edi
 
 `SPRINTPULSE_API_KEY` is the shared secret between this MCP server and the SprintPulse API. When the API has `SPRINTPULSE_API_KEY` set in its own env (see `apps/api/.env.example`), every `/api/*` request must include the matching `X-SprintPulse-API-Key` header — or a valid Supabase JWT from a logged-in user — to pass the auth middleware. `/api/health` stays public for container probes. When neither side sets the var, the middleware is a no-op so local/dev flows are untouched.
 
-If the API sits behind the SemicoLabs `?app=` router, include that query in `SPRINTPULSE_API_BASE`, for example `https://solution1.demopersistent.com/api?app=<app-id>`. The MCP server carries base query parameters into every tool request.
-
 The web UI authenticates differently: `apps/web/src/api.ts` attaches `Authorization: Bearer <supabase-session-jwt>` to every API call, so the same middleware accepts logged-in users without sharing the MCP key with browsers.
 
 ### What an agent can actually do
@@ -841,11 +838,7 @@ The MCP layer is live today. The roadmap extends SprintPulse from a delivery-int
 
 ## Team
 
-**Algorithm Avengers** — Persistent Systems · Horizontal Markets HM DU 3
-
 SprintPulse AI was built for Semicolons 2026.
-
-For pilot conversations or feedback: open an issue on this repo, or reach out through the deployed contact path on `solution1.demopersistent.com`.
 
 ---
 

@@ -228,7 +228,7 @@ export const memberPulses: MemberPulse[] = [
     flags: [],
     standups: [
       standup("yanshi-2026-05-10", "yanshi", "2026-05-10", "Mapped login state.", "Creating guarded routes.", "No blocker."),
-      standup("yanshi-2026-05-11", "yanshi", "2026-05-11", "Finished persona cards.", "Adding persistent session behavior.", "No blocker.")
+      standup("yanshi-2026-05-11", "yanshi", "2026-05-11", "Finished persona cards.", "Adding session behavior.", "No blocker.")
     ]
   },
   {
