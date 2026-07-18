@@ -308,6 +308,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const runApply = async (nextSession: Session | null) => {
       const nextUserId = nextSession?.user.id ?? null;
       if (lastAppliedUserIdRef.current === nextUserId) {
+        setSession(nextSession);
+        setUser(nextSession?.user ?? null);
         return;
       }
       lastAppliedUserIdRef.current = nextUserId;
