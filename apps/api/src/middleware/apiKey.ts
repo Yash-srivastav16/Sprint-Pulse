@@ -29,6 +29,7 @@ import { getAuthUserFromToken } from "../lib/supabaseAdmin.js";
  */
 
 const HEALTH_PATH = "/health"; // mounted at /api/health by apiRouter
+const JIRA_OAUTH_CALLBACK_PATH = "/jira/oauth/callback"; // Atlassian redirect, validated by OAuth state
 
 export function apiAuthMiddleware(): RequestHandler {
   const expectedKey = process.env.SPRINTPULSE_API_KEY;
@@ -40,7 +41,11 @@ export function apiAuthMiddleware(): RequestHandler {
   return async (req: Request, res: Response, next: NextFunction) => {
     // /api/health stays public — healthchecks (Docker, platform probes) hit it
     // before any caller could authenticate.
-    if (req.path === HEALTH_PATH || req.path === "/health/") {
+    if (
+      req.path === HEALTH_PATH ||
+      req.path === "/health/" ||
+      (req.method === "GET" && (req.path === JIRA_OAUTH_CALLBACK_PATH || req.path === `${JIRA_OAUTH_CALLBACK_PATH}/`))
+    ) {
       next();
       return;
     }
