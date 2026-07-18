@@ -1,6 +1,20 @@
 # SprintPulse AI
 
+![typecheck](https://img.shields.io/badge/typecheck-passing-brightgreen) ![TOON benchmark](https://img.shields.io/badge/TOON%20reduction-46.9%25-blue) ![role demo](https://img.shields.io/badge/role--switch%20demo-passing-brightgreen) ![MCP tools](https://img.shields.io/badge/MCP%20tools-6-blueviolet) ![AI model](https://img.shields.io/badge/AI-gpt--5.1--CIO%20via%20GenAI%20Hub-orange)
+
 **Sprint risk intelligence that catches the gap between what your team _says_ in standup and what they _actually_ ship.**
+
+### Contents
+
+- [Judge TL;DR](#judge-tldr) · [3Cs at a Glance](#3cs-at-a-glance) · [UI Preview](#ui-preview)
+- [Why This Matters](#why-this-matters--business-value) · [What Makes This Different](#what-makes-this-different) · [The Idea](#the-idea)
+- [The 5 Detection Types](#the-5-detection-types) · [Feature Status](#feature-status) · [Dashboard Tour](#dashboard-tour)
+- [Architecture](#architecture) · [System Architecture](#system-architecture) · [AI Pipeline](#ai-pipeline) · [Design Tradeoffs](#design-tradeoffs)
+- [Code Quality](#code-quality) · [Roles and Personas](#roles-and-personas)
+- [Run Locally](#run-locally) · [Environment Variables](#environment-variables) · [Supabase Migrations](#supabase-migrations) · [Deployment](#deployment)
+- [Demo Credentials & Test Scenarios](#demo-credentials--test-scenarios) · [Demo Flow](#demo-flow)
+- [Transcript Integration](#transcript-integration) · [MCP Server](#mcp-server--sprintpulse-as-an-agent-tool) · [Sample agent run](#sample-agent-run)
+- [Roadmap](#roadmap) · [Team](#team) · [Further Reading](#further-reading)
 
 SprintPulse continuously compares standup updates against Jira ticket movement and Git commit activity to surface delivery risk before sprint-end. An AI detection engine scores every team member, flags specific failure patterns, and translates the evidence into a role-aware decision brief for Scrum Masters, Product Owners, Engineering Managers, QA Leads, and Developers.
 
@@ -14,6 +28,21 @@ SprintPulse continuously compares standup updates against Jira ticket movement a
 - **AI reliability:** Manual AI refreshes are persisted as dashboard snapshots, so repeat demos can load the same AI output without waiting on gateway latency.
 - **Agent story:** The MCP server exposes six SprintPulse tools for Claude Code, Cursor, Codex, or any MCP host.
 - **Validation commands:** `npm run typecheck`, `npm run benchmark:toon`, and `npm run check:role-demo`.
+- **Live deployment:** [solution1.demopersistent.com](https://solution1.demopersistent.com/?app=f65ea48f-bc1d-48ff-a3ed-a204ffe48bee) — log in as `maya.chen@sprintpulse.dev` / `12345678` to see the Scrum Master view.
+
+---
+
+## 3Cs at a Glance
+
+| | **Core** — *what the AI does* | **Context** — *how it's grounded* | **Collaboration** — *how it ships* |
+|---|---|---|---|
+| **Lives in** | `apps/api/src/ai/sprintpulseAi.ts`, `apps/api/src/ai/prompts/` | `apps/api/src/ai/openaiResponses.ts`, `scripts/benchmark-toon.mjs` | `apps/api/src/routes/`, `packages/mcp-server/src/tools.ts` |
+| **What it does** | 10 prompt templates, signature-based cache, rule-based fallback | TOON encoding (~47% fewer tokens), three-signal correlation, evidence-linked output, RLS-scoped queries | Dashboard for humans, 6 MCP tools for agents — same backend, same evidence |
+| **Proof in repo** | `gpt-5.1-CIO` with `json_schema` structured output | `npm run benchmark:toon` (~46.9% reduction on bundled fixture) | `npm run check:role-demo` confirms cross-role data flow |
+
+*Same intelligence brain. Two surfaces: humans through the dashboard, agents through MCP. Both see the same evidence trail.*
+
+---
 
 ## UI Preview
 
@@ -84,6 +113,29 @@ Each detection runs server-side and produces a `RiskFlag` with `type`, `severity
 | `BLOCKER_ANOMALY` | Blocker mentioned but never resolved or escalated | "Blocked on Y" persists ≥ 3 days, no Jira link |
 
 Additional contextual flags: `BURNOUT_SIGNAL`, `TEST_RISK`, `SPRINT_END_RISK`.
+
+---
+
+## Feature Status
+
+A consolidated view of what ships today vs what's deferred to next horizons. Everything in the ✅ column is verifiable in this repo.
+
+| Status | Capability |
+|---|---|
+| ✅ Shipped | 5 core risk-flag types (`VAGUE_UPDATE`, `STALE_WORK`, `COPY_PASTE`, `SAY_DO_GAP`, `BLOCKER_ANOMALY`) + 3 contextual (`BURNOUT_SIGNAL`, `TEST_RISK`, `SPRINT_END_RISK`) |
+| ✅ Shipped | 10 AI prompt templates with `json_schema` structured output |
+| ✅ Shipped | 6 MCP tools — `get_project_risk`, `get_member_health`, `submit_standup`, `parse_transcript`, `run_member_pr_review`, `send_app_notification` |
+| ✅ Shipped | Role-aware dashboard (5 personas) with attention queue, decision brief, signal heatmap, evidence trail |
+| ✅ Shipped | Transcript ingestion: manual upload + universal webhook (WebVTT, plain `Speaker:` text) |
+| ✅ Shipped | Jira OAuth 2.0 + GitHub sync + GitLab/self-hosted Git fetch |
+| ✅ Shipped | TOON encoding pipeline + benchmark + JSON debug fallback |
+| ✅ Shipped | Dual-credential API auth, RLS, per-project webhook tokens, at-rest Git token encryption |
+| ✅ Shipped | Seeded demo: 5 personas, 2 projects, sprint history, 4 ready-to-paste transcripts |
+| 🔵 Planned | Real-time Slack/Teams alerts for high-risk signals |
+| 🔵 Planned | Azure DevOps integration (parity with Jira/GitHub coverage) |
+| 🔵 Planned | Per-user Personal Access Tokens for agents — RLS-scoped per agent caller |
+| 🔵 Planned | Multi-agent sprint orchestration (Planner + Risk + Retro agents) |
+| 🔵 Planned | Automated test suite (today: TypeScript + 3 validation scripts substitute) |
 
 ---
 
@@ -299,6 +351,54 @@ Run `npm run benchmark:toon` to measure JSON versus TOON size on the bundled Spr
 
 Use `npm run benchmark:toon -- --json` when a machine-readable result is useful for slides or CI logs.
 
+### Design Tradeoffs
+
+Decisions that look opinionated, with the reasoning so reviewers can see the *why*, not just the *what*.
+
+| Decision | Why |
+|---|---|
+| **TOON over JSON for AI inputs** | Sprint data is tabular (members × signals × dates) — TOON's sweet spot. ~47% measured token reduction makes per-member-per-sprint scoring economically viable. JSON fallback (`AI_INPUT_FORMAT=json`) kept for debugging |
+| **Signature-based cache, not time-only TTL** | Same sprint signals produce the same signature → no API call regardless of time elapsed. Demos stay snappy without stale outputs after a fresh sync |
+| **Two-model strategy (`gpt-4.1-nano` + `gpt-5.1-CIO`)** | Nano is ~20× cheaper for dev iteration; CIO is the demo and production model. Toggled via single `OPENAI_MODEL` env, no code change |
+| **Dual-credential API auth (shared key OR Supabase JWT)** | Shared key for trusted server-to-server (MCP); user JWT for browser. One middleware, two auth modes, no separate routes per caller |
+| **Rule-based fallback alongside AI** | When the gateway is slow or disabled, the dashboard still renders meaningful scoring instead of empty cells. Demo-day insurance |
+| **One webhook for all transcript sources** | VTT (Teams), plain `Speaker:` text (Zoom/Meet), and JSON all flow through the same parser. New transcript sources need zero new endpoints |
+| **MCP server is a thin HTTP wrapper** | No business logic in `packages/mcp-server` — every tool is a translation of an existing REST endpoint. UI users and agent users see identical data, no second source of truth |
+
+---
+
+## Code Quality
+
+The hackathon-budget version of code quality — what's enforced today vs what's deferred. Honest disclosure: no automated test suite. The triad below is the substitute.
+
+**Three validation gates:**
+
+| Command | What it checks |
+|---|---|
+| `npm run typecheck` | TypeScript across all 4 workspaces — primary correctness gate. Catches contract drift between `apps/web`, `apps/api`, and `packages/shared` |
+| `npm run check:role-demo` | Verifies the 5 seeded judge personas can sign in, switch roles, and load at least one project end-to-end |
+| `npm run benchmark:toon` | Confirms the TOON differentiator with measured numbers — emits both char and token reductions for the bundled sprint payload |
+
+**Validation at the data boundary:**
+
+- Every AI prompt response is validated through OpenAI's `json_schema` structured-output mode (`apps/api/src/ai/openaiResponses.ts`). No free-text JSON parsing — malformed responses fail loudly instead of polluting the dashboard
+- Three-layer fallback for resilience: AI scoring → deterministic rule-based scoring → cached snapshot. The dashboard always renders, even when the AI gateway is down
+
+**Security model:**
+
+- **Row-level security** at the Supabase layer enforced across 15 SQL migrations. The web anon key respects RLS; the API service role key bypasses it intentionally for cross-tenant orchestration
+- **Dual-credential API auth** (`apps/api/src/middleware/apiKey.ts`): every `/api/*` call requires either `X-SprintPulse-API-Key` (server-to-server, used by MCP) or `Authorization: Bearer <supabase-jwt>` (per-user from the browser). `/api/health` stays public for container probes
+- **Per-project webhook tokens** minted from the Integrations page (migration `014_project_webhook_tokens.sql`). Tokens are project-scoped, revocable, and never logged
+- **At-rest encryption** for per-member Git provider tokens via `GIT_TOKEN_ENCRYPTION_KEY` (migration `015_git_connection_provider_tokens.sql`). Tokens are never returned to the client after creation
+
+**Repo structure:**
+
+- 4 workspaces — `apps/web`, `apps/api`, `packages/shared`, `packages/mcp-server`
+- 11 API route files in `apps/api/src/routes/`, one domain per file
+- 12 web pages in `apps/web/src/pages/`, one route per file
+- 15 SQL migrations + 1 demo seed in `database/supabase/`
+- Single source of truth for types: `packages/shared/src/index.ts`
+
 ---
 
 ## Roles and Personas
@@ -310,6 +410,24 @@ Scoring and notifications are role-filtered — a Scrum Master is never flagged 
 ---
 
 ## Run Locally
+
+**Quick start** (copy-paste, ~2 minutes once `.env` files are filled):
+
+```bash
+npm install && cp apps/web/.env.example apps/web/.env && cp apps/api/.env.example apps/api/.env
+# Edit both .env files with your Supabase + GenAI Hub credentials, then:
+npm run dev   # API on :4000 · Web on :5173
+```
+
+**Verify everything works** (run in a second terminal):
+
+```bash
+npm run typecheck && npm run check:role-demo && npm run benchmark:toon
+```
+
+All three should exit green. The third prints the measured TOON reduction.
+
+**Full steps:**
 
 ```bash
 npm install
@@ -523,6 +641,17 @@ The demo sprint has 8 team members with deliberately varied risk signals to show
 - Developer — sees only their own scores and recommendations
 - Validation: `npm run check:role-demo`
 
+### Ready-to-paste transcripts
+
+Four pre-written transcripts live in [`docs/STANDUP_TRANSCRIPT_SAMPLES.md`](docs/STANDUP_TRANSCRIPT_SAMPLES.md), each engineered to trigger a different risk type — useful for live demos and reproducible reviewer testing:
+
+| Sample | Triggers | Project to paste into |
+|---|---|---|
+| **High-Risk Blocker** | `BLOCKER_ANOMALY` on OPS-104, escalation chain | OPS Command Center |
+| **Say-Do Gap** | `SAY_DO_GAP` — claims without commits | SprintPulse Metrics |
+| **Review & QA Risk** | `TEST_RISK`, code-review pressure | SprintPulse Metrics |
+| **Healthy** | Baseline — no flags fired | SprintPulse Metrics |
+
 ---
 
 ## Demo Flow
@@ -610,6 +739,37 @@ Once wired, the agent discovers each tool's name + input schema through MCP's `t
 
 The agent decides which tools to call and in what order based on the prompt — SprintPulse just answers each question. Same backend as the UI, now callable from agent workflows.
 
+### Sample agent run
+
+A developer asks Claude Code: *"use sprintpulse mcp and tell me which jira ticket is at risk?"*
+
+![SprintPulse MCP agent run in Claude Code](docs/assets/sprintpulse-mcp-agent.png)
+
+The agent calls `sprintpulse.get_project_risk` with the active project + persona, parses the live signal picture, and replies with concrete, evidence-backed guidance:
+
+```
+Health score: 76 · Readiness: 76 · Open blockers: 2 · Total flags: 7
+
+The strongest Jira risk is around Yash Srivastav's active work,
+because SprintPulse flagged: "No repo evidence for active work."
+
+Tickets to watch:
+- SCRUM-13 — Finish high-point Jira sync reconciliation
+- SCRUM-21 — Restore local environment token for Jira OAuth callback
+- SCRUM-37 — Finish overloaded owner API cleanup
+- SCRUM-40 — Migrate imported Jira identities into canonical profiles
+- SCRUM-35 — Fix flaky CI seed data setup on Windows
+
+Secondary blocker risk is with Maya Chen, especially:
+- SCRUM-39 — Fix project visibility permission leak in team mapping
+
+Best next step: ask Yash for a concrete update on SCRUM-13 / SCRUM-21
+and confirm whether there is matching Git/PR evidence — because
+SprintPulse is seeing Jira work but no repo activity.
+```
+
+The output is the agent reasoning over the JSON `get_project_risk` returns — no extra context fetching, no manual summarisation by the developer. **Same evidence the Scrum Master sees on the dashboard, surfaced inside the developer's IDE.**
+
 ### Why MCP over a custom plugin per host
 
 Every agent host has its own connector format. MCP gives SprintPulse one shipped server that Claude Code, Cursor, Continue, and other MCP-capable hosts can discover through the same tool protocol.
@@ -617,3 +777,41 @@ Every agent host has its own connector format. MCP gives SprintPulse one shipped
 The architecture position: **SprintPulse is the risk-and-readiness layer that agents call when they need to understand sprint state.** The MCP server and REST API expose the same backend capabilities, so UI users and agent users see the same project data.
 
 Full setup and a template for adding new tools: `packages/mcp-server/README.md`.
+
+---
+
+## Roadmap
+
+The MCP layer is live today. The roadmap extends SprintPulse from a delivery-intelligence tool into a delivery-agent platform.
+
+| Horizon | What ships |
+|---|---|
+| **Now** *(live in this repo)* | Dashboard + 6 MCP tools + Jira/GitHub sync + transcript ingestion + role-aware notifications |
+| **Next** *(next sprint horizon)* | Expand MCP toolset 6 → 12 with bidirectional writes (`update_jira_issue`, `assign_reviewer`, `escalate_blocker`, `generate_retro`, `nudge_member`). Real-time Slack/Teams alerts. Azure DevOps integration |
+| **Then** *(next quarter)* | Per-user Personal Access Tokens — agents act with the calling user's RLS scope instead of a shared secret. AI-driven root-cause analysis for blockers and burnout. Predictive sprint planning (capacity vs risk) |
+| **Vision** *(longer horizon)* | Multi-agent sprint orchestration: Planner agent reads capacity, Risk agent monitors execution, Retro agent compiles outcomes — all coordinating through SprintPulse as shared state. Self-healing sprints: within configured policies, agents reassign, split, or escalate; the Scrum Master signs off |
+
+---
+
+## Team
+
+**Algorithm Avengers** — Persistent Systems · Horizontal Markets HM DU 3
+
+SprintPulse AI was built for Semicolons 2026.
+
+For pilot conversations or feedback: open an issue on this repo, or reach out through the deployed contact path on `solution1.demopersistent.com`.
+
+---
+
+## Further Reading
+
+Deeper documentation for reviewers who want to drill in beyond this README:
+
+| Document | Covers |
+|---|---|
+| [`docs/SPRINTPULSE_CONTEXT.md`](docs/SPRINTPULSE_CONTEXT.md) | Long-form product context — origin story, target users, design intent |
+| [`docs/AI_INTELLIGENCE_LAYER.md`](docs/AI_INTELLIGENCE_LAYER.md) | AI pipeline internals — prompt anatomy, scoring weights, cache invalidation rules |
+| [`docs/STANDUP_TRANSCRIPT_SAMPLES.md`](docs/STANDUP_TRANSCRIPT_SAMPLES.md) | Four ready-to-paste transcripts engineered to trigger each risk type |
+| [`docs/TEAMS_TRANSCRIPT_WEBHOOK.md`](docs/TEAMS_TRANSCRIPT_WEBHOOK.md) | End-to-end setup for the Teams transcript webhook ingestion path |
+| [`docs/api/openapi.yaml`](docs/api/openapi.yaml) | Full OpenAPI 3.x spec for the SprintPulse REST API |
+| [`packages/mcp-server/README.md`](packages/mcp-server/README.md) | MCP server setup + template for adding new tools |
