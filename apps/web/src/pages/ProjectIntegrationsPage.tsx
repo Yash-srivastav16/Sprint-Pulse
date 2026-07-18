@@ -841,20 +841,22 @@ export function ProjectIntegrationsPage() {
             </p>
           </div>
 
-          <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.48fr)]">
-            <div className="grid min-w-0 gap-4">
-              <div className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-4 dark:border-white/10 dark:bg-white/[0.035]">
+          <div className="mt-5 grid min-w-0 max-w-full items-start gap-5 overflow-hidden xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.48fr)]">
+            <div className="grid min-w-0 max-w-full gap-4 overflow-x-hidden">
+              <div className="min-w-0 max-w-full overflow-hidden rounded-xl border border-slate-200/80 bg-slate-50/70 p-4 dark:border-white/10 dark:bg-white/[0.035]">
                 <div className="mb-1.5 flex items-center justify-between gap-3">
                   <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Webhook URL</span>
                 </div>
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <code className="block min-w-0 flex-1 overflow-x-auto whitespace-nowrap rounded-xl border border-slate-200/70 bg-white/80 px-3 py-3 font-mono text-xs text-slate-900 dark:border-white/10 dark:bg-slate-950/35 dark:text-white">
-                    {webhookUrl}
-                  </code>
+                <div className="grid min-w-0 max-w-full gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+                  <div className="min-w-0 max-w-full overflow-hidden rounded-xl border border-slate-200/70 bg-white/80 dark:border-white/10 dark:bg-slate-950/35">
+                    <code className="block w-full min-w-0 max-w-full overflow-x-auto overflow-y-hidden whitespace-nowrap px-3 py-3 font-mono text-xs leading-6 text-slate-900 dark:text-white">
+                      {webhookUrl}
+                    </code>
+                  </div>
                   <button
                     type="button"
                     onClick={copyWebhookUrl}
-                    className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-warning-500/30 bg-warning-500/10 px-5 text-sm font-black text-warning-700 transition hover:bg-warning-500/15 dark:text-warning-100"
+                    className="inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-warning-500/30 bg-warning-500/10 px-5 text-sm font-black text-warning-700 transition hover:bg-warning-500/15 sm:w-auto dark:text-warning-100"
                   >
                     <Copy className="h-4 w-4" />
                     Copy URL
