@@ -3,6 +3,8 @@ import type {
   AppRole,
   AiChatRequest,
   AiChatResponse,
+  AiNotification,
+  AiNotificationAudience,
   AiPrReviewResponse,
   ConfigureGitRequest,
   ConfigureGitResponse,
@@ -375,6 +377,40 @@ const toRecommendation = (row: RecommendationRow): SprintRecommendation => ({
   status: row.status,
   createdAt: row.created_at
 });
+
+const notificationAudienceForViewer = (viewer: Persona): AiNotificationAudience => {
+  if (viewer.productPersona === "developer") return "developer";
+  if (viewer.productPersona === "qa-lead") return "qa";
+  if (viewer.productPersona === "presenter") return "team";
+  return "manager";
+};
+
+const recommendationToNotification = (
+  recommendation: SprintRecommendation,
+  dashboard: ProjectDashboardResponse
+): AiNotification => {
+  const target = recommendation.profileId
+    ? dashboard.project.members.find((member) => member.personaId === recommendation.profileId)
+    : undefined;
+  const isOwnPulse = recommendation.profileId === dashboard.viewer.id;
+
+  return {
+    id: `recommendation-${recommendation.id}`,
+    projectId: recommendation.projectId,
+    sprintId: recommendation.sprintId,
+    personaId: recommendation.profileId,
+    audience: notificationAudienceForViewer(dashboard.viewer),
+    severity: recommendation.severity,
+    title: recommendation.title,
+    message: target && !isOwnPulse ? `${target.name}: ${recommendation.message}` : recommendation.message,
+    actionLabel: recommendation.profileId ? (isOwnPulse ? "Open my pulse" : "Open member pulse") : "Open dashboard",
+    actionHref: recommendation.profileId
+      ? `/projects/${dashboard.project.id}/members/${recommendation.profileId}`
+      : `/projects/${dashboard.project.id}/dashboard`,
+    source: "recommendation",
+    createdAt: recommendation.createdAt
+  };
+};
 
 const toInvite = (row: ProjectInviteRow): ProjectInvite => ({
   id: row.id,
@@ -4024,12 +4060,119 @@ export const buildSupabaseProjectNotifications = async (
   }
 
   const generated = await generateAiNotifications(dashboard);
+  const client = requireSupabaseAdmin();
+  const { data, error } = await client
+    .from("recommendations")
+    .select("*")
+    .eq("project_id", projectId)
+    .eq("sprint_id", dashboard.project.sprint.id)
+    .eq("status", "open")
+    .neq("title", AI_DASHBOARD_SNAPSHOT_TITLE)
+    .order("created_at", { ascending: false })
+    .limit(8);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const canViewTeam = dashboard.scope === "team";
+  const persisted = ((data ?? []) as RecommendationRow[])
+    .map(toRecommendation)
+    .filter((recommendation) => canViewTeam || !recommendation.profileId || recommendation.profileId === personaId)
+    .map((recommendation) => recommendationToNotification(recommendation, dashboard));
+  const generatedIds = new Set(persisted.map((notification) => notification.id));
+  const notifications = [
+    ...persisted,
+    ...generated.notifications.filter((notification) => !generatedIds.has(notification.id))
+  ].slice(0, 8);
+
   return {
     viewer: dashboard.viewer,
     project: dashboard.project,
-    notifications: generated.notifications,
-    unreadCount: generated.notifications.filter((notification) => notification.severity !== "info").length,
+    notifications,
+    unreadCount: notifications.filter((notification) => notification.severity !== "info").length,
     meta: generated.meta
+  };
+};
+
+export const createSupabaseAppNotification = async (
+  projectId: string,
+  input: {
+    personaId: string;
+    targetPersonaId?: string;
+    title: string;
+    message: string;
+    severity?: RiskLevel;
+    kind?: SprintRecommendation["kind"];
+    sprintId?: string;
+    issueKeys?: string[];
+  }
+): Promise<{ viewer: Persona; project: SprintProject; recommendation: SprintRecommendation } | undefined> => {
+  const context = await loadProjectContext(projectId, input.personaId);
+  if (!context) {
+    return undefined;
+  }
+  if (!context.permissions.includes("project:editTeam")) {
+    throw new Error("You do not have permission to create project notifications.");
+  }
+
+  const title = input.title.trim();
+  const message = input.message.trim();
+  if (!title || !message) {
+    throw new Error("Title and message are required.");
+  }
+
+  const severity = input.severity ?? "medium";
+  const validSeverities: RiskLevel[] = ["low", "medium", "high", "critical"];
+  if (!validSeverities.includes(severity)) {
+    throw new Error("Invalid notification severity.");
+  }
+
+  const kind = input.kind ?? "team";
+  const validKinds: Array<SprintRecommendation["kind"]> = ["standup", "jira", "git", "delivery", "team"];
+  if (!validKinds.includes(kind)) {
+    throw new Error("Invalid notification kind.");
+  }
+
+  const targetPersonaId = input.targetPersonaId?.trim();
+  if (targetPersonaId && !context.project.members.some((member) => member.personaId === targetPersonaId)) {
+    throw new Error("Target member is not part of this project.");
+  }
+
+  const sprints = await fetchSprints(projectId);
+  const sprint = input.sprintId
+    ? sprints.find((candidate) => candidate.id === input.sprintId) ?? currentSprintFrom(context.project, sprints)
+    : currentSprintFrom(context.project, sprints);
+  const client = requireSupabaseAdmin();
+  const { data, error } = await client
+    .from("recommendations")
+    .insert({
+      project_id: projectId,
+      sprint_id: sprint.id,
+      profile_id: targetPersonaId || null,
+      kind,
+      severity,
+      title,
+      message,
+      inputs: {
+        source: "mcp-agent",
+        actorPersonaId: input.personaId,
+        targetPersonaId: targetPersonaId || null,
+        issueKeys: input.issueKeys ?? []
+      },
+      status: "open"
+    })
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return {
+    viewer: context.viewer,
+    project: context.project,
+    recommendation: toRecommendation(data as RecommendationRow)
   };
 };
 

@@ -29,7 +29,21 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (API_KEY) {
     headers["X-SprintPulse-API-Key"] = API_KEY;
   }
-  const res = await fetch(`${API_BASE}${path}`, { ...init, headers });
+  const baseUrl = new URL(API_BASE);
+  const baseSearch = new URLSearchParams(baseUrl.search);
+  baseUrl.search = "";
+  if (!baseUrl.pathname.endsWith("/")) {
+    baseUrl.pathname = `${baseUrl.pathname}/`;
+  }
+
+  const url = new URL(path.replace(/^\//, ""), baseUrl);
+  baseSearch.forEach((value, key) => {
+    if (!url.searchParams.has(key)) {
+      url.searchParams.set(key, value);
+    }
+  });
+
+  const res = await fetch(url, { ...init, headers });
   if (!res.ok) {
     let detail: string;
     try {
@@ -166,6 +180,46 @@ export const TOOLS: ToolDef[] = [
         body: JSON.stringify({
           personaId: str(args.personaId),
           sprintId: str(args.sprintId) || null
+        })
+      });
+    }
+  },
+  {
+    name: "send_app_notification",
+    description:
+      "Create an in-app SprintPulse notification/action item for a project member. Use this when an agent has identified a follow-up and needs it to appear inside SprintPulse instead of sending email or chat.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectId: { type: "string" },
+        personaId: { type: "string", description: "Persona ID of the acting user creating the notification" },
+        targetPersonaId: { type: "string", description: "Persona ID of the member who should receive or own the follow-up" },
+        title: { type: "string" },
+        message: { type: "string" },
+        severity: { type: "string", enum: ["low", "medium", "high", "critical"] },
+        kind: { type: "string", enum: ["standup", "jira", "git", "delivery", "team"] },
+        sprintId: { type: "string" },
+        issueKeys: {
+          type: "array",
+          items: { type: "string" },
+          description: "Optional Jira issue keys connected to this follow-up"
+        }
+      },
+      required: ["projectId", "personaId", "targetPersonaId", "title", "message"]
+    },
+    invoke: async (args) => {
+      const projectId = str(args.projectId);
+      return request(`/projects/${encodeURIComponent(projectId)}/notifications`, {
+        method: "POST",
+        body: JSON.stringify({
+          personaId: str(args.personaId),
+          targetPersonaId: str(args.targetPersonaId),
+          title: str(args.title),
+          message: str(args.message),
+          severity: str(args.severity) || "medium",
+          kind: str(args.kind) || "team",
+          sprintId: str(args.sprintId) || undefined,
+          issueKeys: Array.isArray(args.issueKeys) ? args.issueKeys.map(str).filter(Boolean) : undefined
         })
       });
     }
