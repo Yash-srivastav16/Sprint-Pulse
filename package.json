@@ -18,6 +18,7 @@
     "check:role-demo": "node scripts/check-role-switch-demo.mjs"
   },
   "devDependencies": {
+    "@vercel/node": "^5.8.26",
     "concurrently": "^9.2.0",
     "typescript": "^5.9.3"
   }

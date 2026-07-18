@@ -1,8 +1,10 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import cors from "cors";
 import express from "express";
-import { apiRouter } from "../apps/api/src/routes/index.js";
-import { apiAuthMiddleware } from "../apps/api/src/middleware/apiKey.js";
+
+// Dynamic imports to avoid CJS/ESM conflict at load time
+const { apiRouter } = await import("../apps/api/src/routes/index.js");
+const { apiAuthMiddleware } = await import("../apps/api/src/middleware/apiKey.js");
 
 const app = express();
 
