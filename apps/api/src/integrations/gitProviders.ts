@@ -158,6 +158,10 @@ type GitLabMergeRequestDiff = {
   diff?: string | null;
 };
 
+type GitLabMergeRequestChangesResponse = {
+  changes?: GitLabMergeRequestDiff[];
+};
+
 type GitLabNote = {
   id: number;
   body?: string | null;
@@ -626,7 +630,13 @@ const fetchGitLabMergeRequestFiles = async (connection: GitProviderConnection, p
   const url = gitLabUrl(connection, `/merge_requests/${pullRequest.number}/diffs`);
   url.searchParams.set("per_page", "100");
 
-  const diffs = await gitLabJson<GitLabMergeRequestDiff[]>(url, connection);
+  const diffs = await gitLabJson<GitLabMergeRequestDiff[]>(url, connection).catch(async (err) => {
+    const changesUrl = gitLabUrl(connection, `/merge_requests/${pullRequest.number}/changes`);
+    const changes = await gitLabJson<GitLabMergeRequestChangesResponse>(changesUrl, connection).catch(() => {
+      throw err;
+    });
+    return changes.changes ?? [];
+  });
   return diffs.map(gitLabDiffToPullRequestFile);
 };
 
@@ -649,31 +659,36 @@ const fetchGitLabMergeRequestReviewSignals = async (
           gitLabJson<GitLabDiscussion[]>(discussionsUrl, connection),
           gitLabJson<GitLabApprovalState>(approvalsUrl, connection).catch(() => ({ approved_by: [] }))
         ]);
+        const uniqueNotesById = new Map<string, GitLabNote>();
         const visibleNotes = notes.filter((note) => !note.system && Boolean(note.body?.trim()));
-        const discussionNotes = discussions.flatMap((discussion) => discussion.notes ?? []).filter((note) => !note.system);
-        const inlineComments = discussionNotes.filter((note) => Boolean(note.position) || note.type === "DiffNote").length;
-        const unresolvedDiscussions = discussions.filter((discussion) =>
-          (discussion.notes ?? []).some((note) => note.resolvable && !note.resolved)
-        ).length;
+        const discussionNotes = discussions
+          .flatMap((discussion) => discussion.notes ?? [])
+          .filter((note) => !note.system && Boolean(note.body?.trim()));
+        for (const note of [...visibleNotes, ...discussionNotes]) {
+          uniqueNotesById.set(String(note.id), note);
+        }
+        const uniqueNotes = Array.from(uniqueNotesById.values());
+        const inlineComments = uniqueNotes.filter((note) => Boolean(note.position) || note.type === "DiffNote").length;
+        const conversationComments = uniqueNotes.length - inlineComments;
         const approvalsByReviewer = new Set(
           (approvals.approved_by ?? [])
             .map((approval) => normalizedGitValue(approval.user?.username))
             .filter(Boolean)
         );
-        const reviewComments = visibleNotes.length + inlineComments;
+        const reviewComments = uniqueNotes.length;
 
         return [
           pullRequest.number,
           {
-            reviewCount: approvalsByReviewer.size + unresolvedDiscussions,
+            reviewCount: approvalsByReviewer.size,
             reviewComments,
-            conversationComments: visibleNotes.length,
+            conversationComments,
             inlineComments,
             reviewBodyComments: 0,
             commitComments: 0,
-            changeRequests: unresolvedDiscussions,
+            changeRequests: 0,
             approvals: approvalsByReviewer.size,
-            issueCount: reviewComments + unresolvedDiscussions
+            issueCount: reviewComments
           }
         ] as const;
       } catch (err) {

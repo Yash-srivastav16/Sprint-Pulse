@@ -3441,25 +3441,38 @@ export const reviewSupabaseMemberPullRequests = async (
     (pullRequest) => pullRequestMember(pullRequest, context.project.members, pullRequestCommits)?.personaId === memberId
   );
   const memberPullRequests = pullRequestNumber
-    ? mappedMemberPullRequests.filter((pullRequest) => pullRequest.number === pullRequestNumber)
+    ? openPullRequests.filter((pullRequest) => pullRequest.number === pullRequestNumber)
     : mappedMemberPullRequests.slice(0, 3);
+  const fileWarnings: string[] = [];
   const fileGroups = await Promise.all(
-    memberPullRequests.map((pullRequest) =>
-      fetchGitPullRequestFiles(provider, gitConnection, pullRequest).catch(() => [])
-    )
+    memberPullRequests.map((pullRequest) => {
+      return fetchGitPullRequestFiles(provider, gitConnection, pullRequest).catch((err) => {
+        const message = err instanceof Error ? err.message : `${gitProviderLabel(provider)} diff fetch failed.`;
+        fileWarnings.push(`${gitReviewName(provider)} #${pullRequest.number} diff metadata skipped: ${message}`);
+        return [];
+      });
+    })
   );
   const reviewPullRequests = memberPullRequests.map((pullRequest, index) => {
-    const commits = (pullRequestCommits.get(pullRequest.number) ?? []).filter((commit) => gitCommitInSprint(commit, signals.sprint));
+    const allCommits = pullRequestCommits.get(pullRequest.number) ?? [];
+    const commits = allCommits.filter((commit) => gitCommitInSprint(commit, signals.sprint));
     const files = fileGroups[index] ?? [];
-    const additions = files.reduce((total, file) => total + (file.additions ?? 0), 0);
-    const deletions = files.reduce((total, file) => total + (file.deletions ?? 0), 0);
+    const fileAdditions = files.reduce((total, file) => total + (file.additions ?? 0), 0);
+    const fileDeletions = files.reduce((total, file) => total + (file.deletions ?? 0), 0);
+    const commitAdditions = allCommits.reduce((total, commit) => total + (commit.stats?.additions ?? 0), 0);
+    const commitDeletions = allCommits.reduce((total, commit) => total + (commit.stats?.deletions ?? 0), 0);
+    const fileChurn = fileAdditions + fileDeletions;
+    const commitChurn = commitAdditions + commitDeletions;
+    const useCommitChurn = commitChurn > fileChurn && commitChurn - fileChurn >= 50;
+    const additions = useCommitChurn ? commitAdditions : fileAdditions;
+    const deletions = useCommitChurn ? commitDeletions : fileDeletions;
 
     return {
       number: pullRequest.number,
       title: pullRequest.title,
       url: pullRequest.html_url,
       author: pullRequest.user?.login ?? undefined,
-      commits: commits.length,
+      commits: allCommits.length || commits.length,
       filesChanged: files.length,
       additions,
       deletions,
@@ -3471,12 +3484,14 @@ export const reviewSupabaseMemberPullRequests = async (
     };
   });
 
-  return reviewPullRequestsWithAi({
+  const response = await reviewPullRequestsWithAi({
     project: context.project,
     sprint: signals.sprint,
     member: { personaId: targetMember.personaId, name: targetMember.name, email: targetMember.email },
     pullRequests: reviewPullRequests
   });
+
+  return fileWarnings.length ? { ...response, warnings: [...(response.warnings ?? []), ...fileWarnings] } : response;
 };
 
 export const buildSupabaseProjectStandups = async (

@@ -771,6 +771,13 @@ export function MemberDetailPage() {
                         </span>
                       ))}
                     </div>
+                    {prReview.warnings?.length ? (
+                      <div className="mt-3 grid gap-1.5 rounded-lg border border-warning-500/20 bg-warning-500/10 px-3 py-2 text-xs font-bold leading-5 text-warning-800 dark:text-warning-100">
+                        {prReview.warnings.slice(0, 3).map((warning) => (
+                          <span key={warning}>{warning}</span>
+                        ))}
+                      </div>
+                    ) : null}
                     {prReview.pullRequests.length ? (
                       <div className="mt-3 grid gap-2">
                         {prReview.pullRequests.slice(0, 3).map((pullRequest) => (
