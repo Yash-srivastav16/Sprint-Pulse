@@ -251,18 +251,36 @@ const githubHeaders = (connection: GitProviderConnection) => {
   return headers;
 };
 
+const gitLogContext = (connection: GitProviderConnection) => ({
+  provider: connection.provider,
+  repo: `${connection.repoOwner}/${connection.repoName}`,
+  defaultBranch: connection.defaultBranch || "main",
+  hasSavedToken: Boolean(connection.accessToken?.trim()),
+  hasEnvToken: Boolean((process.env.GITHUB_TOKEN ?? process.env.GITHUB_PAT ?? process.env.GITLAB_TOKEN ?? process.env.GIT_TOKEN ?? "").trim())
+});
+
 const githubJson = async <T>(url: URL, connection: GitProviderConnection): Promise<T> => {
   const response = await fetch(url, { headers: githubHeaders(connection) });
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as { message?: string };
     const details = body.message ? ` ${body.message}` : "";
+    console.error("[git-sync] github request failed", {
+      ...gitLogContext(connection),
+      status: response.status,
+      endpoint: `${url.origin}${url.pathname}`,
+      message: body.message,
+      rateLimitRemaining: response.headers.get("x-ratelimit-remaining"),
+      rateLimitReset: response.headers.get("x-ratelimit-reset")
+    });
 
     if (response.status === 401 || response.status === 403) {
       throw new Error(`GitHub authentication failed.${details} Check the saved project token or legacy GITHUB_TOKEN env.`);
     }
 
     if (response.status === 404) {
-      throw new Error(`GitHub repository was not found or the token cannot access it.${details}`);
+      throw new Error(
+        `GitHub repository ${connection.repoOwner}/${connection.repoName} was not found or the token cannot access it.${details} Verify the provider, owner/repo, default branch, and token repository access.`
+      );
     }
 
     throw new Error(`GitHub API request failed with ${response.status}.${details}`);
@@ -307,6 +325,13 @@ const gitLabJson = async <T>(url: URL, connection: GitProviderConnection): Promi
             ? JSON.stringify(body.message)
             : "";
     const details = message ? ` ${message}` : "";
+    console.error("[git-sync] gitlab request failed", {
+      ...gitLogContext(connection),
+      status: response.status,
+      endpoint: `${url.origin}${url.pathname}`,
+      message,
+      rateLimitRemaining: response.headers.get("ratelimit-remaining")
+    });
 
     if (response.status === 401 || response.status === 403) {
       throw new Error(`GitLab authentication failed.${details} Check the saved project token or legacy GITLAB_TOKEN env.`);

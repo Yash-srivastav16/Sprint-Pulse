@@ -166,9 +166,38 @@ export function registerIntegrationRoutes(router: Router): void {
 
   router.post("/projects/:projectId/git/configure", async (req, res) => {
     if (!mockFlowEnabled) {
+      const projectId = String(req.params.projectId ?? "");
+      const body = req.body as ConfigureGitRequest;
+      console.info("[git-sync] configure request received", {
+        projectId,
+        personaId: body?.personaId,
+        provider: body?.provider,
+        baseUrl: body?.baseUrl,
+        repo: body?.repoOwner && body?.repoName ? `${body.repoOwner}/${body.repoName}` : undefined,
+        defaultBranch: body?.defaultBranch,
+        hasAccessToken: Boolean(body?.accessToken),
+        verify: Boolean(body?.verify)
+      });
+
       try {
-        res.json(await configureSupabaseGit(String(req.params.projectId ?? ""), req.body as ConfigureGitRequest));
+        const response = await configureSupabaseGit(projectId, body);
+        console.info("[git-sync] configure request completed", {
+          projectId,
+          provider: response.connection.provider,
+          repo: `${response.connection.repoOwner}/${response.connection.repoName}`,
+          status: response.connection.status,
+          tokenStatus: response.connection.tokenStatus,
+          warnings: response.warnings
+        });
+        res.json(response);
       } catch (err) {
+        console.error("[git-sync] configure request failed", {
+          projectId,
+          personaId: body?.personaId,
+          provider: body?.provider,
+          repo: body?.repoOwner && body?.repoName ? `${body.repoOwner}/${body.repoName}` : undefined,
+          error: err instanceof Error ? err.message : "Unable to configure Git"
+        });
         res.status(500).json({ error: err instanceof Error ? err.message : "Unable to configure Git" });
       }
       return;
@@ -178,9 +207,29 @@ export function registerIntegrationRoutes(router: Router): void {
 
   router.post("/projects/:projectId/git/sync", async (req, res) => {
     if (!mockFlowEnabled) {
+      const projectId = String(req.params.projectId ?? "");
+      const personaId = String(req.body?.personaId ?? "");
+      console.info("[git-sync] sync request received", {
+        projectId,
+        personaId
+      });
+
       try {
-        res.json(await syncSupabaseProjectSignals(String(req.params.projectId ?? ""), String(req.body?.personaId ?? ""), "git"));
+        const response = await syncSupabaseProjectSignals(projectId, personaId, "git");
+        console.info("[git-sync] sync request completed", {
+          projectId,
+          provider: response.connection.provider,
+          repo: `${response.connection.repoOwner}/${response.connection.repoName}`,
+          importedCommits: response.importedCommits,
+          warnings: response.warnings
+        });
+        res.json(response);
       } catch (err) {
+        console.error("[git-sync] sync request failed", {
+          projectId,
+          personaId,
+          error: err instanceof Error ? err.message : "Unable to sync Git"
+        });
         res.status(500).json({ error: err instanceof Error ? err.message : "Unable to sync Git" });
       }
       return;
