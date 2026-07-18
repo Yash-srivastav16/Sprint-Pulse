@@ -149,12 +149,8 @@ function compactText(value: string, max = 130) {
   return value.length > max ? `${value.slice(0, max - 3)}...` : value;
 }
 
-function prScopeLabel(pullRequest: { number: number; title: string }) {
-  return `PR #${pullRequest.number} · ${compactText(pullRequest.title, 42)}`;
-}
-
 function compactPrScopeLabel(pullRequest: { number: number; title: string }) {
-  return `PR #${pullRequest.number} - ${compactText(pullRequest.title, 30)}`;
+  return `PR #${pullRequest.number} - ${compactText(pullRequest.title, 24)}`;
 }
 
 function velocityLabel(value?: string) {
@@ -665,9 +661,9 @@ export function MemberDetailPage() {
                       {Math.min(reviewApprovals, requiredReviewers)}/{requiredReviewers} approved
                     </StatusPill>
                   </div>
-                  <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+                  <div className="flex min-w-0 flex-1 items-center justify-end gap-3">
                     {pullRequestChurn.length > 1 ? (
-                      <label className="inline-flex min-h-10 min-w-0 flex-1 items-center gap-2 rounded-xl border border-slate-200/80 bg-white/80 px-3 text-xs font-black text-slate-600 dark:border-white/10 dark:bg-slate-950 dark:text-slate-200 sm:max-w-sm">
+                      <label className="inline-flex min-h-10 w-52 max-w-[48vw] shrink-0 items-center gap-2 rounded-xl border border-slate-200/80 bg-white/80 px-3 text-xs font-black text-slate-600 dark:border-white/10 dark:bg-slate-950 dark:text-slate-200">
                         <span className="shrink-0 text-slate-500 dark:text-slate-400">Scope</span>
                         <select
                           className="min-w-0 flex-1 truncate rounded-lg bg-white px-1.5 py-1 text-xs font-black text-slate-800 outline-none dark:bg-slate-950 dark:text-slate-100"
