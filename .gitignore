@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+coverage/
+
+# Local environment files and secrets
+.env
+.env.*
+!.env.example
+!*.env.example
+# .env.production is committed because the SemicoLabs deploy platform builds
+# from the pushed git repo (no runtime env-var injection we can use).
+# WARNING: rotate any secrets stored here after the deploy is torn down.
+!.env.production
+!*.env.production
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS/editor noise
+.DS_Store

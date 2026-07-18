@@ -1,0 +1,53 @@
+{
+  "project": {
+    "id": "11111111-1111-4111-8111-111111111111",
+    "key": "SPM",
+    "name": "SprintPulse Demo",
+    "sprintId": "spm-2026-05",
+    "sprintName": "Judge Demo Sprint",
+    "sprintDay": 8,
+    "durationDays": 14
+  },
+  "memberRows": [
+    { "memberId": "maya-chen", "name": "Maya Chen", "role": "scrum-master", "healthScore": 84, "riskLevel": "low", "standups7d": 5, "jiraDone7d": 3, "staleIssues": 0, "commits7d": 4, "openPrs": 1, "flags": "" },
+    { "memberId": "devon-reed", "name": "Devon Reed", "role": "engineering-manager", "healthScore": 77, "riskLevel": "medium", "standups7d": 5, "jiraDone7d": 2, "staleIssues": 1, "commits7d": 2, "openPrs": 2, "flags": "SPRINT_END_RISK" },
+    { "memberId": "priya-shah", "name": "Priya Shah", "role": "product-owner", "healthScore": 88, "riskLevel": "low", "standups7d": 4, "jiraDone7d": 2, "staleIssues": 0, "commits7d": 0, "openPrs": 0, "flags": "" },
+    { "memberId": "leo-martinez", "name": "Leo Martinez", "role": "developer", "healthScore": 42, "riskLevel": "critical", "standups7d": 5, "jiraDone7d": 0, "staleIssues": 3, "commits7d": 0, "openPrs": 0, "flags": "SAY_DO_GAP|BLOCKER_ANOMALY|STALE_WORK" },
+    { "memberId": "aisha-okafor", "name": "Aisha Okafor", "role": "qa", "healthScore": 76, "riskLevel": "medium", "standups7d": 5, "jiraDone7d": 1, "staleIssues": 1, "commits7d": 2, "openPrs": 1, "flags": "TEST_RISK" },
+    { "memberId": "nina-patel", "name": "Nina Patel", "role": "developer", "healthScore": 81, "riskLevel": "low", "standups7d": 5, "jiraDone7d": 4, "staleIssues": 0, "commits7d": 7, "openPrs": 1, "flags": "" },
+    { "memberId": "omar-alvi", "name": "Omar Alvi", "role": "developer", "healthScore": 69, "riskLevel": "medium", "standups7d": 3, "jiraDone7d": 1, "staleIssues": 1, "commits7d": 2, "openPrs": 3, "flags": "PR_AGING" },
+    { "memberId": "tessa-kim", "name": "Tessa Kim", "role": "designer", "healthScore": 73, "riskLevel": "medium", "standups7d": 4, "jiraDone7d": 1, "staleIssues": 2, "commits7d": 0, "openPrs": 0, "flags": "VAGUE_UPDATE" }
+  ],
+  "jiraIssueRows": [
+    { "key": "SPM-101", "assigneeId": "leo-martinez", "status": "In Progress", "priority": "High", "storyPoints": 8, "daysIdle": 5, "summary": "Deploy timeline endpoint" },
+    { "key": "SPM-102", "assigneeId": "leo-martinez", "status": "Blocked", "priority": "High", "storyPoints": 5, "daysIdle": 4, "summary": "GitHub token validation" },
+    { "key": "SPM-103", "assigneeId": "aisha-okafor", "status": "In QA", "priority": "Medium", "storyPoints": 3, "daysIdle": 2, "summary": "Transcript parser smoke tests" },
+    { "key": "SPM-104", "assigneeId": "maya-chen", "status": "Done", "priority": "Medium", "storyPoints": 2, "daysIdle": 0, "summary": "Demo checklist" },
+    { "key": "SPM-105", "assigneeId": "devon-reed", "status": "In Review", "priority": "Medium", "storyPoints": 3, "daysIdle": 1, "summary": "PR pressure summary" },
+    { "key": "SPM-106", "assigneeId": "nina-patel", "status": "Done", "priority": "Low", "storyPoints": 2, "daysIdle": 0, "summary": "Dashboard filter persistence" },
+    { "key": "SPM-107", "assigneeId": "omar-alvi", "status": "In Review", "priority": "Medium", "storyPoints": 5, "daysIdle": 3, "summary": "MCP config copy button" },
+    { "key": "SPM-108", "assigneeId": "tessa-kim", "status": "In Progress", "priority": "Low", "storyPoints": 3, "daysIdle": 6, "summary": "Presentation screenshots" },
+    { "key": "SPM-109", "assigneeId": "priya-shah", "status": "Done", "priority": "High", "storyPoints": 2, "daysIdle": 0, "summary": "Judge value story" },
+    { "key": "SPM-110", "assigneeId": "aisha-okafor", "status": "To Do", "priority": "Medium", "storyPoints": 3, "daysIdle": 4, "summary": "Regression test matrix" }
+  ],
+  "gitCommitRows": [
+    { "sha": "a1b2c3d", "authorId": "maya-chen", "committedAt": "2026-05-12T09:10:00Z", "additions": 84, "deletions": 12, "message": "Add demo checklist route" },
+    { "sha": "b2c3d4e", "authorId": "devon-reed", "committedAt": "2026-05-12T10:20:00Z", "additions": 63, "deletions": 22, "message": "Summarize review pressure" },
+    { "sha": "c3d4e5f", "authorId": "aisha-okafor", "committedAt": "2026-05-12T11:05:00Z", "additions": 144, "deletions": 41, "message": "Add transcript parser checks" },
+    { "sha": "d4e5f6a", "authorId": "nina-patel", "committedAt": "2026-05-12T12:44:00Z", "additions": 210, "deletions": 60, "message": "Persist dashboard filter state" },
+    { "sha": "e5f6a7b", "authorId": "omar-alvi", "committedAt": "2026-05-12T14:01:00Z", "additions": 76, "deletions": 18, "message": "Improve MCP config layout" },
+    { "sha": "f6a7b8c", "authorId": "nina-patel", "committedAt": "2026-05-13T08:45:00Z", "additions": 91, "deletions": 27, "message": "Fix sprint selector cache" },
+    { "sha": "a7b8c9d", "authorId": "maya-chen", "committedAt": "2026-05-13T09:30:00Z", "additions": 45, "deletions": 8, "message": "Tighten AI refresh copy" },
+    { "sha": "b8c9d0e", "authorId": "aisha-okafor", "committedAt": "2026-05-13T13:20:00Z", "additions": 112, "deletions": 37, "message": "Cover webhook error states" }
+  ],
+  "standupRows": [
+    { "memberId": "maya-chen", "date": "2026-05-12", "yesterday": "Reviewed say-do gap flags with Devon", "today": "Tighten demo flow and final AI refresh story", "blockers": "No blocker" },
+    { "memberId": "devon-reed", "date": "2026-05-12", "yesterday": "Reviewed PR pressure", "today": "Pair with Leo on deployment timeline", "blockers": "Need token status from Leo" },
+    { "memberId": "priya-shah", "date": "2026-05-12", "yesterday": "Aligned product story", "today": "Prepare judge narrative", "blockers": "No blocker" },
+    { "memberId": "leo-martinez", "date": "2026-05-12", "yesterday": "Worked on deployment timeline", "today": "Continue deployment timeline", "blockers": "GitHub token still flaky" },
+    { "memberId": "aisha-okafor", "date": "2026-05-12", "yesterday": "Ran smoke tests", "today": "Validate transcript parser errors", "blockers": "No blocker" },
+    { "memberId": "nina-patel", "date": "2026-05-12", "yesterday": "Merged dashboard filters", "today": "Fix sprint selector cache", "blockers": "No blocker" },
+    { "memberId": "omar-alvi", "date": "2026-05-12", "yesterday": "Worked on MCP config", "today": "Continue MCP config", "blockers": "Waiting on review" },
+    { "memberId": "tessa-kim", "date": "2026-05-12", "yesterday": "Made progress on visuals", "today": "More screenshot polish", "blockers": "No blocker" }
+  ]
+}

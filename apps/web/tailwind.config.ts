@@ -1,0 +1,153 @@
+import type { Config } from 'tailwindcss';
+
+const config: Config = {
+  darkMode: ['class'],
+  content: [
+    './index.html',
+    './src/**/*.{ts,tsx}',
+  ],
+  theme: {
+    extend: {
+      colors: {
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        primary: {
+          50: '#e6fbf7',
+          100: '#bdf4eb',
+          200: '#83e7d8',
+          300: '#46d5c2',
+          400: '#1fc0ad',
+          500: '#10a99a',
+          600: '#0d897f',
+          700: '#0c6e67',
+          800: '#0c5852',
+          900: '#083b38',
+          DEFAULT: '#10a99a',
+          foreground: '#ffffff',
+        },
+        danger: {
+          50: '#fef2f2',
+          100: '#fee2e2',
+          200: '#fecaca',
+          300: '#fca5a5',
+          400: '#f87171',
+          500: '#f26d5b',
+          600: '#dc2626',
+          700: '#b91c1c',
+          800: '#991b1b',
+          900: '#7f1d1d',
+          DEFAULT: '#f26d5b',
+        },
+        warning: {
+          50: '#fefce8',
+          100: '#fef9c3',
+          200: '#fef08a',
+          300: '#fde047',
+          400: '#facc15',
+          500: '#e7a52e',
+          600: '#ca8a04',
+          700: '#a16207',
+          800: '#854d0e',
+          900: '#713f12',
+          DEFAULT: '#e7a52e',
+        },
+        info: {
+          50: '#eff6ff',
+          100: '#dbeafe',
+          200: '#bfdbfe',
+          300: '#93c5fd',
+          400: '#62a8ff',
+          500: '#447bdb',
+          600: '#2f63c4',
+          700: '#1d4ed8',
+          800: '#1e40af',
+          900: '#1e3a8a',
+          DEFAULT: '#447bdb',
+        },
+        ai: {
+          50: '#f5f3ff',
+          100: '#ede9fe',
+          200: '#ddd6fe',
+          300: '#c4b5fd',
+          400: '#b394ff',
+          500: '#8462e8',
+          600: '#7248d6',
+          700: '#6d28d9',
+          800: '#5b21b6',
+          900: '#4c1d95',
+          DEFAULT: '#8462e8',
+        },
+        dark: {
+          bg: '#070b14',
+          surface: '#101827',
+          elevated: '#172238',
+          border: '#26344a',
+          text: '#edf7fb',
+          muted: '#99a9bd',
+        },
+        card: {
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))',
+        },
+        popover: {
+          DEFAULT: 'hsl(var(--popover))',
+          foreground: 'hsl(var(--popover-foreground))',
+        },
+        secondary: {
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
+        },
+        muted: {
+          DEFAULT: 'hsl(var(--muted))',
+          foreground: 'hsl(var(--muted-foreground))',
+        },
+        accent: {
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
+        },
+        destructive: {
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
+        },
+      },
+      borderRadius: {
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)',
+      },
+      boxShadow: {
+        'glow-sm': '0 0 20px rgba(16, 169, 154, 0.18)',
+        'glow-md': '0 0 44px rgba(16, 169, 154, 0.28)',
+        'glow-lg': '0 0 70px rgba(16, 169, 154, 0.38)',
+        'glass': '0 12px 40px rgba(15, 23, 42, 0.12)',
+        'elevated': '0 24px 70px rgba(15, 23, 42, 0.2)',
+        'float': '0 34px 90px rgba(7, 11, 20, 0.32)',
+      },
+      animation: {
+        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'float': 'float 6s ease-in-out infinite',
+        'gradient': 'gradient 8s linear infinite',
+      },
+      keyframes: {
+        float: {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-20px)' },
+        },
+        gradient: {
+          '0%, 100%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+        },
+      },
+      fontFamily: {
+        sans: ['Plus Jakarta Sans', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+      },
+    },
+  },
+  plugins: [],
+};
+
+export default config;
