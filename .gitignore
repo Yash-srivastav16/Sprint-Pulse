@@ -12,17 +12,6 @@ coverage/
 .aider*
 .continue/
 
-# Presentations and demo videos — keep local only
-*.pptx
-*.ppt
-*.mp4
-*.mov
-*.avi
-*.mkv
-*.webm
-presentation*
-demo_video*
-
 # Local environment files and secrets
 .env
 .env.*
